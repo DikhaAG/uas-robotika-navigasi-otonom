@@ -20,3 +20,7 @@ Standards enforced by reviewer agents during code review for this embedded C++/A
 ## 4. Hardware Abstraction & Portability
 - **Pin Isolation**: No hardcoded digital/analog pin numbers in algorithm modules. All pin mapping must reference definitions in `Config.h` / `Hal.h`.
 - **Dual-Target MCU Compatibility**: AVR-specific registers (such as Timer0/Timer1 PWM registers) must be isolated behind `#if defined(ESP32)` vs AVR conditional compilation or HAL methods.
+
+## 5. Motion Control & Kinematic Conventions
+- **Cumulative Stall Detection**: Never use translational displacement $\Delta d = \frac{\Delta d_L + \Delta d_R}{2}$ for stall detection, because in-place pivot turning ($dL = -dR$) produces $\Delta d \approx 0$ and causes false stall timeouts. Stall watchdogs must track cumulative encoder pulses ($|\Delta P_L| + |\Delta P_R|$) against active motor PWM.
+- **Steering Polarity & Lateral Centering**: Steering offset signs must consistently steer away from the detected boundary. If the left lateral sensor trips, the robot must steer right ($PWM_{\text{left}} > PWM_{\text{right}}$ by adding steering adjustment $u$ to left and subtracting from right).

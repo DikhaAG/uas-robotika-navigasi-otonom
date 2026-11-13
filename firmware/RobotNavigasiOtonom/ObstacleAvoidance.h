@@ -23,6 +23,7 @@ public:
     static float decideBypassLane(float leftClearance, float rightClearance);
     static bool isBothBlocked(float leftClearance, float rightClearance);
     static bool injectBypassWaypoints(const Pose& pose, float measuredDist, float laneY);
+    static void reset();
 
     // Non-blocking scan routine
     static void startScan(float baseHeadingDeg);

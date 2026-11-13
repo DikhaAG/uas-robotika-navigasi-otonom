@@ -14,9 +14,17 @@ TESTS = tests/test_motors \
         tests/test_obstacle_avoidance \
         tests/test_fsm
 
-.PHONY: all test clean run_simulation
+.PHONY: all test check lint run_simulation install-hooks clean
 
-all: test run_simulation
+all: check
+
+lint:
+	@echo "=========================================="
+	@echo " Running Linter & Mechanical Checks..."
+	@echo "=========================================="
+	@! grep -rnE '\b(delay|Hal::delay)\(' firmware/RobotNavigasiOtonom/ --exclude="Hal.*" || (echo "ERROR: Blocking delay() detected in firmware algorithms!" && exit 1)
+	@python3 -m py_compile tools/*.py || (echo "ERROR: Python syntax error detected in tools/!" && exit 1)
+	@echo "  ✓ Mechanical checks and Python syntax validation passed."
 
 tests/test_motors: tests/test_motors.cpp $(SRCS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
@@ -55,6 +63,18 @@ run_simulation:
 	@echo "=========================================="
 	@echo " SIMULATION & TELEMETRY PLOTTING PASSED!"
 	@echo "=========================================="
+
+check: lint test run_simulation
+	@echo "=========================================="
+	@echo " ALL REPOSITORY CHECKS & VERIFICATION PASSED!"
+	@echo "=========================================="
+
+install-hooks:
+	@echo "#!/bin/sh" > .git/hooks/pre-commit
+	@echo "set -e" >> .git/hooks/pre-commit
+	@echo "make check" >> .git/hooks/pre-commit
+	@chmod +x .git/hooks/pre-commit
+	@echo "Git pre-commit hook installed successfully."
 
 clean:
 	rm -f $(TESTS) tools/sample_telemetry.csv tools/trajectory_plot.svg

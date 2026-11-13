@@ -1,30 +1,25 @@
 #include <cassert>
 #include <iostream>
 #include <cmath>
-#include "../firmware/RobotNavigasiOtonom/Config.h"
-#include "../firmware/RobotNavigasiOtonom/Hal.h"
-#include "../firmware/RobotNavigasiOtonom/Motors.h"
-#include "../firmware/RobotNavigasiOtonom/Odometry.h"
-#include "../firmware/RobotNavigasiOtonom/Sensors.h"
-#include "../firmware/RobotNavigasiOtonom/Waypoints.h"
-#include "../firmware/RobotNavigasiOtonom/ObstacleAvoidance.h"
-#include "../firmware/RobotNavigasiOtonom/NavigationFSM.h"
+#include "test_common.h"
 
 int main() {
     std::cout << "[TDD] Running test_fsm..." << std::endl;
 
     // Test 1: Initialization & IDLE state
-    NavigationFSM::init();
+    resetAllMocks();
     assert(NavigationFSM::getState() == STATE_IDLE);
     assert(NavigationFSM::getTargetRoom() == 1); // Default Room 1
     std::cout << "  ✓ Test 1: FSM initialized in STATE_IDLE." << std::endl;
 
     // Test 2: Room selection via command
+    resetAllMocks();
     NavigationFSM::selectRoom(3);
     assert(NavigationFSM::getTargetRoom() == 3);
     std::cout << "  ✓ Test 2: Room selection updated to Room 3." << std::endl;
 
     // Test 3: Transition IDLE -> KALIBRASI -> ORIENTASI
+    resetAllMocks();
     NavigationFSM::triggerStart();
     assert(NavigationFSM::getState() == STATE_KALIBRASI);
     // Simulate 2000 ms calibration completion
@@ -34,17 +29,27 @@ int main() {
     std::cout << "  ✓ Test 3: Transition IDLE -> KALIBRASI -> ORIENTASI passed." << std::endl;
 
     // Test 4: ORIENTASI -> MAJU (Robot facing 0 deg, WP1 at 235, 0)
-    NavigationFSM::update();
+    resetAllMocks();
+    NavigationFSM::triggerStart();
+    Hal::advanceTimeMs(2100);
+    NavigationFSM::update(); // Now in ORIENTASI
+    NavigationFSM::update(); // Now in MAJU
     assert(NavigationFSM::getState() == STATE_MAJU);
     std::cout << "  ✓ Test 4: ORIENTASI -> MAJU passed." << std::endl;
 
     // Test 5: Obstacle avoidance trigger MAJU -> PINDAI
+    resetAllMocks();
+    NavigationFSM::triggerStart();
+    Hal::advanceTimeMs(2100);
+    NavigationFSM::update(); // ORIENTASI
+    NavigationFSM::update(); // MAJU
     Sensors::setMockDistance(20.0f); // Obstacle ahead
     NavigationFSM::update();
     assert(NavigationFSM::getState() == STATE_PINDAI);
     std::cout << "  ✓ Test 5: MAJU -> PINDAI triggered on obstacle < 25 cm." << std::endl;
 
     // Test 6: Final arrival at Room WP2 -> STATE_TIBA
+    resetAllMocks();
     Waypoints::loadRoom(1);
     Waypoints::advanceWaypoint(); // On WP2 (180, 70)
     Odometry::resetPose(180.0f, 69.0f, 90.0f); // rho = 1.0 cm <= 2.0 cm
@@ -56,8 +61,7 @@ int main() {
     std::cout << "  ✓ Test 6: Final room arrival -> STATE_TIBA verified." << std::endl;
 
     // Test 7: Failsafe 1 - Global Timeout (> 90s)
-    Sensors::init();
-    NavigationFSM::init();
+    resetAllMocks();
     NavigationFSM::selectRoom(1);
     NavigationFSM::triggerStart();
     Hal::advanceTimeMs(2100);
@@ -70,8 +74,7 @@ int main() {
     std::cout << "  ✓ Test 7: Failsafe 1 (Global Timeout > 90s) triggered STATE_GAGAL." << std::endl;
 
     // Test 8: Failsafe 2 - Stall Detection (active PWM with 0 pulses for >= 1s)
-    Sensors::init();
-    NavigationFSM::init();
+    resetAllMocks();
     NavigationFSM::selectRoom(1);
     NavigationFSM::triggerStart();
     Hal::advanceTimeMs(2100);
@@ -87,7 +90,7 @@ int main() {
     std::cout << "  ✓ Test 8: Failsafe 2 (Motor Stall >= 1.0s) triggered STATE_GAGAL." << std::endl;
 
     // Test 9: Failsafe 3 - Boundary Excursion (|y| > 40 cm outside room entry)
-    NavigationFSM::init();
+    resetAllMocks();
     NavigationFSM::selectRoom(1);
     NavigationFSM::triggerStart();
     Hal::advanceTimeMs(2100);
@@ -102,7 +105,7 @@ int main() {
     std::cout << "  ✓ Test 9: Failsafe 3 (Boundary Excursion |y| > 40cm) triggered STATE_GAGAL." << std::endl;
 
     // Test 10: Failsafe 4 - Entrapment (> 3 escape retries)
-    NavigationFSM::init();
+    resetAllMocks();
     NavigationFSM::selectRoom(1);
     NavigationFSM::triggerStart();
     Hal::advanceTimeMs(2100);

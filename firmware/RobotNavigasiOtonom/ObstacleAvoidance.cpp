@@ -55,6 +55,15 @@ bool ObstacleAvoidance::injectBypassWaypoints(const Pose& pose, float measuredDi
     return true;
 }
 
+void ObstacleAvoidance::reset() {
+    scanState = SCAN_IDLE;
+    initialHeading = 0.0f;
+    detectedDistance = 25.0f;
+    leftClearance = 0.0f;
+    rightClearance = 0.0f;
+    stateTimerMs = 0;
+}
+
 void ObstacleAvoidance::startScan(float baseHeadingDeg) {
     initialHeading = baseHeadingDeg;
     scanState = SCAN_TURN_LEFT;

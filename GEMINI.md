@@ -8,6 +8,7 @@
 - **Domain Glossary**: [GLOSSARY.md](file:///Users/a69/Desktop/DESKTOP/POLSRI%20D3%20TEKKOM/MK/smt_5/5cm_prak_robotika/uas/GLOSSARY.md) (Ubiquitous vocabulary).
 - **Coding Standards**: [CODING_STANDARDS.md](file:///Users/a69/Desktop/DESKTOP/POLSRI%20D3%20TEKKOM/MK/smt_5/5cm_prak_robotika/uas/CODING_STANDARDS.md) (Embedded C++ rules enforced during `/code-review`).
 - **Architectural Decisions**: [docs/adr/](file:///Users/a69/Desktop/DESKTOP/POLSRI%20D3%20TEKKOM/MK/smt_5/5cm_prak_robotika/uas/docs/adr/) (ADR-0001 Modular Architecture, ADR-0002 Dual MCU).
+- **Verification & Tests**: [Makefile](file:///Users/a69/Desktop/DESKTOP/POLSRI%20D3%20TEKKOM/MK/smt_5/5cm_prak_robotika/uas/Makefile) (`make check`, `make test`, `make run_simulation`).
 
 ## Agent skills
 
