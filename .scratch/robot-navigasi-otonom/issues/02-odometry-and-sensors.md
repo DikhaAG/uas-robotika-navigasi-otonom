@@ -4,12 +4,15 @@
 
 **Blocked by:** 01: Hardware Abstraction Layer & Motor Speed Control
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Interrupt Service Routines (`isrKiri`, `isrKanan`) count wheel pulses on both wheels using `CHANGE` mode with microsecond debounce protection.
-- [ ] MPU6050 gyroscope Z-axis angular rate is read directly over I2C without external library dependencies, subtracted by calibrated bias, and integrated each main loop cycle into heading $\theta$.
-- [ ] Heading angle $\theta$ is continuously normalized within the $[-180^\circ, +180^\circ]$ range.
-- [ ] Odometry updates pose $(x, y)$ every 20 ms using the midpoint angle formulation: $d = (dL + dR)/2$, $x_{k} = x_{k-1} + d \cos\theta$, $y_{k} = y_{k-1} + d \sin\theta$.
-- [ ] Forward distance measurement via HC-SR04 executes non-blockingly at 60 ms intervals with a 25 ms timeout.
-- [ ] Lateral FC-51 infrared proximity sensors on left and right sides are polled digitally to detect adjacent corridor walls.
-- [ ] Pose and sensor telemetry can be output over Serial at 200 ms intervals for observation.
+- [x] Interrupt Service Routines (`isrKiri`, `isrKanan`) count wheel pulses on both wheels using `CHANGE` mode with microsecond debounce protection.
+- [x] MPU6050 gyroscope Z-axis angular rate is read directly over I2C without external library dependencies, subtracted by calibrated bias, and integrated each main loop cycle into heading $\theta$.
+- [x] Heading angle $\theta$ is continuously normalized within the $[-180^\circ, +180^\circ]$ range.
+- [x] Odometry updates pose $(x, y)$ every 20 ms using the midpoint angle formulation: $d = (dL + dR)/2$, $x_{k} = x_{k-1} + d \cos\theta$, $y_{k} = y_{k-1} + d \sin\theta$.
+- [x] Forward distance measurement via HC-SR04 executes non-blockingly at 60 ms intervals with a 25 ms timeout.
+- [x] Lateral FC-51 infrared proximity sensors on left and right sides are polled digitally to detect adjacent corridor walls.
+- [x] Pose and sensor telemetry can be output over Serial at 200 ms intervals for observation.
+
+## Answer
+Implemented `Sensors.h`, `Sensors.cpp`, `Odometry.h`, and `Odometry.cpp` in `firmware/RobotNavigasiOtonom/`. Verified with unit test `tests/test_odometry.cpp` covering angle normalization, initial pose resets, forward midpoint odometry, reverse direction tracking, gyroscope angular rate integration, diagonal displacement, and ultrasonic/IR sensor readings.

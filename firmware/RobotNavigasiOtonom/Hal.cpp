@@ -1,0 +1,215 @@
+#include "Hal.h"
+#include <stdarg.h>
+#include <stdio.h>
+
+#ifdef ARDUINO
+
+void Hal::init() {
+#if (BOARD_TYPE == BOARD_ESP32)
+    // ESP32 LEDC PWM setup
+    ledcAttach(PIN_ENA, 1000, 8); // 1 kHz, 8-bit resolution
+    ledcAttach(PIN_ENB, 1000, 8);
+#endif
+}
+
+void Hal::pinMode(uint8_t pin, uint8_t mode) {
+    ::pinMode(pin, mode);
+}
+
+void Hal::digitalWrite(uint8_t pin, uint8_t val) {
+    ::digitalWrite(pin, val);
+}
+
+uint8_t Hal::digitalRead(uint8_t pin) {
+    return (uint8_t)::digitalRead(pin);
+}
+
+void Hal::setPwm(uint8_t pin, uint8_t val) {
+#if (BOARD_TYPE == BOARD_ESP32)
+    ledcWrite(pin, val);
+#else
+    ::analogWrite(pin, val);
+#endif
+}
+
+uint32_t Hal::millis() {
+    return ::millis();
+}
+
+uint32_t Hal::micros() {
+    return ::micros();
+}
+
+void Hal::delay(uint32_t ms) {
+    ::delay(ms);
+}
+
+void Hal::noInterrupts() {
+    ::noInterrupts();
+}
+
+void Hal::interrupts() {
+    ::interrupts();
+}
+
+void Hal::serialBegin(uint32_t baud) {
+    Serial.begin(baud);
+}
+
+void Hal::serialPrint(const char* str) {
+    Serial.print(str);
+}
+
+void Hal::serialPrintln(const char* str) {
+    Serial.println(str);
+}
+
+void Hal::serialPrint(const __FlashStringHelper* fstr) {
+    Serial.print(fstr);
+}
+
+void Hal::serialPrintln(const __FlashStringHelper* fstr) {
+    Serial.println(fstr);
+}
+
+void Hal::serialPrintF(const char* format, ...) {
+    char buf[128];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(buf, sizeof(buf), format, args);
+    va_end(args);
+    Serial.print(buf);
+}
+
+bool Hal::serialAvailable() {
+    return Serial.available() > 0;
+}
+
+char Hal::serialRead() {
+    return (char)Serial.read();
+}
+
+#else
+
+// ==========================================
+// Desktop / Unit Test Mock Implementation
+// ==========================================
+static uint8_t mock_pins[64] = {0};
+static uint8_t mock_pwm[64]  = {0};
+static uint32_t mock_time_ms = 0;
+static uint32_t mock_time_us = 0;
+static bool mock_interrupts_enabled = true;
+
+void Hal::init() {
+    resetMock();
+}
+
+void Hal::pinMode(uint8_t pin, uint8_t mode) {
+    (void)pin;
+    (void)mode;
+}
+
+void Hal::digitalWrite(uint8_t pin, uint8_t val) {
+    if (pin < 64) {
+        mock_pins[pin] = val;
+    }
+}
+
+uint8_t Hal::digitalRead(uint8_t pin) {
+    if (pin < 64) {
+        return mock_pins[pin];
+    }
+    return 0;
+}
+
+void Hal::setPwm(uint8_t pin, uint8_t val) {
+    if (pin < 64) {
+        mock_pwm[pin] = val;
+    }
+}
+
+uint32_t Hal::millis() {
+    return mock_time_ms;
+}
+
+uint32_t Hal::micros() {
+    return mock_time_us;
+}
+
+void Hal::delay(uint32_t ms) {
+    mock_time_ms += ms;
+    mock_time_us += ms * 1000;
+}
+
+void Hal::noInterrupts() {
+    mock_interrupts_enabled = false;
+}
+
+void Hal::interrupts() {
+    mock_interrupts_enabled = true;
+}
+
+void Hal::serialBegin(uint32_t baud) {
+    (void)baud;
+}
+
+void Hal::serialPrint(const char* str) {
+    (void)str;
+}
+
+void Hal::serialPrintln(const char* str) {
+    (void)str;
+}
+
+void Hal::serialPrintF(const char* format, ...) {
+    (void)format;
+}
+
+bool Hal::serialAvailable() {
+    return false;
+}
+
+char Hal::serialRead() {
+    return 0;
+}
+
+uint8_t Hal::getPin(uint8_t pin) {
+    if (pin < 64) return mock_pins[pin];
+    return 0;
+}
+
+uint8_t Hal::getPwm(uint8_t pin) {
+    if (pin < 64) return mock_pwm[pin];
+    return 0;
+}
+
+void Hal::setMockPin(uint8_t pin, uint8_t val) {
+    if (pin < 64) mock_pins[pin] = val;
+}
+
+void Hal::setMockTimeMs(uint32_t ms) {
+    mock_time_ms = ms;
+    mock_time_us = ms * 1000;
+}
+
+void Hal::setMockTimeUs(uint32_t us) {
+    mock_time_us = us;
+    mock_time_ms = us / 1000;
+}
+
+void Hal::advanceTimeMs(uint32_t ms) {
+    mock_time_ms += ms;
+    mock_time_us += ms * 1000;
+}
+
+void Hal::resetMock() {
+    for (int i = 0; i < 64; ++i) {
+        mock_pins[i] = 0;
+        mock_pwm[i] = 0;
+    }
+    mock_time_ms = 0;
+    mock_time_us = 0;
+    mock_interrupts_enabled = true;
+}
+
+#endif

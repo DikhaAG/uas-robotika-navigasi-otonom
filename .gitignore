@@ -10,6 +10,13 @@ build/
 *.o
 *.d
 
+# Test binaries
+tests/test_motors
+tests/test_odometry
+tests/test_waypoints
+tests/test_obstacle_avoidance
+tests/test_fsm
+
 # Python artifacts
 __pycache__/
 *.pyc
