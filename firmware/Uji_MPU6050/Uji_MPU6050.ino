@@ -65,7 +65,9 @@ void calibrateGyro() {
         Wire.requestFrom((uint8_t)MPU6050_I2C_ADDR, (uint8_t)2, (uint8_t)true);
 
         if (Wire.available() >= 2) {
-            int16_t raw = (int16_t)((Wire.read() << 8) | Wire.read());
+            uint8_t msb = Wire.read();
+            uint8_t lsb = Wire.read();
+            int16_t raw = (int16_t)(((uint16_t)msb << 8) | lsb);
             sum += (float)raw / GYRO_SCALE_250DPS;
         }
         delay(10);
@@ -84,7 +86,9 @@ float readGyroZRate() {
     Wire.requestFrom((uint8_t)MPU6050_I2C_ADDR, (uint8_t)2, (uint8_t)true);
 
     if (Wire.available() >= 2) {
-        int16_t raw = (int16_t)((Wire.read() << 8) | Wire.read());
+        uint8_t msb = Wire.read();
+        uint8_t lsb = Wire.read();
+        int16_t raw = (int16_t)(((uint16_t)msb << 8) | lsb);
         float dps = ((float)raw / GYRO_SCALE_250DPS) - gyroBiasZ;
         return dps * GYRO_SIGN;
     }

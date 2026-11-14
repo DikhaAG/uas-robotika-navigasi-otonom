@@ -41,6 +41,7 @@ lint:
 	@! grep -rnE '#include "(Waypoints\.h|Waypoints)"' firmware/ tests/ || (echo "ERROR: Obsolete Waypoints.h header referenced in active codebase!" && exit 1)
 	@! grep -rnE '#include "(CalibrationProtocol\.h|CalibrationProtocol)"' firmware/ tests/ tools/ || (echo "ERROR: Obsolete CalibrationProtocol.h header referenced in active codebase!" && exit 1)
 	@! grep -rnE '#include "(Sensors\.h|Sensors)"' firmware/ tests/ tools/ || (echo "ERROR: Obsolete Sensors.h header referenced in active codebase!" && exit 1)
+	@! grep -rnE 'Wire\.read\(\)[^;\n]*Wire\.read\(\)' firmware/ || (echo "ERROR: Unsequenced multiple Wire.read() calls in single expression!" && exit 1)
 	@python3 -m py_compile tools/*.py tests/*.py || (echo "ERROR: Python syntax error detected in tools/ or tests/!" && exit 1)
 	@echo "  ✓ Mechanical checks and Python syntax validation passed."
 
@@ -78,15 +79,10 @@ test: $(TESTS)
 	@echo "=========================================="
 	@echo " Running Full C++ Test Suite..."
 	@echo "=========================================="
-	$(TEST_TIMEOUT) ./tests/test_motors
-	$(TEST_TIMEOUT) ./tests/test_sensors_peripherals
-	$(TEST_TIMEOUT) ./tests/test_odometry
-	$(TEST_TIMEOUT) ./tests/test_waypoint_queue
-	$(TEST_TIMEOUT) ./tests/test_motion_controller
-	$(TEST_TIMEOUT) ./tests/test_obstacle_avoidance
-	$(TEST_TIMEOUT) ./tests/test_fsm
-	$(TEST_TIMEOUT) ./tests/test_calibration_profile
-	$(TEST_TIMEOUT) ./tests/test_calibration_protocol
+	@for t in $(TESTS); do \
+		echo "Executing $$t..."; \
+		$(TEST_TIMEOUT) ./$$t || exit 1; \
+	done
 	@echo "=========================================="
 	@echo " ALL C++ UNIT TESTS PASSED!"
 	@echo "=========================================="

@@ -18,10 +18,12 @@ Standards enforced by reviewer agents during code review for this embedded C++/A
 - **Flash String Literal Macro**: All constant string literals printed to Serial or log streams must be wrapped in `F("...")` macro (e.g. `Serial.print(F("STATE -> "));`) to keep string constants in Flash ROM instead of consuming precious SRAM.
 - **Fixed-Size Data Structures**: Waypoint queues, circular buffers, and arrays must use compile-time static capacities with boundary checks before insertion.
 - **Minimal Refactored Interfaces**: When splitting or deepening embedded C++ modules, never retain speculative backward-compatibility forwarding wrappers or dead aliases when all callers reside internally in the repository. Keep public interfaces strictly minimal.
+- **Header Include Hygiene**: Header files (`.h`) must never include peripheral or service headers unless those types are directly referenced in member variable declarations or method signatures. Keep dependency inclusions strictly localized to implementation files (`.cpp`).
 
 ## 4. Hardware Abstraction & Portability
 - **Pin Isolation**: No hardcoded digital/analog pin numbers in algorithm modules. All pin mapping must reference definitions in `Config.h` / `Hal.h`.
 - **Dual-Target MCU Compatibility**: AVR-specific registers (such as Timer0/Timer1 PWM registers) must be isolated behind `#if defined(ESP32)` vs AVR conditional compilation or HAL methods.
+- **Sequential Multi-Byte Peripheral Reads**: Multi-byte I2C/SPI registers (e.g. 16-bit sensor words) must be read into sequential local variables (`uint8_t msb = Wire.read(); uint8_t lsb = Wire.read();`) before bitwise assembly. Never write `(Wire.read() << 8) | Wire.read()` which is unsequenced in C++11 and risks endian/byte-order inversion depending on compiler register allocation.
 
 ## 5. Motion Control & Kinematic Conventions
 - **Cumulative Stall Detection**: Never use translational displacement $\Delta d = \frac{\Delta d_L + \Delta d_R}{2}$ for stall detection, because in-place pivot turning ($dL = -dR$) produces $\Delta d \approx 0$ and causes false stall timeouts. Stall watchdogs must track cumulative encoder pulses ($|\Delta P_L| + |\Delta P_R|$) against active motor PWM.
