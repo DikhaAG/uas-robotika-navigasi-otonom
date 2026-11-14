@@ -89,7 +89,9 @@ void setup() {
     Serial.println(F("================================================="));
     Serial.println(F(" UJI KALIBRASI U1: ENCODER RODA & DIAMETER"));
     Serial.println(F(" Perintah:"));
-    Serial.println(F("   'f' : Maju lurus sejauh 100 cm"));
+    Serial.println(F("   'f' : Maju kedua roda lurus sejauh 100 cm"));
+    Serial.println(F("   '1' : Putar hanya RODA KIRI saja (PWM 160)"));
+    Serial.println(F("   '2' : Putar hanya RODA KANAN saja (PWM 160)"));
     Serial.println(F("   '0' : Reset counter pulsa"));
     Serial.println(F("   's' : Berhenti darurat"));
     Serial.println(F("================================================="));
@@ -102,10 +104,18 @@ void loop() {
             resetCounts();
             targetPulsa = (long)(100.0f / CM_PER_PULSA); // ~98 pulsa
             isDriving100cm = true;
-            setMotors(160, 160);
+            setMotors((int)(160.0f * TRIM_MOTOR_KIRI), (int)(160.0f * TRIM_MOTOR_KANAN));
             Serial.print(F("[U1] Mulai maju 100 cm (Target pulsa: "));
             Serial.print(targetPulsa);
             Serial.println(F(")..."));
+        } else if (cmd == '1') {
+            resetCounts();
+            setMotors((int)(160.0f * TRIM_MOTOR_KIRI), 0);
+            Serial.println(F("[U1] Menguji Roda KIRI saja (PWM 160). Kirim 's' untuk berhenti."));
+        } else if (cmd == '2') {
+            resetCounts();
+            setMotors(0, (int)(160.0f * TRIM_MOTOR_KANAN));
+            Serial.println(F("[U1] Menguji Roda KANAN saja (PWM 160). Kirim 's' untuk berhenti."));
         } else if (cmd == '0') {
             resetCounts();
         } else if (cmd == 's') {

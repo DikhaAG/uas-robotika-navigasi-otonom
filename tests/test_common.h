@@ -9,6 +9,7 @@
 #include "../firmware/RobotNavigasiOtonom/Waypoints.h"
 #include "../firmware/RobotNavigasiOtonom/ObstacleAvoidance.h"
 #include "../firmware/RobotNavigasiOtonom/NavigationFSM.h"
+#include "../firmware/RobotNavigasiOtonom/CalibrationProfile.h"
 
 // Canonical test fixture: cleans all global mock state before each test case
 inline void resetAllMocks() {

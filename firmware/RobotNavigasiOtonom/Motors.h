@@ -16,9 +16,16 @@ public:
     static int getDirectionLeft();
     static int getDirectionRight();
 
+    // Software polarity inversion (+1 normal, -1 inverted)
+    static void setInversion(int8_t invLeft, int8_t invRight);
+    static int8_t getInvertLeft();
+    static int8_t getInvertRight();
+
 private:
     static int arahKiri;
     static int arahKanan;
+    static int8_t invertLeft;
+    static int8_t invertRight;
     static int clampPwm(int pwm);
 };
 

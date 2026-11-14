@@ -3,12 +3,15 @@
 #include <stdio.h>
 
 #ifdef ARDUINO
+#include <EEPROM.h>
 
 void Hal::init() {
 #if (BOARD_TYPE == BOARD_ESP32)
     // ESP32 LEDC PWM setup
     ledcAttach(PIN_ENA, 1000, 8); // 1 kHz, 8-bit resolution
     ledcAttach(PIN_ENB, 1000, 8);
+    // ESP32 Flash EEPROM partition emulation initialization
+    EEPROM.begin(512);
 #endif
 }
 
@@ -50,6 +53,21 @@ void Hal::noInterrupts() {
 
 void Hal::interrupts() {
     ::interrupts();
+}
+
+uint8_t Hal::eepromRead(uint16_t address) {
+    return EEPROM.read(address);
+}
+
+void Hal::eepromUpdate(uint16_t address, uint8_t val) {
+#if (BOARD_TYPE == BOARD_ESP32)
+    if (EEPROM.read(address) != val) {
+        EEPROM.write(address, val);
+        EEPROM.commit();
+    }
+#else
+    EEPROM.update(address, val);
+#endif
 }
 
 void Hal::serialBegin(uint32_t baud) {
@@ -96,12 +114,24 @@ char Hal::serialRead() {
 // ==========================================
 static uint8_t mock_pins[64] = {0};
 static uint8_t mock_pwm[64]  = {0};
+static uint8_t mock_eeprom[1024] = {0};
 static uint32_t mock_time_ms = 0;
 static uint32_t mock_time_us = 0;
 static bool mock_interrupts_enabled = true;
 
 void Hal::init() {
     resetMock();
+}
+
+uint8_t Hal::eepromRead(uint16_t address) {
+    if (address < 1024) return mock_eeprom[address];
+    return 0xFF;
+}
+
+void Hal::eepromUpdate(uint16_t address, uint8_t val) {
+    if (address < 1024 && mock_eeprom[address] != val) {
+        mock_eeprom[address] = val;
+    }
 }
 
 void Hal::pinMode(uint8_t pin, uint8_t mode) {
@@ -202,10 +232,22 @@ void Hal::advanceTimeMs(uint32_t ms) {
     mock_time_us += ms * 1000;
 }
 
+void Hal::setMockEeprom(uint16_t address, uint8_t val) {
+    if (address < 1024) mock_eeprom[address] = val;
+}
+
+uint8_t Hal::getMockEeprom(uint16_t address) {
+    if (address < 1024) return mock_eeprom[address];
+    return 0xFF;
+}
+
 void Hal::resetMock() {
     for (int i = 0; i < 64; ++i) {
         mock_pins[i] = 0;
         mock_pwm[i] = 0;
+    }
+    for (int i = 0; i < 1024; ++i) {
+        mock_eeprom[i] = 0xFF;
     }
     mock_time_ms = 0;
     mock_time_us = 0;

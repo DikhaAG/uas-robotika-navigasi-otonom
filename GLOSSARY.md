@@ -45,3 +45,17 @@ _Avoid_: Heading alignment, pivoting
 **Board Profile**:
 The compile-time target hardware definition setting pin mappings, interrupt assignments, and peripheral driver behaviors for either Arduino Uno R3 or ESP32.
 _Avoid_: Target platform, MCU board config
+
+### Calibration & Diagnostics
+
+**Pre-flight Diagnostic (U0)**:
+An interactive hardware verification stage confirming wiring continuity, peripheral responsiveness (I2C WHO_AM_I, ultrasonic pulse return, encoder interrupts, IR proximity, buzzer, LED), and motor polarity prior to running kinematic calibration.
+_Avoid_: Hardware test, smoke test
+
+**Calibration Profile**:
+The persistent non-volatile parameter struct stored in MCU EEPROM encapsulating tuned physical parameters (wheel diameter, motor trim multipliers, gyro zero-bias, ultrasonic offset) that overrides compile-time defaults at runtime.
+_Avoid_: Config file, settings blob
+
+**Calibration Wizard**:
+The host-side interactive orchestrator (`tools/auto_calibrate.py`) guiding the user through pre-flight wiring diagnostics, physical motion tests, human-in-the-loop ground truth verification, iterative parameter tuning, and EEPROM programming.
+_Avoid_: Calibration script, tuning app

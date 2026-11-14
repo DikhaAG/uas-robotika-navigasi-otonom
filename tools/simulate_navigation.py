@@ -8,6 +8,8 @@ Menghasilkan telemetri CSV dan memvalidasi batas aman koridor serta presisi ling
 import sys
 import math
 import csv
+import argparse
+import subprocess
 
 class Arena:
     CORRIDOR_LENGTH = 480.0  # cm
@@ -243,6 +245,52 @@ class NavigationSimulator:
                 ])
 
 def main():
+    parser = argparse.ArgumentParser(description="Simulasi Kinematika Robot Navigasi Otonom")
+    parser.add_argument("--room", type=int, choices=[1, 2, 3, 4], help="Jalankan simulasi spesifik untuk ruangan (1-4)")
+    parser.add_argument("--obs", action="append", help="Tambah rintangan format 'x,y,w,h' (contoh: '100,0,20,20')")
+    parser.add_argument("-o", "--output", default="tools/sample_telemetry.csv", help="Lokasi file output CSV telemetri (default: tools/sample_telemetry.csv)")
+    parser.add_argument("--plot", action="store_true", help="Otomatis buat file SVG lintasan setelah simulasi selesai")
+    parser.add_argument("--svg", default="tools/trajectory_plot.svg", help="Lokasi file output plot SVG (default: tools/trajectory_plot.svg)")
+    args = parser.parse_args()
+
+    if args.room is not None:
+        # Single room simulation mode
+        obstacles = []
+        if args.obs:
+            for obs_str in args.obs:
+                parts = [float(p.strip()) for p in obs_str.split(",")]
+                if len(parts) == 4:
+                    obstacles.append((parts[0], parts[1], parts[2], parts[3]))
+                else:
+                    print(f"Peringatan: Format rintangan diabaikan: {obs_str} (gunakan format x,y,w,h)")
+        elif args.room == 2:
+            obstacles = [(100.0, 0.0, 20.0, 20.0)]
+        elif args.room == 3:
+            obstacles = [(80.0, 0.0, 20.0, 20.0), (160.0, 0.0, 20.0, 20.0)]
+        elif args.room == 4:
+            obstacles = [(120.0, 0.0, 20.0, 20.0)]
+
+        print(f"=== MENJALANKAN SIMULASI NAVIGASI: ROOM {args.room} ===")
+        sim = NavigationSimulator(target_room=args.room, obstacles=obstacles)
+        success = sim.run()
+        target_center = Arena.ROOMS[args.room][2:]
+        err = math.sqrt((sim.x - target_center[0])**2 + (sim.y - target_center[1])**2)
+
+        print(f"  Result State : {sim.state}")
+        print(f"  Final Pose   : ({sim.x:.2f} cm, {sim.y:.2f} cm, {sim.theta:.2f}°)")
+        print(f"  Target Error : {err:.2f} cm (Spec <= 5.0 cm)")
+        print(f"  Min Wall Clr : {sim.min_wall_clearance:.2f} cm")
+        if obstacles:
+            print(f"  Min Obs Clr  : {sim.min_obstacle_clearance:.2f} cm")
+
+        sim.export_csv(args.output)
+        print(f"  ✓ Telemetri diekspor ke: {args.output}")
+
+        if args.plot:
+            subprocess.run([sys.executable, "tools/plot_trajectory.py", args.output, "-o", args.svg], check=True)
+
+        return 0 if (success and err <= 5.0) else 1
+
     print("=== RUNNING FULL AUTONOMOUS NAVIGATION SIMULATION SUITE ===")
 
     scenarios = [

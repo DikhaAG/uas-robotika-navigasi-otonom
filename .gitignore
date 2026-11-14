@@ -16,6 +16,7 @@ tests/test_odometry
 tests/test_waypoints
 tests/test_obstacle_avoidance
 tests/test_fsm
+tests/test_calibration_profile
 
 # Python artifacts
 __pycache__/

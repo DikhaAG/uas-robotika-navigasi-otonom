@@ -135,11 +135,16 @@ The implementation adopts the project domain language defined in `GLOSSARY.md` (
 2. **Hardware Boundary Seam: HAL Peripheral Interface**
    Mockable HAL abstraction enabling simulation of sensor data inputs (ultrasonic distance, gyro yaw rate, encoder ticks) and verification of resulting motor PWM outputs in a desktop test runner without requiring physical hardware.
 
-### Calibration & Verification Protocols (U1–U4)
-- **U1 (Encoder Distance Calibration)**: Robot commanded to drive 100 cm forward; actual ground truth distance measured with tape measure. Acceptable error: $\le 3\text{ cm}$. Used to tune `DIAMETER_RODA_MM`.
+### Calibration & Verification Protocols (U0–U4)
+- **U0 (Pre-Flight Hardware Diagnostics)**: Automated wiring and peripheral check probing I2C MPU6050 `WHO_AM_I`, HC-SR04 sonar pulse return, FC-51 IR wall detection, audio/visual indicators, and dual motor/encoder spin-response. Hard-gates calibration if any component fails.
+- **U1 (Encoder Distance & Motor Trim Calibration)**: Robot commanded to drive 100 cm forward; actual ground truth distance measured with tape measure. Acceptable error: $\le 3\text{ cm}$. Used to tune `DIAMETER_RODA_MM` and calculate motor balance trim ratios ($P_L / P_R$).
 - **U2 (Gyroscope Rotation Calibration)**: Robot commanded to rotate in-place $\pm 90^\circ$ and $360^\circ$; actual angle measured against floor protractor. Acceptable error: $\le 5^\circ$. Used to verify `GYRO_SIGN` and sensitivity.
 - **U3 (Straight Line Tracking)**: Robot drives 150 cm forward with active gyro heading correction; lateral deviation at endpoint measured. Acceptable error: $\le 5\text{ cm}$.
 - **U4 (Ultrasonic Ranging Accuracy)**: Obstacle positioned at 10, 20, and 40 cm; telemetry reading compared with tape measure. Acceptable error: $\le 1\text{ cm}$.
+
+### Automated Calibration Wizard & EEPROM Persistence
+- An interactive Python wizard (`tools/auto_calibrate.py`) guides the user through U0 to U4, prompts for physical ground truth measurements, iteratively calculates new parameters, commits them to MCU EEPROM via serial protocol (`!CALIB:WRITE`), and auto-retries runs until convergence.
+- Stored `CalibrationProfile` in EEPROM overrides compile-time defaults at boot, including software motor polarity inversion flags (`invertMotorKiri`, `invertMotorKanan`) to eliminate physical rewiring.
 
 ### Desktop Simulation & Offline Test Harness
 - A Python simulation tool (`tools/simulate_navigation.py`) will model the differential drive kinematics, corridor boundaries, room geometry, and obstacle placements to verify waypoint queuing and FSM transitions across Babak 1, 2, and 3 layouts before running on physical hardware.

@@ -33,6 +33,10 @@ public:
     static void noInterrupts();
     static void interrupts();
 
+    // Non-volatile EEPROM storage
+    static uint8_t eepromRead(uint16_t address);
+    static void eepromUpdate(uint16_t address, uint8_t val);
+
     // Serial & Telemetry
     static void serialBegin(uint32_t baud);
     static void serialPrint(const char* str);
@@ -53,6 +57,8 @@ public:
     static void setMockTimeMs(uint32_t ms);
     static void setMockTimeUs(uint32_t us);
     static void advanceTimeMs(uint32_t ms);
+    static void setMockEeprom(uint16_t address, uint8_t val);
+    static uint8_t getMockEeprom(uint16_t address);
     static void resetMock();
 #endif
 };

@@ -16,8 +16,19 @@ Simulator offline berbasis Python untuk memvalidasi algoritma Go-To-Goal, Finite
 - Ekspor telemetri format CSV standar: `tools/sample_telemetry.csv`.
 
 ### Cara Menjalankan:
+
 ```bash
+# 1. Jalankan seluruh suite simulasi standar (Babak 1, 2, 3, dan 3-Alt):
 python3 tools/simulate_navigation.py
+
+# 2. Jalankan simulasi untuk ruangan tertentu (misal: Room 3) dan langsung buat plot lintasan SVG:
+python3 tools/simulate_navigation.py --room 3 --plot
+
+# 3. Jalankan simulasi dengan rintangan kustom (format 'x,y,w,h'):
+python3 tools/simulate_navigation.py --room 2 --obs "110,0,20,20" --plot
+
+# 4. Lihat seluruh opsi perintah:
+python3 tools/simulate_navigation.py --help
 ```
 
 ---

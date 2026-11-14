@@ -108,6 +108,10 @@
 #define PWM_TURN             140
 #define KP_HEADING           3.0f
 
+// Trimming / balancing kecepatan motor kiri dan kanan jika terdapat deviasi mekanik
+#define TRIM_MOTOR_KIRI      1.0f  // Kalibrasi pengali motor kiri (contoh: 0.95 atau 1.05)
+#define TRIM_MOTOR_KANAN     1.0f  // Kalibrasi pengali motor kanan (contoh: 0.95 atau 1.05)
+
 #define JARAK_DECEL_CM       30.0f
 #define TOL_WP_CM            5.0f
 #define TOL_AKHIR_CM         2.0f

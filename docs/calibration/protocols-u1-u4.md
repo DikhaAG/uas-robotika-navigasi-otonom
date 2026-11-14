@@ -34,8 +34,20 @@ Memastikan konstanta keliling roda dan jumlah pulsa menghasilkan estimasi jarak 
 6. Catat jarak aktual $D_{\text{aktual}}$ dan pulsa yang tercatat.
 
 ### 4. Formula Penyetelan (*Tuning*)
-Jika terjadi deviasi melebihi $3\text{ cm}$, lakukan koreksi terhadap konstanta diameter roda di `Config.h`:
+
+#### A. Koreksi Diameter Roda Efektif terhadap Permukaan
+Permukaan lantai yang berbeda (keramik licin, karpet bertekstur, atau tripleks) menyebabkan deformasi ban karet dan tingkat selip yang berbeda. Lakukan koreksi diameter roda di `Config.h`:
 $$D_{\text{baru}} = D_{\text{lama}} \times \left( \frac{D_{\text{aktual}}}{100.0} \right)$$
+
+#### B. Kalibrasi Ketidakseimbangan Motor Kiri vs Kanan (*Motor Trimming*)
+Jika salah satu motor berputar lebih cepat dari motor lainnya pada PWM yang sama (misal teramati pulsa $P_L \ne P_R$ saat uji maju lurus tanpa beban luar), hitung rasio pulsa kedua roda:
+$$R_{\text{motor}} = \frac{P_L}{P_R}$$
+- Jika $P_L > P_R$ (motor kiri lebih cepat, robot membelok ke kanan):
+  - Turunkan `TRIM_MOTOR_KIRI` di `Config.h`: $\text{TRIM\_MOTOR\_KIRI} = \frac{P_R}{P_L}$, ATAU
+  - Naikkan `TRIM_MOTOR_KANAN` di `Config.h`: $\text{TRIM\_MOTOR\_KANAN} = \frac{P_L}{P_R}$
+- Jika $P_R > P_L$ (motor kanan lebih cepat, robot membelok ke kiri):
+  - Turunkan `TRIM_MOTOR_KANAN` di `Config.h`: $\text{TRIM\_MOTOR\_KANAN} = \frac{P_L}{P_R}$
+Nilai trim standar berkisar antara $0.85$ hingga $1.15$.
 
 ### 5. Tabel Pengamatan U1
 | Percobaan | Pulsa Kiri ($P_L$) | Pulsa Kanan ($P_R$) | Jarak Firmware (cm) | Jarak Fisik Meteran (cm) | Galat $\Delta D$ (cm) | Status ($\le 3\text{ cm}$) |

@@ -75,6 +75,23 @@ int main() {
     assert(Hal::getPin(PIN_IN4) == 0);
     std::cout << "  ✓ Test 6: stopMotors() passed." << std::endl;
 
+    // Test 7: Software polarity inversion
+    Motors::setInversion(-1, 1);
+    assert(Motors::getInvertLeft() == -1);
+    assert(Motors::getInvertRight() == 1);
+    // Forward command with inverted left motor: IN1=0, IN2=1
+    Motors::setMotor(170, 170);
+    assert(Hal::getPin(PIN_IN1) == 0);
+    assert(Hal::getPin(PIN_IN2) == 1);
+    assert(Hal::getPin(PIN_IN3) == 1);
+    assert(Hal::getPin(PIN_IN4) == 0);
+    assert(Motors::getDirectionLeft() == 1);
+    assert(Motors::getDirectionRight() == 1);
+    // Revert inversion
+    Motors::setInversion(1, 1);
+    Motors::stopMotors();
+    std::cout << "  ✓ Test 7: Software polarity inversion passed." << std::endl;
+
     std::cout << "[TDD] ALL test_motors passed successfully!" << std::endl;
     return 0;
 }
