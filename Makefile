@@ -4,7 +4,8 @@ SRCS = firmware/RobotNavigasiOtonom/Hal.cpp \
        firmware/RobotNavigasiOtonom/Motors.cpp \
        firmware/RobotNavigasiOtonom/Sensors.cpp \
        firmware/RobotNavigasiOtonom/Odometry.cpp \
-       firmware/RobotNavigasiOtonom/Waypoints.cpp \
+       firmware/RobotNavigasiOtonom/WaypointQueue.cpp \
+       firmware/RobotNavigasiOtonom/MotionController.cpp \
        firmware/RobotNavigasiOtonom/ObstacleAvoidance.cpp \
        firmware/RobotNavigasiOtonom/NavigationFSM.cpp \
        firmware/RobotNavigasiOtonom/CalibrationProfile.cpp \
@@ -12,7 +13,8 @@ SRCS = firmware/RobotNavigasiOtonom/Hal.cpp \
 
 TESTS = tests/test_motors \
         tests/test_odometry \
-        tests/test_waypoints \
+        tests/test_waypoint_queue \
+        tests/test_motion_controller \
         tests/test_obstacle_avoidance \
         tests/test_fsm \
         tests/test_calibration_profile \
@@ -36,7 +38,10 @@ tests/test_motors: tests/test_motors.cpp $(SRCS)
 tests/test_odometry: tests/test_odometry.cpp $(SRCS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
-tests/test_waypoints: tests/test_waypoints.cpp $(SRCS)
+tests/test_waypoint_queue: tests/test_waypoint_queue.cpp $(SRCS)
+	$(CXX) $(CXXFLAGS) $^ -o $@
+
+tests/test_motion_controller: tests/test_motion_controller.cpp $(SRCS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 tests/test_obstacle_avoidance: tests/test_obstacle_avoidance.cpp $(SRCS)
@@ -57,7 +62,8 @@ test: $(TESTS)
 	@echo "=========================================="
 	./tests/test_motors
 	./tests/test_odometry
-	./tests/test_waypoints
+	./tests/test_waypoint_queue
+	./tests/test_motion_controller
 	./tests/test_obstacle_avoidance
 	./tests/test_fsm
 	./tests/test_calibration_profile

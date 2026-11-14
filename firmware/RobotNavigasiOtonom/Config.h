@@ -147,5 +147,18 @@
 // Room 2 (Right): Doorway (295, 0), Center (295, 70)
 // Room 3 (Left):  Doorway (235, 0), Center (235, -70)
 // Room 4 (Left):  Doorway (355, 0), Center (355, -70)
+static const float ROOM_WP1[4][2] = {
+    {180.0f, 0.0f},
+    {295.0f, 0.0f},
+    {235.0f, 0.0f},
+    {355.0f, 0.0f}
+};
+
+static const float ROOM_WP2[4][2] = {
+    {180.0f, 70.0f},
+    {295.0f, 70.0f},
+    {235.0f, -70.0f},
+    {355.0f, -70.0f}
+};
 
 #endif // CONFIG_H

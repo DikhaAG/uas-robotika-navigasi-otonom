@@ -3,7 +3,8 @@
 
 #include "Config.h"
 #include "Odometry.h"
-#include "Waypoints.h"
+#include "WaypointQueue.h"
+#include "MotionController.h"
 #include <stdint.h>
 
 enum ScanState {

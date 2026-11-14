@@ -58,14 +58,14 @@ void NavigationFSM::init() {
     lastMotionDistanceCm = 0.0f;
 
     Motors::stopMotors();
-    Waypoints::loadRoom(targetRoom);
+    WaypointQueue::loadRoom(targetRoom);
     CalibrationProtocol::init(NavigationFSM::selectRoom);
 }
 
 void NavigationFSM::selectRoom(uint8_t room) {
     if (room >= 1 && room <= 4) {
         targetRoom = room;
-        Waypoints::loadRoom(targetRoom);
+        WaypointQueue::loadRoom(targetRoom);
     }
 }
 
@@ -75,7 +75,7 @@ uint8_t NavigationFSM::getTargetRoom() {
 
 void NavigationFSM::triggerStart() {
     if (currentState == STATE_IDLE) {
-        Waypoints::loadRoom(targetRoom);
+        WaypointQueue::loadRoom(targetRoom);
         transitionTo(STATE_KALIBRASI);
     }
 }
@@ -139,7 +139,7 @@ bool NavigationFSM::checkFailsafes(const Pose& pose) {
     }
 
     // 3. Failsafe: Boundary Excursion (|y| > 40 cm outside room entry, or x < -30 cm)
-    if (!Waypoints::isFinalWaypoint()) {
+    if (!WaypointQueue::isFinal()) {
         if (fabsf(pose.y) > BATAS_KORIDOR_Y_CM || pose.x < BATAS_KORIDOR_X_MIN) {
             lastFailsafe = FAILSAFE_BOUNDARY;
             Motors::stopMotors();
@@ -169,7 +169,7 @@ void NavigationFSM::streamTelemetry(const Pose& pose) {
                  getStateName(currentState),
                  pose.x, pose.y, pose.theta,
                  Sensors::getDistance(),
-                 Waypoints::getCurrentIndex());
+                 WaypointQueue::getCurrentIndex());
         Hal::serialPrint(line);
     }
 }
@@ -246,18 +246,18 @@ void NavigationFSM::update() {
 
         case STATE_ORIENTASI: {
             Hal::digitalWrite(PIN_LED, HIGH);
-            int pwmL = 0, pwmR = 0;
-            float rho = 0.0f, e = 0.0f;
-            Waypoints::computeErrors(pose, rho, e);
+            Waypoint target = WaypointQueue::getCurrentWaypoint();
+            float dx = target.x - pose.x;
+            float dy = target.y - pose.y;
+            float targetHeading = atan2f(dy, dx) * (180.0f / PI);
 
-            if (fabsf(e) <= TOL_ORIENTASI_DEG) {
+            int pwmL = 0, pwmR = 0;
+            if (MotionController::rotateTowards(pose.theta, targetHeading, pwmL, pwmR)) {
                 Motors::stopMotors();
                 lastMotionTimestampMs = now;
                 lastMotionDistanceCm = Odometry::getDistanceMoved();
                 transitionTo(STATE_MAJU);
             } else {
-                pwmL = (e > 0.0f) ? -PWM_TURN : +PWM_TURN;
-                pwmR = (e > 0.0f) ? +PWM_TURN : -PWM_TURN;
                 Motors::setMotor(pwmL, pwmR);
             }
             break;
@@ -268,16 +268,28 @@ void NavigationFSM::update() {
 
             // 1. Check obstacle avoidance trigger
             float frontDist = Sensors::getDistance();
-            if (ObstacleAvoidance::shouldTrigger(pose, frontDist, Waypoints::isFinalWaypoint())) {
+            if (ObstacleAvoidance::shouldTrigger(pose, frontDist, WaypointQueue::isFinal())) {
                 Motors::stopMotors();
                 ObstacleAvoidance::startScan(pose.theta);
                 transitionTo(STATE_PINDAI);
                 break;
             }
 
-            // 2. Check waypoint arrival
-            if (Waypoints::checkWaypointAchieved(pose)) {
-                if (Waypoints::isFinalWaypoint()) {
+            // 2. Drive towards target waypoint using MotionController
+            Waypoint target = WaypointQueue::getCurrentWaypoint();
+            bool isFinal = WaypointQueue::isFinal();
+            float tol = isFinal ? TOL_AKHIR_CM : TOL_WP_CM;
+
+            MotionCommand cmd = MotionController::driveTowards(
+                pose.x, pose.y, pose.theta,
+                target.x, target.y,
+                Sensors::isWallLeft(), Sensors::isWallRight(),
+                tol
+            );
+
+            // 3. Check waypoint arrival
+            if (cmd.achieved) {
+                if (isFinal) {
                     // Back wall verification: distance to back wall confirms settlement <= 25 cm
                     float backWallDist = Sensors::getDistance();
                     if (backWallDist <= 25.0f || backWallDist >= 350.0f) {
@@ -285,20 +297,18 @@ void NavigationFSM::update() {
                         break;
                     }
                 } else {
-                    Waypoints::advanceWaypoint();
+                    WaypointQueue::advance();
                     // Re-orient to next waypoint
                     transitionTo(STATE_ORIENTASI);
                     break;
                 }
             }
 
-            // 3. Drive forward with proportional steering
-            int pwmL = 0, pwmR = 0;
-            bool isTurning = Waypoints::computeMotorCommands(pose, pwmL, pwmR);
-            if (isTurning) {
+            // 4. Drive motors or re-orient if large heading divergence
+            if (cmd.isTurning) {
                 transitionTo(STATE_ORIENTASI);
             } else {
-                Motors::setMotor(pwmL, pwmR);
+                Motors::setMotor(cmd.pwmL, cmd.pwmR);
             }
             break;
         }

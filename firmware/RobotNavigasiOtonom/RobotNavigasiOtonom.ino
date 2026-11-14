@@ -3,7 +3,8 @@
 #include "Motors.h"
 #include "Sensors.h"
 #include "Odometry.h"
-#include "Waypoints.h"
+#include "WaypointQueue.h"
+#include "MotionController.h"
 #include "ObstacleAvoidance.h"
 #include "CalibrationProfile.h"
 #include "CalibrationProtocol.h"
@@ -18,7 +19,7 @@ void setup() {
     Motors::init();
     Sensors::init();
     Odometry::init();
-    Waypoints::init();
+    WaypointQueue::init();
     CalibrationProtocol::init();
     NavigationFSM::init();
 

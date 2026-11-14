@@ -6,7 +6,8 @@
 #include "../firmware/RobotNavigasiOtonom/Motors.h"
 #include "../firmware/RobotNavigasiOtonom/Sensors.h"
 #include "../firmware/RobotNavigasiOtonom/Odometry.h"
-#include "../firmware/RobotNavigasiOtonom/Waypoints.h"
+#include "../firmware/RobotNavigasiOtonom/WaypointQueue.h"
+#include "../firmware/RobotNavigasiOtonom/MotionController.h"
 #include "../firmware/RobotNavigasiOtonom/ObstacleAvoidance.h"
 #include "../firmware/RobotNavigasiOtonom/NavigationFSM.h"
 #include "../firmware/RobotNavigasiOtonom/CalibrationProfile.h"
@@ -18,6 +19,7 @@ inline void resetAllMocks() {
     Motors::init();
     Sensors::init();
     Odometry::init();
+    WaypointQueue::init();
     ObstacleAvoidance::reset();
     CalibrationProtocol::init();
     NavigationFSM::init();

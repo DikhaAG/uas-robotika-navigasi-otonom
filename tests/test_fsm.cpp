@@ -50,8 +50,8 @@ int main() {
 
     // Test 6: Final arrival at Room WP2 -> STATE_TIBA
     resetAllMocks();
-    Waypoints::loadRoom(1);
-    Waypoints::advanceWaypoint(); // On WP2 (180, 70)
+    WaypointQueue::loadRoom(1);
+    WaypointQueue::advance(); // On WP2 (180, 70)
     Odometry::resetPose(180.0f, 69.0f, 90.0f); // rho = 1.0 cm <= 2.0 cm
     Sensors::setMockDistance(15.0f); // Back wall confirmed
     NavigationFSM::setState(STATE_MAJU);

@@ -33,7 +33,7 @@ bool ObstacleAvoidance::injectBypassWaypoints(const Pose& pose, float measuredDi
     detectedDistance = measuredDist;
 
     // Target doorway waypoint for clamping
-    Waypoint target = Waypoints::getCurrentWaypoint();
+    Waypoint target = WaypointQueue::getCurrentWaypoint();
     float maxX = target.x - 5.0f;
 
     Waypoint wpA = { pose.x + 15.0f, laneY };
@@ -48,9 +48,9 @@ bool ObstacleAvoidance::injectBypassWaypoints(const Pose& pose, float measuredDi
     }
 
     // Inject in reverse order so wpA is at currentIndex
-    if (!Waypoints::injectWaypointFront(wpC.x, wpC.y)) return false;
-    if (!Waypoints::injectWaypointFront(wpB.x, wpB.y)) return false;
-    if (!Waypoints::injectWaypointFront(wpA.x, wpA.y)) return false;
+    if (!WaypointQueue::injectFront(wpC.x, wpC.y)) return false;
+    if (!WaypointQueue::injectFront(wpB.x, wpB.y)) return false;
+    if (!WaypointQueue::injectFront(wpA.x, wpA.y)) return false;
 
     return true;
 }
@@ -80,14 +80,10 @@ ScanState ObstacleAvoidance::updateScan(const Pose& pose, float currentDist, int
     switch (scanState) {
         case SCAN_TURN_LEFT: {
             float targetDeg = Odometry::normalizeAngleDeg(initialHeading + SUDUT_PINDAI_DEG);
-            float err = Odometry::normalizeAngleDeg(targetDeg - pose.theta);
-            if (fabsf(err) <= TOL_ORIENTASI_DEG) {
+            if (MotionController::rotateTowards(pose.theta, targetDeg, pwmL, pwmR)) {
                 // Reached +30 deg, pause to settle
                 scanState = SCAN_PAUSE_LEFT;
                 stateTimerMs = now;
-            } else {
-                pwmL = (err > 0.0f) ? -PWM_TURN : +PWM_TURN;
-                pwmR = (err > 0.0f) ? +PWM_TURN : -PWM_TURN;
             }
             break;
         }
@@ -102,13 +98,9 @@ ScanState ObstacleAvoidance::updateScan(const Pose& pose, float currentDist, int
 
         case SCAN_TURN_RIGHT: {
             float targetDeg = Odometry::normalizeAngleDeg(initialHeading - SUDUT_PINDAI_DEG);
-            float err = Odometry::normalizeAngleDeg(targetDeg - pose.theta);
-            if (fabsf(err) <= TOL_ORIENTASI_DEG) {
+            if (MotionController::rotateTowards(pose.theta, targetDeg, pwmL, pwmR)) {
                 scanState = SCAN_PAUSE_RIGHT;
                 stateTimerMs = now;
-            } else {
-                pwmL = (err > 0.0f) ? -PWM_TURN : +PWM_TURN;
-                pwmR = (err > 0.0f) ? +PWM_TURN : -PWM_TURN;
             }
             break;
         }
@@ -122,16 +114,12 @@ ScanState ObstacleAvoidance::updateScan(const Pose& pose, float currentDist, int
         }
 
         case SCAN_REALIGN: {
-            float err = Odometry::normalizeAngleDeg(initialHeading - pose.theta);
-            if (fabsf(err) <= TOL_ORIENTASI_DEG) {
+            if (MotionController::rotateTowards(pose.theta, initialHeading, pwmL, pwmR)) {
                 if (isBothBlocked(leftClearance, rightClearance)) {
                     scanState = SCAN_ESCAPE_NEEDED;
                 } else {
                     scanState = SCAN_DONE;
                 }
-            } else {
-                pwmL = (err > 0.0f) ? -PWM_TURN : +PWM_TURN;
-                pwmR = (err > 0.0f) ? +PWM_TURN : -PWM_TURN;
             }
             break;
         }

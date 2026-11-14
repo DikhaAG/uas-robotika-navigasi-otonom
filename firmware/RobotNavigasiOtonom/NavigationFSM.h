@@ -6,7 +6,8 @@
 #include "Motors.h"
 #include "Odometry.h"
 #include "Sensors.h"
-#include "Waypoints.h"
+#include "WaypointQueue.h"
+#include "MotionController.h"
 #include "ObstacleAvoidance.h"
 #include <stdint.h>
 
