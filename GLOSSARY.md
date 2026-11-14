@@ -18,6 +18,10 @@ _Avoid_: Dead reckoning, external tracking
 A target 2D coordinate $(x, y)$ that the robot sequentially navigates towards using proportional steering control.
 _Avoid_: Marker, milestone, destination point
 
+**WaypointQueue**:
+A deterministic, bounded FIFO buffer that manages sequential target waypoints, room doorway/center initialization, and temporary detour waypoint injection.
+_Avoid_: Waypoint list, waypoint manager
+
 **Goal Room**:
 One of four designated destination enclosures (Room 1–4) along the corridor, parameterized by an entry corridor waypoint (WP1) and an interior center waypoint (WP2).
 _Avoid_: Chamber, destination room, target zone
@@ -27,6 +31,10 @@ A dynamic intermediate coordinate injected into the waypoint queue during obstac
 _Avoid_: Detour point, bypass coordinate
 
 ### Control & State
+
+**MotionController**:
+A deep, stateless closed-loop control module that calculates geometric distance and angular errors, evaluates waypoint achievement thresholds, normalizes angles, and translates active Pose and target Waypoints into signed motor PWM commands (`MotionCommand`) with active proportional heading hold, smooth deceleration, and wall-centering bias.
+_Avoid_: Steering module, driver math
 
 **Go-to-Goal**:
 The closed-loop control routine calculating distance error $\rho$ and angular heading error $e$, executing in-place turns when $|e| > 25^\circ$ and proportional forward drive when $|e| \le 25^\circ$.
