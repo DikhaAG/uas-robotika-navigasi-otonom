@@ -24,6 +24,9 @@ public:
     static Pose getPose();
     static float getDistanceMoved();
     static long getTotalPulseCount();
+    static long getPulsaKiri();
+    static long getPulsaKanan();
+    static void resetPulses();
 
     static float normalizeAngleDeg(float deg);
 

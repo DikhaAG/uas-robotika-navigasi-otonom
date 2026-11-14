@@ -128,3 +128,26 @@ long Odometry::getTotalPulseCount() {
     Hal::interrupts();
     return total;
 }
+
+long Odometry::getPulsaKiri() {
+    Hal::noInterrupts();
+    long p = pulsaKiri;
+    Hal::interrupts();
+    return p;
+}
+
+long Odometry::getPulsaKanan() {
+    Hal::noInterrupts();
+    long p = pulsaKanan;
+    Hal::interrupts();
+    return p;
+}
+
+void Odometry::resetPulses() {
+    Hal::noInterrupts();
+    pulsaKiri = 0;
+    pulsaKanan = 0;
+    Hal::interrupts();
+    lastPulsaKiri = 0;
+    lastPulsaKanan = 0;
+}

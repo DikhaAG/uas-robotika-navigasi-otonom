@@ -1,6 +1,7 @@
 #include "Hal.h"
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 
 #ifdef ARDUINO
 #include <EEPROM.h>
@@ -118,6 +119,11 @@ static uint8_t mock_eeprom[1024] = {0};
 static uint32_t mock_time_ms = 0;
 static uint32_t mock_time_us = 0;
 static bool mock_interrupts_enabled = true;
+static char mock_serial_rx[512] = {0};
+static size_t mock_serial_rx_head = 0;
+static size_t mock_serial_rx_tail = 0;
+static char mock_serial_tx[1024] = {0};
+static size_t mock_serial_tx_len = 0;
 
 void Hal::init() {
     resetMock();
@@ -184,23 +190,55 @@ void Hal::serialBegin(uint32_t baud) {
 }
 
 void Hal::serialPrint(const char* str) {
-    (void)str;
+    if (str != NULL && mock_serial_tx_len < sizeof(mock_serial_tx) - 1) {
+        snprintf(mock_serial_tx + mock_serial_tx_len, sizeof(mock_serial_tx) - mock_serial_tx_len, "%s", str);
+        mock_serial_tx_len = strlen(mock_serial_tx);
+    }
 }
 
 void Hal::serialPrintln(const char* str) {
-    (void)str;
+    if (str != NULL && mock_serial_tx_len < sizeof(mock_serial_tx) - 3) {
+        snprintf(mock_serial_tx + mock_serial_tx_len, sizeof(mock_serial_tx) - mock_serial_tx_len, "%s\r\n", str);
+        mock_serial_tx_len = strlen(mock_serial_tx);
+    }
 }
 
 void Hal::serialPrintF(const char* format, ...) {
-    (void)format;
+    if (format != NULL && mock_serial_tx_len < sizeof(mock_serial_tx) - 1) {
+        va_list args;
+        va_start(args, format);
+        vsnprintf(mock_serial_tx + mock_serial_tx_len, sizeof(mock_serial_tx) - mock_serial_tx_len, format, args);
+        va_end(args);
+        mock_serial_tx_len = strlen(mock_serial_tx);
+    }
 }
 
 bool Hal::serialAvailable() {
-    return false;
+    return (mock_serial_rx_tail > mock_serial_rx_head);
 }
 
 char Hal::serialRead() {
+    if (mock_serial_rx_tail > mock_serial_rx_head) {
+        return mock_serial_rx[mock_serial_rx_head++];
+    }
     return 0;
+}
+
+void Hal::injectMockSerial(const char* data) {
+    if (data == NULL) return;
+    while (*data && mock_serial_rx_tail < sizeof(mock_serial_rx) - 1) {
+        mock_serial_rx[mock_serial_rx_tail++] = *data++;
+    }
+    mock_serial_rx[mock_serial_rx_tail] = '\0';
+}
+
+const char* Hal::getMockSerialOutput() {
+    return mock_serial_tx;
+}
+
+void Hal::clearMockSerialOutput() {
+    mock_serial_tx[0] = '\0';
+    mock_serial_tx_len = 0;
 }
 
 uint8_t Hal::getPin(uint8_t pin) {
@@ -252,6 +290,11 @@ void Hal::resetMock() {
     mock_time_ms = 0;
     mock_time_us = 0;
     mock_interrupts_enabled = true;
+    mock_serial_rx_head = 0;
+    mock_serial_rx_tail = 0;
+    mock_serial_rx[0] = '\0';
+    mock_serial_tx_len = 0;
+    mock_serial_tx[0] = '\0';
 }
 
 #endif

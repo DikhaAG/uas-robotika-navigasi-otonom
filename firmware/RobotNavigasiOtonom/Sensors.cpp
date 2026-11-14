@@ -15,6 +15,7 @@ float Sensors::mockGyroZ = 0.0f;
 float Sensors::mockDistance = 400.0f;
 bool Sensors::mockIrLeft = false;
 bool Sensors::mockIrRight = false;
+uint8_t Sensors::mockWhoAmI = 0x68;
 #endif
 
 static float gyroCalibSumZ = 0.0f;
@@ -39,12 +40,32 @@ void Sensors::init() {
     mockGyroZ = 0.0f;
     mockIrLeft = false;
     mockIrRight = false;
+    mockWhoAmI = 0x68;
 #endif
 }
 
 void Sensors::resetGyroCalibration() {
     gyroCalibSumZ = 0.0f;
     gyroCalibCount = 0;
+}
+
+uint8_t Sensors::getWhoAmI() {
+#ifdef ARDUINO
+    Wire.beginTransmission(MPU6050_I2C_ADDR);
+    Wire.write(0x75); // WHO_AM_I register
+    Wire.endTransmission(false);
+    Wire.requestFrom((uint8_t)MPU6050_I2C_ADDR, (uint8_t)1, (uint8_t)true);
+    if (Wire.available()) {
+        return Wire.read();
+    }
+    return 0x00;
+#else
+    return mockWhoAmI;
+#endif
+}
+
+bool Sensors::isMpuConnected() {
+    return (getWhoAmI() == 0x68);
 }
 
 void Sensors::sampleGyroCalibration() {
@@ -179,5 +200,9 @@ void Sensors::setMockDistance(float dist_cm) {
 void Sensors::setMockIr(bool left_detected, bool right_detected) {
     mockIrLeft = left_detected;
     mockIrRight = right_detected;
+}
+
+void Sensors::setMockWhoAmI(uint8_t who) {
+    mockWhoAmI = who;
 }
 #endif

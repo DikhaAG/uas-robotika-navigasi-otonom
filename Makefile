@@ -7,14 +7,16 @@ SRCS = firmware/RobotNavigasiOtonom/Hal.cpp \
        firmware/RobotNavigasiOtonom/Waypoints.cpp \
        firmware/RobotNavigasiOtonom/ObstacleAvoidance.cpp \
        firmware/RobotNavigasiOtonom/NavigationFSM.cpp \
-       firmware/RobotNavigasiOtonom/CalibrationProfile.cpp
+       firmware/RobotNavigasiOtonom/CalibrationProfile.cpp \
+       firmware/RobotNavigasiOtonom/CalibrationProtocol.cpp
 
 TESTS = tests/test_motors \
         tests/test_odometry \
         tests/test_waypoints \
         tests/test_obstacle_avoidance \
         tests/test_fsm \
-        tests/test_calibration_profile
+        tests/test_calibration_profile \
+        tests/test_calibration_protocol
 
 .PHONY: all test check lint run_simulation install-hooks clean
 
@@ -46,6 +48,9 @@ tests/test_fsm: tests/test_fsm.cpp $(SRCS)
 tests/test_calibration_profile: tests/test_calibration_profile.cpp $(SRCS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
+tests/test_calibration_protocol: tests/test_calibration_protocol.cpp $(SRCS)
+	$(CXX) $(CXXFLAGS) $^ -o $@
+
 test: $(TESTS)
 	@echo "=========================================="
 	@echo " Running Full C++ Test Suite..."
@@ -56,6 +61,7 @@ test: $(TESTS)
 	./tests/test_obstacle_avoidance
 	./tests/test_fsm
 	./tests/test_calibration_profile
+	./tests/test_calibration_protocol
 	@echo "=========================================="
 	@echo " ALL C++ UNIT TESTS PASSED!"
 	@echo "=========================================="

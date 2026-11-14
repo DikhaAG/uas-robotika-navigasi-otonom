@@ -10,6 +10,7 @@
 #include "../firmware/RobotNavigasiOtonom/ObstacleAvoidance.h"
 #include "../firmware/RobotNavigasiOtonom/NavigationFSM.h"
 #include "../firmware/RobotNavigasiOtonom/CalibrationProfile.h"
+#include "../firmware/RobotNavigasiOtonom/CalibrationProtocol.h"
 
 // Canonical test fixture: cleans all global mock state before each test case
 inline void resetAllMocks() {
@@ -18,6 +19,7 @@ inline void resetAllMocks() {
     Sensors::init();
     Odometry::init();
     ObstacleAvoidance::reset();
+    CalibrationProtocol::init();
     NavigationFSM::init();
 }
 

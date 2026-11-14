@@ -59,6 +59,9 @@ public:
     static void advanceTimeMs(uint32_t ms);
     static void setMockEeprom(uint16_t address, uint8_t val);
     static uint8_t getMockEeprom(uint16_t address);
+    static void injectMockSerial(const char* data);
+    static const char* getMockSerialOutput();
+    static void clearMockSerialOutput();
     static void resetMock();
 #endif
 };

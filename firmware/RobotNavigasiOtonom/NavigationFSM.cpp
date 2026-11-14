@@ -1,4 +1,5 @@
 #include "NavigationFSM.h"
+#include "CalibrationProtocol.h"
 #include <stdio.h>
 #include <math.h>
 
@@ -58,6 +59,7 @@ void NavigationFSM::init() {
 
     Motors::stopMotors();
     Waypoints::loadRoom(targetRoom);
+    CalibrationProtocol::init(NavigationFSM::selectRoom);
 }
 
 void NavigationFSM::selectRoom(uint8_t room) {
@@ -214,13 +216,8 @@ void NavigationFSM::update() {
             Hal::digitalWrite(PIN_LED, (now % 1000UL < 500UL) ? HIGH : LOW);
             Hal::digitalWrite(PIN_BUZZER, LOW);
 
-            // Check Serial/Bluetooth for room selection command ('1'-'4')
-            if (Hal::serialAvailable()) {
-                char ch = Hal::serialRead();
-                if (ch >= '1' && ch <= '4') {
-                    selectRoom((uint8_t)(ch - '0'));
-                }
-            }
+            // Handle room selection ('1'-'4') and ASCII calibration protocol frames ('!...')
+            CalibrationProtocol::update();
 
             // Check hardware START button (active LOW)
             if (Hal::digitalRead(PIN_BUTTON_START) == LOW) {

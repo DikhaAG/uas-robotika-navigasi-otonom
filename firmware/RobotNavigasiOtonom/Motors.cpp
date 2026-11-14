@@ -5,6 +5,8 @@ int Motors::arahKiri = 0;
 int Motors::arahKanan = 0;
 int8_t Motors::invertLeft = 1;
 int8_t Motors::invertRight = 1;
+float Motors::trimLeft = TRIM_MOTOR_KIRI;
+float Motors::trimRight = TRIM_MOTOR_KANAN;
 
 int Motors::clampPwm(int pwm) {
     if (pwm > 255) return 255;
@@ -19,6 +21,10 @@ void Motors::init() {
     Hal::pinMode(PIN_IN3, OUTPUT);
     Hal::pinMode(PIN_IN4, OUTPUT);
     Hal::pinMode(PIN_ENB, OUTPUT);
+    invertLeft = 1;
+    invertRight = 1;
+    trimLeft = TRIM_MOTOR_KIRI;
+    trimRight = TRIM_MOTOR_KANAN;
     stopMotors();
 }
 
@@ -35,12 +41,25 @@ int8_t Motors::getInvertRight() {
     return invertRight;
 }
 
+void Motors::setTrim(float left, float right) {
+    trimLeft = left;
+    trimRight = right;
+}
+
+float Motors::getTrimLeft() {
+    return trimLeft;
+}
+
+float Motors::getTrimRight() {
+    return trimRight;
+}
+
 void Motors::setMotor(int pwmLeft, int pwmRight) {
     if (pwmLeft != 0) {
-        pwmLeft = (int)((float)pwmLeft * TRIM_MOTOR_KIRI);
+        pwmLeft = (int)((float)pwmLeft * trimLeft);
     }
     if (pwmRight != 0) {
-        pwmRight = (int)((float)pwmRight * TRIM_MOTOR_KANAN);
+        pwmRight = (int)((float)pwmRight * trimRight);
     }
 
     pwmLeft = clampPwm(pwmLeft);

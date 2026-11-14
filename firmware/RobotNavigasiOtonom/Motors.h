@@ -21,11 +21,18 @@ public:
     static int8_t getInvertLeft();
     static int8_t getInvertRight();
 
+    // Motor balance trim multipliers
+    static void setTrim(float left, float right);
+    static float getTrimLeft();
+    static float getTrimRight();
+
 private:
     static int arahKiri;
     static int arahKanan;
     static int8_t invertLeft;
     static int8_t invertRight;
+    static float trimLeft;
+    static float trimRight;
     static int clampPwm(int pwm);
 };
 

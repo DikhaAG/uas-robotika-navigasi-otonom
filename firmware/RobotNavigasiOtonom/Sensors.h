@@ -11,6 +11,8 @@ public:
 
     // MPU6050 Gyroscope
     static void initMPU6050();
+    static uint8_t getWhoAmI();
+    static bool isMpuConnected();
     static void resetGyroCalibration();
     static void sampleGyroCalibration();
     static void finalizeGyroCalibration();
@@ -31,6 +33,7 @@ public:
     static void setMockGyroZ(float rate_dps);
     static void setMockDistance(float dist_cm);
     static void setMockIr(bool left_detected, bool right_detected);
+    static void setMockWhoAmI(uint8_t who);
 #endif
 
 private:
@@ -45,6 +48,7 @@ private:
     static float mockDistance;
     static bool mockIrLeft;
     static bool mockIrRight;
+    static uint8_t mockWhoAmI;
 #endif
 };
 

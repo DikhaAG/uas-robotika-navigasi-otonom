@@ -5,6 +5,8 @@
 #include "Odometry.h"
 #include "Waypoints.h"
 #include "ObstacleAvoidance.h"
+#include "CalibrationProfile.h"
+#include "CalibrationProtocol.h"
 #include "NavigationFSM.h"
 
 static uint32_t lastLoopMs = 0;
@@ -17,6 +19,7 @@ void setup() {
     Sensors::init();
     Odometry::init();
     Waypoints::init();
+    CalibrationProtocol::init();
     NavigationFSM::init();
 
     Hal::serialPrintln("=== ROBOT NAVIGASI OTONOM (POLSRI TC253421) ===");
