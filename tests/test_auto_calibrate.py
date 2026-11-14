@@ -23,6 +23,14 @@ from tools.auto_calibrate import (
     SafetyGate,
     SafetyGateError,
     MockRobotSerial,
+    calculate_wheel_diameter_correction,
+    calculate_motor_trim_correction,
+    check_u1_tolerances,
+    check_u2_tolerances,
+    check_u3_tolerances,
+    check_u4_tolerances,
+    CalibrationLogger,
+    KinematicCalibrationRunner,
     main,
 )
 
@@ -151,6 +159,173 @@ class TestCLIHeadlessExecution(unittest.TestCase):
     def test_cli_mock_fail_mpu(self):
         exit_code = main(["--mock", "--headless", "--fail-mpu"])
         self.assertNotEqual(exit_code, 0)
+
+
+class TestKinematicCalculations(unittest.TestCase):
+    def test_wheel_diameter_correction(self):
+        # Current diameter 65.0 mm. Actual ground truth: 102.0 cm. Firmware measured: 100.0 cm.
+        new_diam = calculate_wheel_diameter_correction(65.0, 102.0, 100.0)
+        self.assertAlmostEqual(new_diam, 65.0 * (102.0 / 100.0), places=3)
+
+    def test_motor_trim_correction_left_faster(self):
+        # Left wheel produced 105 pulses, right produced 95 pulses
+        # Left motor should be trimmed down by 95 / 105
+        trim_l, trim_r = calculate_motor_trim_correction(1.0, 1.0, 105, 95)
+        self.assertAlmostEqual(trim_l, 95.0 / 105.0, places=3)
+        self.assertAlmostEqual(trim_r, 1.0, places=3)
+
+    def test_motor_trim_correction_right_faster(self):
+        # Right wheel produced 105 pulses, left produced 95 pulses
+        trim_l, trim_r = calculate_motor_trim_correction(1.0, 1.0, 95, 105)
+        self.assertAlmostEqual(trim_l, 1.0, places=3)
+        self.assertAlmostEqual(trim_r, 95.0 / 105.0, places=3)
+
+    def test_motor_trim_clamping(self):
+        # Severe disparity should clamp to [0.75, 1.25]
+        trim_l, trim_r = calculate_motor_trim_correction(1.0, 1.0, 200, 50)
+        self.assertGreaterEqual(trim_l, 0.75)
+        self.assertLessEqual(trim_l, 1.25)
+
+    def test_u1_tolerances(self):
+        # 101.5 cm with 98 and 99 pulses -> pass (error 1.5 cm <= 3.0 cm, drift 1.01% <= 3%)
+        passed, dist_err, drift = check_u1_tolerances(101.5, 98, 99)
+        self.assertTrue(passed)
+        self.assertAlmostEqual(dist_err, 1.5, places=2)
+        self.assertLessEqual(drift, 3.0)
+
+        # 104.5 cm -> fail (error 4.5 cm > 3.0 cm)
+        passed, dist_err, _ = check_u1_tolerances(104.5, 98, 98)
+        self.assertFalse(passed)
+
+        # 100.0 cm but pulses 98 vs 88 -> drift > 3% -> fail
+        passed, _, drift = check_u1_tolerances(100.0, 98, 88)
+        self.assertFalse(passed)
+        self.assertGreater(drift, 3.0)
+
+    def test_u2_tolerances(self):
+        passed, err = check_u2_tolerances(92.0, 90.0)
+        self.assertTrue(passed)
+        self.assertAlmostEqual(err, 2.0, places=2)
+
+        passed, err = check_u2_tolerances(96.5, 90.0)
+        self.assertFalse(passed)
+        self.assertAlmostEqual(err, 6.5, places=2)
+
+        # Inverted turn (-90 deg when +90 requested) must fail
+        passed, err = check_u2_tolerances(-90.0, 90.0)
+        self.assertFalse(passed)
+        self.assertAlmostEqual(err, 180.0, places=2)
+
+    def test_u3_tolerances(self):
+        passed, err = check_u3_tolerances(3.2)
+        self.assertTrue(passed)
+        self.assertAlmostEqual(err, 3.2, places=2)
+
+        passed, err = check_u3_tolerances(5.8)
+        self.assertFalse(passed)
+        self.assertAlmostEqual(err, 5.8, places=2)
+
+    def test_u4_tolerances(self):
+        passed, err = check_u4_tolerances(10.4, 10.0)
+        self.assertTrue(passed)
+        self.assertAlmostEqual(err, 0.4, places=2)
+
+        passed, err = check_u4_tolerances(11.5, 10.0)
+        self.assertFalse(passed)
+        self.assertAlmostEqual(err, 1.5, places=2)
+
+
+class TestKinematicProtocols(unittest.TestCase):
+    def setUp(self):
+        self.mock_serial = MockRobotSerial()
+        self.client = RobotSerialClient(port=None, baud=115200, serial_backend=self.mock_serial)
+        self.runner = KinematicCalibrationRunner(self.client, interactive=False, verbose=False)
+
+    def test_run_u1_success_single_pass(self):
+        # Configure runner mock ground truth: 100.5 cm
+        self.runner.set_mock_u1_ground_truth(100.5)
+        res = self.runner.run_u1(max_retries=3)
+        self.assertTrue(res.passed)
+        self.assertEqual(res.iteration, 1)
+        self.assertAlmostEqual(res.dist_error_cm, 0.5, places=2)
+
+    def test_run_u1_convergence_multi_trial(self):
+        # Trial 1: ground truth 105.0 cm (fail, updates profile)
+        # Trial 2: ground truth 101.0 cm (pass)
+        self.runner.set_mock_u1_ground_truth_sequence([105.0, 101.0])
+        res = self.runner.run_u1(max_retries=3)
+        self.assertTrue(res.passed)
+        self.assertEqual(res.iteration, 2)
+        # Verify EEPROM profile was updated
+        profile = self.client.read_profile()
+        self.assertNotEqual(profile.diameter_roda_mm, 65.0)
+
+    def test_run_u1_max_retries_exceeded(self):
+        # Continuous large errors exceeding max retries
+        self.runner.set_mock_u1_ground_truth(110.0)
+        res = self.runner.run_u1(max_retries=3)
+        self.assertFalse(res.passed)
+        self.assertEqual(res.iteration, 3)
+
+    def test_run_u2_in_place_rotation(self):
+        self.runner.set_mock_u2_actual_angle(91.2)
+        res = self.runner.run_u2(target_angle=90.0)
+        self.assertTrue(res.passed)
+        self.assertAlmostEqual(res.angular_error_deg, 1.2, places=2)
+
+    def test_run_u3_straight_line(self):
+        self.runner.set_mock_u3_lateral_dev(2.1)
+        res = self.runner.run_u3()
+        self.assertTrue(res.passed)
+        self.assertAlmostEqual(res.lateral_error_cm, 2.1, places=2)
+
+    def test_run_u4_ranging_accuracy(self):
+        # Sonar distance matches targets (10, 20, 40) within 1.0 cm
+        res = self.runner.run_u4()
+        self.assertTrue(res.passed)
+        self.assertEqual(len(res.sub_results), 3)
+
+
+class TestCalibrationLogger(unittest.TestCase):
+    def test_log_export(self):
+        log_path = "tests/test_log_tmp.csv"
+        if os.path.exists(log_path):
+            os.remove(log_path)
+
+        logger = CalibrationLogger(filepath=log_path)
+        logger.log_result(
+            test_id="U1",
+            iteration=1,
+            status="PASS",
+            target=100.0,
+            measured=100.12,
+            ground_truth=100.5,
+            error=0.5,
+            profile=CalibrationProfileData(diameter_roda_mm=65.25),
+            notes="Toleransi terpenuhi"
+        )
+
+        self.assertTrue(os.path.exists(log_path))
+        with open(log_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        self.assertGreaterEqual(len(lines), 2)
+        self.assertIn("timestamp,test_id,iteration", lines[0])
+        self.assertIn("U1,1,PASS,100.00,100.12,100.50,0.50", lines[1])
+
+        if os.path.exists(log_path):
+            os.remove(log_path)
+
+
+class TestSafetyGatingWithKinematics(unittest.TestCase):
+    def test_kinematic_run_aborted_when_gate_locked(self):
+        mock_serial = MockRobotSerial()
+        mock_serial.set_mpu_ok(False)  # Force U0 failure
+        client = RobotSerialClient(port=None, baud=115200, serial_backend=mock_serial)
+        
+        # When attempting to run kinematic test directly without passing U0
+        with self.assertRaises(SafetyGateError):
+            main(["--mock", "--headless", "--test", "U1", "--fail-mpu"])
+
 
 
 if __name__ == "__main__":

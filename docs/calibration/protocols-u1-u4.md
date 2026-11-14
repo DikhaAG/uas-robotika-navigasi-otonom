@@ -128,3 +128,23 @@ Memverifikasi bahwa sensor jarak ultrasonik HC-SR04 mendeteksi rintangan kotak k
 | 10.0 | 10.2 | 0.2 | LULUS |
 | 20.0 | 20.1 | 0.1 | LULUS |
 | 40.0 | 39.6 | 0.4 | LULUS |
+
+---
+
+## 5. Eksekusi Otomatis Berpemandu CLI (`tools/auto_calibrate.py`)
+
+Selain pengujian manual dengan firmware mandiri, seluruh rangkaian protokol kalibrasi (U0 hingga U4) dapat dijalankan secara otomatis menggunakan utilitas Python Host Wizard.
+
+### Keunggulan Eksekusi Otomatis:
+1. **Hard-Gated Safety**: Menjamin pengujian gerak U1–U4 hanya dapat berjalan setelah tahap diagnostik hardware U0 (MPU6050, HC-SR04, FC-51 IR, Buzzer, LED, dan Motor/Encoder) 100% lulus.
+2. **Auto-Retry & Convergence Loop**: Jika galat translasi U1 $> 3.0\text{ cm}$ atau disparitas pulsa $> 3\%$, tool otomatis menghitung $D_{\text{baru}}$ dan rasio motor trim, memperbarui EEPROM via serial, lalu mengulang pengujian hingga toleransi terpenuhi (maksimal 5 iterasi).
+3. **Ekspor Log Telemetri Otomatis**: Hasil pengujian dicatat secara terstruktur ke `tools/calibration_log.csv` dengan kolom lengkap (waktu, ID pengujian, iterasi, target, nilai terukur, ground truth, galat, dan profil EEPROM) untuk dimasukkan ke laporan akhir praktikum.
+
+### Perintah Eksekusi:
+```bash
+# Jalankan seluruh suite kalibrasi secara otomatis:
+python3 tools/auto_calibrate.py --port /dev/ttyUSB0
+
+# Jalankan dalam mode menu individual:
+python3 tools/auto_calibrate.py --port /dev/ttyUSB0 --mode individual
+```
