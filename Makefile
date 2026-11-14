@@ -20,6 +20,8 @@ TESTS = tests/test_motors \
         tests/test_calibration_profile \
         tests/test_calibration_protocol
 
+SIM_BIN = tools/sim_navigation
+
 .PHONY: all test check lint run_simulation install-hooks clean
 
 all: check
@@ -57,6 +59,9 @@ tests/test_calibration_profile: tests/test_calibration_profile.cpp $(SRCS)
 tests/test_calibration_protocol: tests/test_calibration_protocol.cpp $(SRCS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
+tools/sim_navigation: tools/sim_navigation.cpp $(SRCS)
+	$(CXX) $(CXXFLAGS) $^ -o $@
+
 test: $(TESTS)
 	@echo "=========================================="
 	@echo " Running Full C++ Test Suite..."
@@ -80,9 +85,9 @@ test: $(TESTS)
 	@echo " ALL PYTHON DIAGNOSTIC TESTS PASSED!"
 	@echo "=========================================="
 
-run_simulation:
+run_simulation: $(SIM_BIN)
 	@echo "=========================================="
-	@echo " Running Python Kinematics Simulation..."
+	@echo " Running Firmware Kinematics Simulation..."
 	@echo "=========================================="
 	python3 tools/simulate_navigation.py
 	python3 tools/plot_trajectory.py tools/sample_telemetry.csv -o tools/trajectory_plot.svg
@@ -103,4 +108,4 @@ install-hooks:
 	@echo "Git pre-commit hook installed successfully."
 
 clean:
-	rm -f $(TESTS) tools/sample_telemetry.csv tools/trajectory_plot.svg
+	rm -f $(TESTS) $(SIM_BIN) tools/sample_telemetry.csv tools/trajectory_plot.svg

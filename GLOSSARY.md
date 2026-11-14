@@ -54,6 +54,16 @@ _Avoid_: Heading alignment, pivoting
 The compile-time target hardware definition setting pin mappings, interrupt assignments, and peripheral driver behaviors for either Arduino Uno R3 or ESP32.
 _Avoid_: Target platform, MCU board config
 
+### Verification & Simulation
+
+**SimulationHarness**:
+A compiled native execution wrapper that runs the genuine C++ firmware state automaton (`NavigationFSM`), kinematics (`MotionController`), and queuing (`WaypointQueue`) on desktop by coupling them to a virtual differential-drive physics model and simulated arena raycasting.
+_Avoid_: Mock simulator, Python shadow model
+
+**DigitalTwin**:
+A closed-loop computational model combining 2D continuous kinematics Euler integration, obstacle bounding box raycasting, and virtual encoder/gyro feedback that mirrors physical vehicle dynamics on desktop.
+_Avoid_: Emulation, fake bot
+
 ### Calibration & Diagnostics
 
 **Pre-flight Diagnostic (U0)**:

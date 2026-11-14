@@ -19,6 +19,7 @@ tests/test_obstacle_avoidance
 tests/test_fsm
 tests/test_calibration_profile
 tests/test_calibration_protocol
+tools/sim_navigation
 
 # Python artifacts
 __pycache__/
