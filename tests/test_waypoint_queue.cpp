@@ -17,7 +17,7 @@ int main() {
         assert(WaypointQueue::isEmpty());
         assert(WaypointQueue::getCount() == 0);
         assert(WaypointQueue::getCurrentIndex() == 0);
-        assert(WaypointQueue::isFinal());
+        assert(!WaypointQueue::isFinal());
         std::cout << "  ✓ Test 1: Empty queue initialized." << std::endl;
     }
 
@@ -58,6 +58,7 @@ int main() {
         advanced = WaypointQueue::advance();
         assert(advanced);
         assert(WaypointQueue::isEmpty());
+        assert(!WaypointQueue::isFinal());
 
         // Room 2: (295, 0), (295, 70)
         WaypointQueue::loadRoom(2);

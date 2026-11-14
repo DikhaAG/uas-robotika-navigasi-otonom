@@ -26,6 +26,7 @@ We decided to split `Waypoints` into two deep, single-responsibility modules:
          int pwmR;
          float distError;
          float angleError;
+         bool isTurning;
          bool achieved;
      };
 

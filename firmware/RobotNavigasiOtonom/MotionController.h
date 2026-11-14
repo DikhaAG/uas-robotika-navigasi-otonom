@@ -15,6 +15,11 @@ struct MotionCommand {
 class MotionController {
 public:
     /**
+     * @brief Compute target heading angle in degrees from current position to target coordinates.
+     */
+    static float computeTargetHeading(float currentX, float currentY, float targetX, float targetY);
+
+    /**
      * @brief Drive closed-loop towards a target 2D waypoint.
      *
      * Calculates distance error rho and angular error e relative to current heading.

@@ -24,6 +24,12 @@ bool MotionController::rotateTowards(float currentTheta, float targetHeading, in
     return false;
 }
 
+float MotionController::computeTargetHeading(float currentX, float currentY, float targetX, float targetY) {
+    float dx = targetX - currentX;
+    float dy = targetY - currentY;
+    return atan2f(dy, dx) * (180.0f / PI);
+}
+
 MotionCommand MotionController::driveTowards(float currentX, float currentY, float currentTheta,
                                             float targetX, float targetY,
                                             bool wallLeft, bool wallRight,
@@ -34,7 +40,7 @@ MotionCommand MotionController::driveTowards(float currentX, float currentY, flo
     float dy = targetY - currentY;
 
     cmd.distError = sqrtf(dx * dx + dy * dy);
-    float targetAngleDeg = atan2f(dy, dx) * (180.0f / PI);
+    float targetAngleDeg = computeTargetHeading(currentX, currentY, targetX, targetY);
     cmd.angleError = Odometry::normalizeAngleDeg(targetAngleDeg - currentTheta);
     cmd.achieved = (cmd.distError <= toleranceCm);
 

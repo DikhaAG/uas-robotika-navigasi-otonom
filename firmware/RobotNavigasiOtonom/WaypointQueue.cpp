@@ -75,8 +75,8 @@ bool WaypointQueue::advance() {
 }
 
 bool WaypointQueue::isFinal() {
-    if (totalWaypoints == 0) return true;
-    return (currentIndex >= totalWaypoints - 1);
+    if (isEmpty()) return false;
+    return (currentIndex == totalWaypoints - 1);
 }
 
 bool WaypointQueue::isEmpty() {

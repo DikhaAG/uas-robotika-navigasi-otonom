@@ -31,7 +31,15 @@ int main() {
         assert(aligned);
         assert(pwmL == 0);
         assert(pwmR == 0);
-        std::cout << "  ✓ Test 1: rotateTowards() in-place pivot and alignment verified." << std::endl;
+
+        // computeTargetHeading trigonometry helper
+        float headingNorth = MotionController::computeTargetHeading(0.0f, 0.0f, 0.0f, 100.0f);
+        assert(approxEqual(headingNorth, 90.0f));
+        float headingEast = MotionController::computeTargetHeading(0.0f, 0.0f, 100.0f, 0.0f);
+        assert(approxEqual(headingEast, 0.0f));
+        float headingSouth = MotionController::computeTargetHeading(0.0f, 0.0f, 0.0f, -100.0f);
+        assert(approxEqual(headingSouth, -90.0f));
+        std::cout << "  ✓ Test 1: rotateTowards() and computeTargetHeading() verified." << std::endl;
     }
 
     // Test 2: driveTowards - large angle error triggers in-place turn command

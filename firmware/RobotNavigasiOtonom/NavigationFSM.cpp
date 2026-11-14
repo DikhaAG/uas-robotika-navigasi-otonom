@@ -247,9 +247,7 @@ void NavigationFSM::update() {
         case STATE_ORIENTASI: {
             Hal::digitalWrite(PIN_LED, HIGH);
             Waypoint target = WaypointQueue::getCurrentWaypoint();
-            float dx = target.x - pose.x;
-            float dy = target.y - pose.y;
-            float targetHeading = atan2f(dy, dx) * (180.0f / PI);
+            float targetHeading = MotionController::computeTargetHeading(pose.x, pose.y, target.x, target.y);
 
             int pwmL = 0, pwmR = 0;
             if (MotionController::rotateTowards(pose.theta, targetHeading, pwmL, pwmR)) {
