@@ -11,6 +11,7 @@ Standards enforced by reviewer agents during code review for this embedded C++/A
 - **Zero Blocking Delays**: Never call `delay()` inside periodic routines or the main `loop()`. All timing must use non-blocking `millis()` or `micros()` software timers.
 - **Fixed Sampling Periods**: Odometry integration and PID/P-control loops must run at deterministic intervals (e.g. 20 ms for odometry, 60 ms for ultrasonic ping).
 - **Sensor Timeouts**: All hardware communication (I2C `Wire`, ultrasonic `pulseIn`) must include explicit timeouts to prevent hard lockups on disconnected wires.
+- **Unconditional Virtual Clock Progression**: Desktop simulation or calibration loops evaluating `Hal::millis()` termination conditions must advance the virtual clock (`Hal::advanceTimeMs()`) unconditionally per step iteration or employ an iteration-bounded step counter. Never write `while (Hal::millis() - t < duration)` where clock advancement is gated by a condition that requires the clock to have already advanced.
 
 ## 3. Memory & Resource Discipline (Arduino Uno 2 KB SRAM)
 - **No Dynamic Allocation**: Never use dynamic memory (`malloc`, `free`, `new`, `delete`) or the Arduino `String` class in periodic execution. Use fixed-size character arrays (`char[]`) and bounded static buffers.

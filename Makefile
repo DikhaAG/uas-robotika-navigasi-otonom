@@ -23,6 +23,9 @@ TESTS = tests/test_motors \
 
 SIM_BIN = tools/sim_navigation
 
+TIMEOUT_BIN ?= $(shell which timeout 2>/dev/null || which gtimeout 2>/dev/null)
+TEST_TIMEOUT ?= $(if $(TIMEOUT_BIN),$(TIMEOUT_BIN) 10s,)
+
 .PHONY: all test check lint run_simulation install-hooks clean
 
 all: check
@@ -68,21 +71,21 @@ test: $(TESTS)
 	@echo "=========================================="
 	@echo " Running Full C++ Test Suite..."
 	@echo "=========================================="
-	./tests/test_motors
-	./tests/test_odometry
-	./tests/test_waypoint_queue
-	./tests/test_motion_controller
-	./tests/test_obstacle_avoidance
-	./tests/test_fsm
-	./tests/test_calibration_profile
-	./tests/test_calibration_protocol
+	$(TEST_TIMEOUT) ./tests/test_motors
+	$(TEST_TIMEOUT) ./tests/test_odometry
+	$(TEST_TIMEOUT) ./tests/test_waypoint_queue
+	$(TEST_TIMEOUT) ./tests/test_motion_controller
+	$(TEST_TIMEOUT) ./tests/test_obstacle_avoidance
+	$(TEST_TIMEOUT) ./tests/test_fsm
+	$(TEST_TIMEOUT) ./tests/test_calibration_profile
+	$(TEST_TIMEOUT) ./tests/test_calibration_protocol
 	@echo "=========================================="
 	@echo " ALL C++ UNIT TESTS PASSED!"
 	@echo "=========================================="
 	@echo "=========================================="
 	@echo " Running Python Diagnostics Test Suite..."
 	@echo "=========================================="
-	python3 tests/test_auto_calibrate.py
+	$(TEST_TIMEOUT) python3 tests/test_auto_calibrate.py
 	@echo "=========================================="
 	@echo " ALL PYTHON DIAGNOSTIC TESTS PASSED!"
 	@echo "=========================================="
