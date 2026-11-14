@@ -77,3 +77,11 @@ _Avoid_: Config file, settings blob
 **Calibration Wizard**:
 The host-side interactive orchestrator (`tools/auto_calibrate.py`) guiding the user through pre-flight wiring diagnostics, physical motion tests, human-in-the-loop ground truth verification, iterative parameter tuning, and EEPROM programming.
 _Avoid_: Calibration script, tuning app
+
+**AsciiProtocolDecoder**:
+A pure, hardware-agnostic serial parser that manages frame boundary framing (`!` to `\n`), noise rejection, buffer accumulation, and room selection trigger tokens without coupling to peripheral drivers.
+_Avoid_: Serial reader, frame parser
+
+**CalibrationService**:
+The deep firmware domain service executing diagnostic hardware probes, closed-loop kinematic calibration routines via `MotionController`, and non-volatile EEPROM profile management.
+_Avoid_: Calibration runner, test execution logic

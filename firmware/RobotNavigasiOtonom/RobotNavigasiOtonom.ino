@@ -7,7 +7,8 @@
 #include "MotionController.h"
 #include "ObstacleAvoidance.h"
 #include "CalibrationProfile.h"
-#include "CalibrationProtocol.h"
+#include "AsciiProtocolDecoder.h"
+#include "CalibrationService.h"
 #include "NavigationFSM.h"
 
 static uint32_t lastLoopMs = 0;
@@ -20,7 +21,8 @@ void setup() {
     Sensors::init();
     Odometry::init();
     WaypointQueue::init();
-    CalibrationProtocol::init();
+    AsciiProtocolDecoder::init();
+    CalibrationService::init();
     NavigationFSM::init();
 
     Hal::serialPrintln("=== ROBOT NAVIGASI OTONOM (POLSRI TC253421) ===");

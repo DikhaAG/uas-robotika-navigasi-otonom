@@ -11,7 +11,8 @@
 #include "../firmware/RobotNavigasiOtonom/ObstacleAvoidance.h"
 #include "../firmware/RobotNavigasiOtonom/NavigationFSM.h"
 #include "../firmware/RobotNavigasiOtonom/CalibrationProfile.h"
-#include "../firmware/RobotNavigasiOtonom/CalibrationProtocol.h"
+#include "../firmware/RobotNavigasiOtonom/AsciiProtocolDecoder.h"
+#include "../firmware/RobotNavigasiOtonom/CalibrationService.h"
 
 // Canonical test fixture: cleans all global mock state before each test case
 inline void resetAllMocks() {
@@ -21,7 +22,8 @@ inline void resetAllMocks() {
     Odometry::init();
     WaypointQueue::init();
     ObstacleAvoidance::reset();
-    CalibrationProtocol::init();
+    AsciiProtocolDecoder::init();
+    CalibrationService::init();
     NavigationFSM::init();
 }
 

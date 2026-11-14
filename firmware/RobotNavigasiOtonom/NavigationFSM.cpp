@@ -1,5 +1,6 @@
 #include "NavigationFSM.h"
-#include "CalibrationProtocol.h"
+#include "AsciiProtocolDecoder.h"
+#include "CalibrationService.h"
 #include <stdio.h>
 #include <math.h>
 
@@ -59,7 +60,8 @@ void NavigationFSM::init() {
 
     Motors::stopMotors();
     WaypointQueue::loadRoom(targetRoom);
-    CalibrationProtocol::init(NavigationFSM::selectRoom);
+    AsciiProtocolDecoder::init(NavigationFSM::selectRoom);
+    CalibrationService::init();
 }
 
 void NavigationFSM::selectRoom(uint8_t room) {
@@ -217,7 +219,7 @@ void NavigationFSM::update() {
             Hal::digitalWrite(PIN_BUZZER, LOW);
 
             // Handle room selection ('1'-'4') and ASCII calibration protocol frames ('!...')
-            CalibrationProtocol::update();
+            CalibrationService::update();
 
             // Check hardware START button (active LOW)
             if (Hal::digitalRead(PIN_BUTTON_START) == LOW) {

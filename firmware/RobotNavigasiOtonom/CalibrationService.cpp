@@ -1,0 +1,397 @@
+#include "CalibrationService.h"
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
+
+CalibrationProfile CalibrationService::activeProfile;
+
+void CalibrationService::init() {
+    if (!activeProfile.load()) {
+        activeProfile.resetToDefaults();
+    }
+    Motors::setInversion(activeProfile.getInvertMotorKiri(), activeProfile.getInvertMotorKanan());
+    Motors::setTrim(activeProfile.getTrimMotorKiri(), activeProfile.getTrimMotorKanan());
+}
+
+CalibrationProfile& CalibrationService::getActiveProfile() {
+    return activeProfile;
+}
+
+void CalibrationService::update() {
+    while (Hal::serialAvailable() > 0) {
+        char c = (char)Hal::serialRead();
+        char frame[96];
+        if (AsciiProtocolDecoder::feedChar(c, frame, sizeof(frame))) {
+            char response[96];
+            response[0] = '\0';
+            if (executeCommand(frame, response, sizeof(response))) {
+                if (response[0] != '\0') {
+                    Hal::serialPrintln(response);
+                }
+            }
+        }
+    }
+}
+
+bool CalibrationService::stepCadence(uint32_t now, uint32_t& lastStepMs, uint32_t& lastMotionMs, long& lastPulses) {
+    (void)now;
+    (void)lastStepMs;
+
+#ifndef ARDUINO
+    // Desktop digital twin stepping: advance time and compute real motor kinematics
+    int dirL = Motors::getDirectionLeft();
+    int dirR = Motors::getDirectionRight();
+    int pwmL = (int)Hal::getPwm(PIN_ENA) * dirL;
+    int pwmR = (int)Hal::getPwm(PIN_ENB) * dirR;
+    float vL = (float)pwmL * 0.165f;
+    float vR = (float)pwmR * 0.165f;
+    float omegaRad = (vR - vL) / TRACK_WIDTH_CM;
+    float omegaDeg = omegaRad * (180.0f / PI);
+    Sensors::setMockGyroZ(omegaDeg);
+
+    float dsL = fabsf(vL * 0.02f);
+    float dsR = fabsf(vR * 0.02f);
+    Odometry::injectPulses((long)(dsL / CM_PER_PULSA), (long)(dsR / CM_PER_PULSA));
+    Hal::advanceTimeMs(20);
+#endif
+
+    Odometry::update(0.02f);
+    uint32_t tCurrent = Hal::millis();
+    long curPulses = Odometry::getTotalPulseCount();
+    if (curPulses != lastPulses) {
+        lastPulses = curPulses;
+        lastMotionMs = tCurrent;
+    } else if (tCurrent - lastMotionMs >= 1000UL) {
+        return true; // Stall watchdog tripped
+    }
+    return false;
+}
+
+bool CalibrationService::handlePing(char* response, size_t responseSize) {
+    if (response != NULL && responseSize > 0) {
+        snprintf(response, responseSize, "!PONG");
+    }
+    return true;
+}
+
+bool CalibrationService::handleDiagAll(char* response, size_t responseSize) {
+    Sensors::updateUltrasonic();
+    uint8_t mpuOk = Sensors::isMpuConnected() ? 1 : 0;
+    float dist = Sensors::getDistance();
+    uint8_t irL = Sensors::isWallLeft() ? 1 : 0;
+    uint8_t irR = Sensors::isWallRight() ? 1 : 0;
+
+    if (response != NULL && responseSize > 0) {
+        snprintf(response, responseSize, "!DIAG:RES:%u:%.2f:%u:%u",
+                 mpuOk, dist, irL, irR);
+    }
+    return true;
+}
+
+bool CalibrationService::handleDiagMotor(const char* args, char* response, size_t responseSize) {
+    int pwmL = 0, pwmR = 0;
+    unsigned long duration = 0;
+    if (sscanf(args, "%d:%d:%lu", &pwmL, &pwmR, &duration) == 3) {
+        Odometry::resetPulses();
+        Motors::setMotor(pwmL, pwmR);
+
+        uint32_t tStart = Hal::millis();
+        uint32_t lastStepMs = tStart;
+        uint32_t lastMotionMs = tStart;
+        long lastPulses = Odometry::getTotalPulseCount();
+
+        while (Hal::millis() - tStart < duration) {
+#ifdef ARDUINO
+            uint32_t now = Hal::millis();
+            if (now - lastStepMs >= 20) {
+                lastStepMs = now;
+                stepCadence(now, lastStepMs, lastMotionMs, lastPulses);
+            }
+#else
+            stepCadence(0, lastStepMs, lastMotionMs, lastPulses);
+#endif
+        }
+        Motors::stopMotors();
+        long pL = Odometry::getPulsaKiri();
+        long pR = Odometry::getPulsaKanan();
+        if (response != NULL && responseSize > 0) {
+            snprintf(response, responseSize, "!PULSES:%ld:%ld", pL, pR);
+        }
+        return true;
+    } else {
+        if (response != NULL && responseSize > 0) {
+            snprintf(response, responseSize, "!ERR:PARAM");
+        }
+        return true;
+    }
+}
+
+bool CalibrationService::handleDiagBeep(const char* args, char* response, size_t responseSize) {
+    unsigned long dur = 200;
+    if (args != NULL && args[0] == ':') {
+        sscanf(args + 1, "%lu", &dur);
+    }
+    Hal::digitalWrite(PIN_BUZZER, HIGH);
+    Hal::digitalWrite(PIN_LED, HIGH);
+#ifdef ARDUINO
+    uint32_t tStart = Hal::millis();
+    while (Hal::millis() - tStart < dur) {
+        // Active buzzer
+    }
+#else
+    Hal::advanceTimeMs(dur);
+#endif
+    Hal::digitalWrite(PIN_BUZZER, LOW);
+    Hal::digitalWrite(PIN_LED, LOW);
+    if (response != NULL && responseSize > 0) {
+        snprintf(response, responseSize, "!OK");
+    }
+    return true;
+}
+
+bool CalibrationService::handleStepU1(char* response, size_t responseSize) {
+    Odometry::resetPose(0.0f, 0.0f, 0.0f);
+    Odometry::resetPulses();
+    Motors::setMotor(140, 140);
+
+    uint32_t tStart = Hal::millis();
+    uint32_t lastStepMs = tStart;
+    uint32_t lastMotionMs = tStart;
+    long lastPulses = Odometry::getTotalPulseCount();
+
+    while (Odometry::getDistanceMoved() < 100.0f && (Hal::millis() - tStart < 8000UL)) {
+#ifdef ARDUINO
+        uint32_t now = Hal::millis();
+        if (now - lastStepMs >= 20) {
+            lastStepMs = now;
+            if (stepCadence(now, lastStepMs, lastMotionMs, lastPulses)) {
+                break;
+            }
+        }
+#else
+        if (stepCadence(0, lastStepMs, lastMotionMs, lastPulses)) {
+            break;
+        }
+#endif
+    }
+    Motors::stopMotors();
+    long pL = Odometry::getPulsaKiri();
+    long pR = Odometry::getPulsaKanan();
+    float dist = Odometry::getDistanceMoved();
+
+    if (response != NULL && responseSize > 0) {
+        snprintf(response, responseSize, "!U1:DONE:%ld:%ld:%.2f", pL, pR, dist);
+    }
+    return true;
+}
+
+bool CalibrationService::handleStepU2(const char* args, char* response, size_t responseSize) {
+    float targetAngle = 90.0f;
+    if (args != NULL && args[0] == ':') {
+        sscanf(args + 1, "%f", &targetAngle);
+    }
+    Odometry::resetPose(0.0f, 0.0f, 0.0f);
+
+    uint32_t tStart = Hal::millis();
+    uint32_t lastStepMs = tStart;
+    uint32_t lastMotionMs = tStart;
+    long lastPulses = Odometry::getTotalPulseCount();
+
+    while (Hal::millis() - tStart < 5000UL) {
+        float currentTheta = Odometry::getTheta();
+        int pwmL = 0, pwmR = 0;
+        if (MotionController::rotateTowards(currentTheta, targetAngle, pwmL, pwmR)) {
+            Motors::stopMotors();
+            break;
+        }
+        Motors::setMotor(pwmL, pwmR);
+
+#ifdef ARDUINO
+        uint32_t now = Hal::millis();
+        if (now - lastStepMs >= 20) {
+            lastStepMs = now;
+            if (stepCadence(now, lastStepMs, lastMotionMs, lastPulses)) {
+                break;
+            }
+        }
+#else
+        if (stepCadence(0, lastStepMs, lastMotionMs, lastPulses)) {
+            break;
+        }
+#endif
+    }
+    Motors::stopMotors();
+    float finalTheta = Odometry::getTheta();
+
+    if (response != NULL && responseSize > 0) {
+        snprintf(response, responseSize, "!U2:DONE:%.2f", finalTheta);
+    }
+    return true;
+}
+
+bool CalibrationService::handleStepU3(char* response, size_t responseSize) {
+    Odometry::resetPose(0.0f, 0.0f, 0.0f);
+    Odometry::resetPulses();
+
+    float maxErr = 0.0f;
+    uint32_t tStart = Hal::millis();
+    uint32_t lastStepMs = tStart;
+    uint32_t lastMotionMs = tStart;
+    long lastPulses = Odometry::getTotalPulseCount();
+
+    while (Odometry::getDistanceMoved() < 150.0f && (Hal::millis() - tStart < 12000UL)) {
+        Pose pose = Odometry::getPose();
+        float th = pose.theta;
+        if (fabsf(th) > maxErr) maxErr = fabsf(th);
+
+        MotionCommand cmd = MotionController::driveTowards(
+            pose.x, pose.y, pose.theta,
+            150.0f, 0.0f,
+            false, false,
+            TOL_WP_CM
+        );
+        Motors::setMotor(cmd.pwmL, cmd.pwmR);
+
+#ifdef ARDUINO
+        uint32_t now = Hal::millis();
+        if (now - lastStepMs >= 20) {
+            lastStepMs = now;
+            if (stepCadence(now, lastStepMs, lastMotionMs, lastPulses)) {
+                break;
+            }
+        }
+#else
+        if (stepCadence(0, lastStepMs, lastMotionMs, lastPulses)) {
+            break;
+        }
+#endif
+    }
+    Motors::stopMotors();
+    long pL = Odometry::getPulsaKiri();
+    long pR = Odometry::getPulsaKanan();
+
+    if (response != NULL && responseSize > 0) {
+        snprintf(response, responseSize, "!U3:DONE:%ld:%ld:%.2f", pL, pR, maxErr);
+    }
+    return true;
+}
+
+bool CalibrationService::handleStepU4(char* response, size_t responseSize) {
+    Sensors::updateUltrasonic();
+    float dist = Sensors::getDistance();
+    if (response != NULL && responseSize > 0) {
+        snprintf(response, responseSize, "!U4:DONE:%.2f", dist);
+    }
+    return true;
+}
+
+bool CalibrationService::handleCalibRead(char* response, size_t responseSize) {
+    if (response != NULL && responseSize > 0) {
+        snprintf(response, responseSize, "!CALIB:DATA:%.2f:%.3f:%.3f:%.3f:%d:%d",
+                 activeProfile.getDiameterRodaMm(),
+                 activeProfile.getTrimMotorKiri(),
+                 activeProfile.getTrimMotorKanan(),
+                 activeProfile.getGyroBiasZ(),
+                 activeProfile.getInvertMotorKiri(),
+                 activeProfile.getInvertMotorKanan());
+    }
+    return true;
+}
+
+bool CalibrationService::handleCalibWrite(const char* args, char* response, size_t responseSize) {
+    float diam = 0.0f, trimL = 0.0f, trimR = 0.0f, biasZ = 0.0f;
+    int invL = 1, invR = 1;
+
+    if (sscanf(args, "%f:%f:%f:%f:%d:%d",
+               &diam, &trimL, &trimR, &biasZ, &invL, &invR) == 6) {
+        CalibrationProfile candidate;
+        candidate.setDiameterRodaMm(diam);
+        candidate.setTrimMotorKiri(trimL);
+        candidate.setTrimMotorKanan(trimR);
+        candidate.setGyroBiasZ(biasZ);
+        candidate.setInvertMotorKiri((int8_t)invL);
+        candidate.setInvertMotorKanan((int8_t)invR);
+
+        if (candidate.isValid()) {
+            activeProfile = candidate;
+            activeProfile.save();
+            Motors::setInversion(activeProfile.getInvertMotorKiri(), activeProfile.getInvertMotorKanan());
+            Motors::setTrim(activeProfile.getTrimMotorKiri(), activeProfile.getTrimMotorKanan());
+
+            if (response != NULL && responseSize > 0) {
+                snprintf(response, responseSize, "!OK");
+            }
+            return true;
+        } else {
+            if (response != NULL && responseSize > 0) {
+                snprintf(response, responseSize, "!ERR:INVALID");
+            }
+            return true;
+        }
+    } else {
+        if (response != NULL && responseSize > 0) {
+            snprintf(response, responseSize, "!ERR:PARAM");
+        }
+        return true;
+    }
+}
+
+bool CalibrationService::handleCalibReset(char* response, size_t responseSize) {
+    activeProfile.clearEeprom();
+    activeProfile.resetToDefaults();
+    Motors::setInversion(1, 1);
+    Motors::setTrim(TRIM_MOTOR_KIRI, TRIM_MOTOR_KANAN);
+
+    if (response != NULL && responseSize > 0) {
+        snprintf(response, responseSize, "!RESET:OK");
+    }
+    return true;
+}
+
+bool CalibrationService::executeCommand(const char* cmd, char* response, size_t responseSize) {
+    if (cmd == NULL || cmd[0] != '!') {
+        if (response != NULL && responseSize > 0) {
+            snprintf(response, responseSize, "!ERR:MALFORMED");
+        }
+        return true;
+    }
+
+    if (strcmp(cmd, "!PING") == 0) {
+        return handlePing(response, responseSize);
+    }
+    if (strcmp(cmd, "!DIAG:ALL") == 0) {
+        return handleDiagAll(response, responseSize);
+    }
+    if (strncmp(cmd, "!DIAG:MOTOR:", 12) == 0) {
+        return handleDiagMotor(cmd + 12, response, responseSize);
+    }
+    if (strncmp(cmd, "!DIAG:BEEP", 10) == 0) {
+        return handleDiagBeep(cmd + 10, response, responseSize);
+    }
+    if (strcmp(cmd, "!STEP:U1") == 0) {
+        return handleStepU1(response, responseSize);
+    }
+    if (strncmp(cmd, "!STEP:U2", 8) == 0) {
+        return handleStepU2(cmd + 8, response, responseSize);
+    }
+    if (strcmp(cmd, "!STEP:U3") == 0) {
+        return handleStepU3(response, responseSize);
+    }
+    if (strcmp(cmd, "!STEP:U4") == 0) {
+        return handleStepU4(response, responseSize);
+    }
+    if (strcmp(cmd, "!CALIB:READ") == 0) {
+        return handleCalibRead(response, responseSize);
+    }
+    if (strncmp(cmd, "!CALIB:WRITE:", 13) == 0) {
+        return handleCalibWrite(cmd + 13, response, responseSize);
+    }
+    if (strcmp(cmd, "!CALIB:RESET") == 0) {
+        return handleCalibReset(response, responseSize);
+    }
+
+    if (response != NULL && responseSize > 0) {
+        snprintf(response, responseSize, "!ERR:UNKNOWN");
+    }
+    return true;
+}
