@@ -55,3 +55,35 @@ Diagram yang dihasilkan memvisualisasikan:
 - Kotak rintangan $20 \times 20\text{ cm}$.
 - Garis lintasan aktual robot berwarna biru.
 - Titik START $(0, 0)$ hijau dan titik TIBA merah beserta koordinat akhir.
+
+---
+
+## 3. Wizard Kalibrasi & Diagnostik Pre-Flight (`auto_calibrate.py`)
+
+Utilitas interaktif berbasis terminal (CLI) untuk mengeksekusi pengujian perangkat keras Pre-Flight (Stage U0), penguncian keamanan (*hard-gated safety*), serta kalibrasi parameter kinematika robot secara dinamis tanpa kompilasi ulang kode sumber.
+
+### Fitur Stage U0:
+- **U0.1 MPU6050 I2C Bus**: Memeriksa register `WHO_AM_I` pada address 0x68 (Pin SDA A4, SCL A5).
+- **U0.2 Sonar Ultrasonik HC-SR04**: Validasi pantulan echo bebas timeout (Trig A0, Echo A1).
+- **U0.3 Sensor IR Lateral FC-51**: Pengujian logika active-low sensor dinding kiri (A3) dan kanan (D11).
+- **U0.4 Indikator Buzzer & LED**: Pengujian audio-visual buzzer piezo (A2) dan status LED (D13).
+- **U0.5 Motor Driver & Dual Encoder**: Memutar roda independen, memverifikasi pembacaan pulsa optical encoder (D2/D3), dan otomatis mengaplikasikan *software polarity inversion* ke EEPROM jika arah putaran terbalik.
+- **Hard-Gated Safety**: Memblokir kalibrasi gerak jika salah satu komponen hardware gagal dan menampilkan petunjuk perbaikan pin perkabelan (*wiring repair*).
+
+### Cara Menjalankan:
+
+```bash
+# 1. Jalankan pengujian interaktif terhadap robot fisik (autodetect port serial):
+python3 tools/auto_calibrate.py
+
+# 2. Tentukan port serial secara spesifik:
+python3 tools/auto_calibrate.py --port /dev/ttyUSB0 --baud 115200
+
+# 3. Jalankan pengujian offline/CI dengan mock robot firmware:
+python3 tools/auto_calibrate.py --mock --headless
+
+# 4. Uji simulasi kegagalan sensor tertentu pada mock mode:
+python3 tools/auto_calibrate.py --mock --fail-mpu
+python3 tools/auto_calibrate.py --mock --fail-sonar
+python3 tools/auto_calibrate.py --mock --reverse-left
+```

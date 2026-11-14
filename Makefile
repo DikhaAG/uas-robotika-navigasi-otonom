@@ -65,6 +65,13 @@ test: $(TESTS)
 	@echo "=========================================="
 	@echo " ALL C++ UNIT TESTS PASSED!"
 	@echo "=========================================="
+	@echo "=========================================="
+	@echo " Running Python Diagnostics Test Suite..."
+	@echo "=========================================="
+	python3 tests/test_auto_calibrate.py
+	@echo "=========================================="
+	@echo " ALL PYTHON DIAGNOSTIC TESTS PASSED!"
+	@echo "=========================================="
 
 run_simulation:
 	@echo "=========================================="
