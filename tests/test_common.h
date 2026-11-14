@@ -4,7 +4,9 @@
 #include "../firmware/RobotNavigasiOtonom/Config.h"
 #include "../firmware/RobotNavigasiOtonom/Hal.h"
 #include "../firmware/RobotNavigasiOtonom/Motors.h"
-#include "../firmware/RobotNavigasiOtonom/Sensors.h"
+#include "../firmware/RobotNavigasiOtonom/Gyroscope.h"
+#include "../firmware/RobotNavigasiOtonom/UltrasonicSonar.h"
+#include "../firmware/RobotNavigasiOtonom/WallDetector.h"
 #include "../firmware/RobotNavigasiOtonom/Odometry.h"
 #include "../firmware/RobotNavigasiOtonom/WaypointQueue.h"
 #include "../firmware/RobotNavigasiOtonom/MotionController.h"
@@ -18,7 +20,9 @@
 inline void resetAllMocks() {
     Hal::resetMock();
     Motors::init();
-    Sensors::init();
+    Gyroscope::init();
+    UltrasonicSonar::init();
+    WallDetector::init();
     Odometry::init();
     WaypointQueue::init();
     ObstacleAvoidance::reset();

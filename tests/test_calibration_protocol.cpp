@@ -75,20 +75,20 @@ int main() {
     // ----------------------------------------------------
     // Test 3: Diagnostic Queries (!DIAG:ALL, !DIAG:MOTOR, !DIAG:BEEP)
     // ----------------------------------------------------
-    Sensors::setMockDistance(25.40f);
-    Sensors::setMockIr(false, true); // left false, right true
-    Sensors::setMockWhoAmI(0x68);    // MPU6050 OK
+    UltrasonicSonar::setMockDistance(25.40f);
+    WallDetector::setMockWalls(false, true); // left false, right true
+    Gyroscope::setMockWhoAmI(0x68);    // MPU6050 OK
 
     handled = CalibrationService::executeCommand("!DIAG:ALL", response, sizeof(response));
     assert(handled);
     assert(strcmp(response, "!DIAG:RES:1:25.40:0:1") == 0);
 
     // If MPU6050 whoAmI != 0x68
-    Sensors::setMockWhoAmI(0x00);
+    Gyroscope::setMockWhoAmI(0x00);
     handled = CalibrationService::executeCommand("!DIAG:ALL", response, sizeof(response));
     assert(handled);
     assert(strcmp(response, "!DIAG:RES:0:25.40:0:1") == 0);
-    Sensors::setMockWhoAmI(0x68); // restore
+    Gyroscope::setMockWhoAmI(0x68); // restore
 
     // Motor Spin Test: !DIAG:MOTOR:<pwmL>:<pwmR>:<duration_ms>
     // Runs closed-loop differential drive simulation on desktop without test backdoors
@@ -121,7 +121,7 @@ int main() {
     assert(strncmp(response, "!U3:DONE:", 9) == 0);
 
     // !STEP:U4 -> !U4:DONE:<sonarCm>
-    Sensors::setMockDistance(20.15f);
+    UltrasonicSonar::setMockDistance(20.15f);
     handled = CalibrationService::executeCommand("!STEP:U4", response, sizeof(response));
     assert(handled);
     assert(strcmp(response, "!U4:DONE:20.15") == 0);

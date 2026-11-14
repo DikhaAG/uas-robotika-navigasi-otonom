@@ -1,5 +1,5 @@
 #include "Odometry.h"
-#include "Sensors.h"
+#include "Gyroscope.h"
 #include <math.h>
 
 Pose Odometry::currentPose = {0.0f, 0.0f, 0.0f};
@@ -90,7 +90,7 @@ void Odometry::update(float dt_sec) {
     float d = (dL + dR) / 2.0f;
     totalDistanceMoved += (d >= 0.0f ? d : -d);
 
-    float gyroRateZ = Sensors::readGyroZRate();
+    float gyroRateZ = Gyroscope::readZRate();
     float dTheta = gyroRateZ * dt_sec;
 
     // Midpoint heading formulation (Spec 8)

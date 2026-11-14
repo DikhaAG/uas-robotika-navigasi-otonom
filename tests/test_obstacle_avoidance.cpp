@@ -5,7 +5,7 @@
 #include "../firmware/RobotNavigasiOtonom/Hal.h"
 #include "../firmware/RobotNavigasiOtonom/Motors.h"
 #include "../firmware/RobotNavigasiOtonom/Odometry.h"
-#include "../firmware/RobotNavigasiOtonom/Sensors.h"
+#include "../firmware/RobotNavigasiOtonom/UltrasonicSonar.h"
 #include "../firmware/RobotNavigasiOtonom/WaypointQueue.h"
 #include "../firmware/RobotNavigasiOtonom/ObstacleAvoidance.h"
 
@@ -19,19 +19,19 @@ int main() {
     // Test 1: Obstacle trigger conditions
     Odometry::resetPose(50.0f, 0.0f, 5.0f); // Facing along corridor (|theta| < 20)
     WaypointQueue::loadRoom(1); // Room 1: WP1(180, 0), WP2(180, 70)
-    Sensors::setMockDistance(20.0f); // Obstacle < 25 cm
-    assert(ObstacleAvoidance::shouldTrigger(Odometry::getPose(), Sensors::getDistance(), WaypointQueue::isFinal()) == true);
+    UltrasonicSonar::setMockDistance(20.0f); // Obstacle < 25 cm
+    assert(ObstacleAvoidance::shouldTrigger(Odometry::getPose(), UltrasonicSonar::getDistance(), WaypointQueue::isFinal()) == true);
     std::cout << "  ✓ Test 1a: Valid obstacle triggers avoidance." << std::endl;
 
     // Angled robot (|theta| > 20 deg) looking at corridor side wall
     Odometry::resetPose(50.0f, 0.0f, 25.0f);
-    assert(ObstacleAvoidance::shouldTrigger(Odometry::getPose(), Sensors::getDistance(), WaypointQueue::isFinal()) == false);
+    assert(ObstacleAvoidance::shouldTrigger(Odometry::getPose(), UltrasonicSonar::getDistance(), WaypointQueue::isFinal()) == false);
     std::cout << "  ✓ Test 1b: Angled view (|theta| > 20) suppresses trigger." << std::endl;
 
     // Inside final room entry segment
     WaypointQueue::advance(); // Now on WP2 (final room entry)
     Odometry::resetPose(180.0f, 50.0f, 90.0f);
-    assert(ObstacleAvoidance::shouldTrigger(Odometry::getPose(), Sensors::getDistance(), WaypointQueue::isFinal()) == false);
+    assert(ObstacleAvoidance::shouldTrigger(Odometry::getPose(), UltrasonicSonar::getDistance(), WaypointQueue::isFinal()) == false);
     std::cout << "  ✓ Test 1c: Final room entry segment suppresses trigger." << std::endl;
 
     // Test 2: Clearance lane decision

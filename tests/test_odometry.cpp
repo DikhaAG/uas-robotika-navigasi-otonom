@@ -5,7 +5,7 @@
 #include "../firmware/RobotNavigasiOtonom/Hal.h"
 #include "../firmware/RobotNavigasiOtonom/Motors.h"
 #include "../firmware/RobotNavigasiOtonom/Odometry.h"
-#include "../firmware/RobotNavigasiOtonom/Sensors.h"
+#include "../firmware/RobotNavigasiOtonom/Gyroscope.h"
 
 static bool approxEqual(float a, float b, float tol = 0.05f) {
     return std::fabs(a - b) <= tol;
@@ -56,7 +56,7 @@ int main() {
     Odometry::resetPose(0.0f, 0.0f, 0.0f);
     // Turn in place at 45 deg/s for 1 second (50 steps of 20 ms)
     for (int i = 0; i < 50; ++i) {
-        Sensors::setMockGyroZ(45.0f);
+        Gyroscope::setMockZRate(45.0f);
         Odometry::update(0.02f);
     }
     assert(approxEqual(Odometry::getTheta(), 45.0f, 0.1f));
@@ -67,20 +67,11 @@ int main() {
     // 20 pulses = 20.42 cm along 45 deg line:
     // dx = 20.42 * cos(45) = 14.44 cm, dy = 20.42 * sin(45) = 14.44 cm
     Odometry::injectPulses(20, 20);
-    Sensors::setMockGyroZ(0.0f);
+    Gyroscope::setMockZRate(0.0f);
     Odometry::update(0.02f);
     assert(approxEqual(Odometry::getX(), 14.44f, 0.2f));
     assert(approxEqual(Odometry::getY(), 14.44f, 0.2f));
     std::cout << "  ✓ Test 6: Diagonal 2D odometry passed (x = " << Odometry::getX() << ", y = " << Odometry::getY() << ")." << std::endl;
-
-    // Test 7: Sensor mock readings (Ultrasonic and IR)
-    Sensors::init();
-    Sensors::setMockDistance(23.5f);
-    Sensors::setMockIr(true, false); // Left wall detected, right clear
-    assert(approxEqual(Sensors::getDistance(), 23.5f, 0.1f));
-    assert(Sensors::isWallLeft() == true);
-    assert(Sensors::isWallRight() == false);
-    std::cout << "  ✓ Test 7: Sensor mock acquisitions passed." << std::endl;
 
     std::cout << "[TDD] ALL test_odometry passed successfully!" << std::endl;
     return 0;

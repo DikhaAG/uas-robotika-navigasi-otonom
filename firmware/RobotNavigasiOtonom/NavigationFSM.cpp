@@ -1,4 +1,7 @@
 #include "NavigationFSM.h"
+#include "Gyroscope.h"
+#include "UltrasonicSonar.h"
+#include "WallDetector.h"
 #include "AsciiProtocolDecoder.h"
 #include "CalibrationService.h"
 #include <stdio.h>
@@ -170,7 +173,7 @@ void NavigationFSM::streamTelemetry(const Pose& pose) {
                  (unsigned long)now,
                  getStateName(currentState),
                  pose.x, pose.y, pose.theta,
-                 Sensors::getDistance(),
+                 UltrasonicSonar::getDistance(),
                  WaypointQueue::getCurrentIndex());
         Hal::serialPrint(line);
     }
@@ -204,7 +207,7 @@ void NavigationFSM::handleFailsafeSignaling() {
 
 void NavigationFSM::update() {
     uint32_t now = Hal::millis();
-    Sensors::updateUltrasonic();
+    UltrasonicSonar::update();
     Pose pose = Odometry::getPose();
 
     // Check safety watchdogs
@@ -233,10 +236,10 @@ void NavigationFSM::update() {
             Hal::digitalWrite(PIN_LED, HIGH);
 
             // Accumulate gyro bias samples non-blockingly across 2.0 s window
-            Sensors::sampleGyroCalibration();
+            Gyroscope::sampleCalibration();
 
             if (now - stateEnterTimeMs >= 2000UL) {
-                Sensors::finalizeGyroCalibration();
+                Gyroscope::finalizeCalibration();
                 Odometry::resetPose(0.0f, 0.0f, 0.0f);
                 navStartTimeMs = now;
                 lastMotionTimestampMs = now;
@@ -267,7 +270,7 @@ void NavigationFSM::update() {
             Hal::digitalWrite(PIN_LED, HIGH);
 
             // 1. Check obstacle avoidance trigger
-            float frontDist = Sensors::getDistance();
+            float frontDist = UltrasonicSonar::getDistance();
             if (ObstacleAvoidance::shouldTrigger(pose, frontDist, WaypointQueue::isFinal())) {
                 Motors::stopMotors();
                 ObstacleAvoidance::startScan(pose.theta);
@@ -283,7 +286,7 @@ void NavigationFSM::update() {
             MotionCommand cmd = MotionController::driveTowards(
                 pose.x, pose.y, pose.theta,
                 target.x, target.y,
-                Sensors::isWallLeft(), Sensors::isWallRight(),
+                WallDetector::isWallLeft(), WallDetector::isWallRight(),
                 tol
             );
 
@@ -291,7 +294,7 @@ void NavigationFSM::update() {
             if (cmd.achieved) {
                 if (isFinal) {
                     // Back wall verification: distance to back wall confirms settlement <= 25 cm
-                    float backWallDist = Sensors::getDistance();
+                    float backWallDist = UltrasonicSonar::getDistance();
                     if (backWallDist <= 25.0f || backWallDist >= 350.0f) {
                         transitionTo(STATE_TIBA);
                         break;
@@ -315,7 +318,7 @@ void NavigationFSM::update() {
 
         case STATE_PINDAI: {
             int pwmL = 0, pwmR = 0;
-            float currentDist = Sensors::getDistance();
+            float currentDist = UltrasonicSonar::getDistance();
             ScanState scState = ObstacleAvoidance::updateScan(pose, currentDist, pwmL, pwmR);
 
             if (scState == SCAN_DONE) {

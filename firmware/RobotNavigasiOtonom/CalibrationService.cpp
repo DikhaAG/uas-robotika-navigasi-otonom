@@ -1,4 +1,7 @@
 #include "CalibrationService.h"
+#include "Gyroscope.h"
+#include "UltrasonicSonar.h"
+#include "WallDetector.h"
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -47,7 +50,7 @@ bool CalibrationService::stepCadence(uint32_t now, uint32_t& lastStepMs, uint32_
     float vR = (float)pwmR * 0.165f;
     float omegaRad = (vR - vL) / TRACK_WIDTH_CM;
     float omegaDeg = omegaRad * (180.0f / PI);
-    Sensors::setMockGyroZ(omegaDeg);
+    Gyroscope::setMockZRate(omegaDeg);
 
     float dsL = fabsf(vL * 0.02f);
     float dsR = fabsf(vR * 0.02f);
@@ -75,11 +78,11 @@ bool CalibrationService::handlePing(char* response, size_t responseSize) {
 }
 
 bool CalibrationService::handleDiagAll(char* response, size_t responseSize) {
-    Sensors::updateUltrasonic();
-    uint8_t mpuOk = Sensors::isMpuConnected() ? 1 : 0;
-    float dist = Sensors::getDistance();
-    uint8_t irL = Sensors::isWallLeft() ? 1 : 0;
-    uint8_t irR = Sensors::isWallRight() ? 1 : 0;
+    UltrasonicSonar::update();
+    uint8_t mpuOk = Gyroscope::isConnected() ? 1 : 0;
+    float dist = UltrasonicSonar::getDistance();
+    uint8_t irL = WallDetector::isWallLeft() ? 1 : 0;
+    uint8_t irR = WallDetector::isWallRight() ? 1 : 0;
 
     if (response != NULL && responseSize > 0) {
         snprintf(response, responseSize, "!DIAG:RES:%u:%.2f:%u:%u",
@@ -277,8 +280,8 @@ bool CalibrationService::handleStepU3(char* response, size_t responseSize) {
 }
 
 bool CalibrationService::handleStepU4(char* response, size_t responseSize) {
-    Sensors::updateUltrasonic();
-    float dist = Sensors::getDistance();
+    UltrasonicSonar::update();
+    float dist = UltrasonicSonar::getDistance();
     if (response != NULL && responseSize > 0) {
         snprintf(response, responseSize, "!U4:DONE:%.2f", dist);
     }

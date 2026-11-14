@@ -5,7 +5,6 @@
 #include "Hal.h"
 #include "CalibrationProfile.h"
 #include "Motors.h"
-#include "Sensors.h"
 #include "Odometry.h"
 #include "MotionController.h"
 #include "AsciiProtocolDecoder.h"

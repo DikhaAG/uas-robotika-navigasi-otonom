@@ -1,7 +1,9 @@
 #include "Config.h"
 #include "Hal.h"
 #include "Motors.h"
-#include "Sensors.h"
+#include "Gyroscope.h"
+#include "UltrasonicSonar.h"
+#include "WallDetector.h"
 #include "Odometry.h"
 #include "WaypointQueue.h"
 #include "MotionController.h"
@@ -18,7 +20,9 @@ void setup() {
     Hal::serialBegin(115200);
 
     Motors::init();
-    Sensors::init();
+    Gyroscope::init();
+    UltrasonicSonar::init();
+    WallDetector::init();
     Odometry::init();
     WaypointQueue::init();
     AsciiProtocolDecoder::init();

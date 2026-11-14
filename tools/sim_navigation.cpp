@@ -1,7 +1,9 @@
 #include "Config.h"
 #include "Hal.h"
 #include "Motors.h"
-#include "Sensors.h"
+#include "Gyroscope.h"
+#include "UltrasonicSonar.h"
+#include "WallDetector.h"
 #include "Odometry.h"
 #include "WaypointQueue.h"
 #include "MotionController.h"
@@ -194,7 +196,9 @@ int main(int argc, char** argv) {
     // Initialize mock environment and firmware modules
     Hal::resetMock();
     Motors::init();
-    Sensors::init();
+    Gyroscope::init();
+    UltrasonicSonar::init();
+    WallDetector::init();
     Odometry::init();
     WaypointQueue::init();
     ObstacleAvoidance::reset();
@@ -240,7 +244,7 @@ int main(int argc, char** argv) {
 
         // 1. Raycast virtual sonar sensor
         float sonarDist = ArenaPhysics::raycast(x, y, theta, obstacles, roomNum);
-        Sensors::setMockDistance(sonarDist);
+        UltrasonicSonar::setMockDistance(sonarDist);
 
         // 2. Lateral IR wall sensors (within corridor segment)
         bool wallLeft = false;
@@ -251,7 +255,7 @@ int main(int argc, char** argv) {
             if (distToLeftWall <= 20.0f) wallLeft = true;
             if (distToRightWall <= 20.0f) wallRight = true;
         }
-        Sensors::setMockIr(wallLeft, wallRight);
+        WallDetector::setMockWalls(wallLeft, wallRight);
 
         // 3. Tick Odometry and FSM
         Odometry::update(dt);
@@ -288,7 +292,7 @@ int main(int argc, char** argv) {
         pulseAccR -= (float)pR;
 
         Odometry::injectPulses(pL, pR);
-        Sensors::setMockGyroZ(omegaDeg);
+        Gyroscope::setMockZRate(omegaDeg);
 
         // 7. Track clearances
         bool inFinalRoom = WaypointQueue::isFinal();

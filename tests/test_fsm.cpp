@@ -43,7 +43,7 @@ int main() {
     Hal::advanceTimeMs(2100);
     NavigationFSM::update(); // ORIENTASI
     NavigationFSM::update(); // MAJU
-    Sensors::setMockDistance(20.0f); // Obstacle ahead
+    UltrasonicSonar::setMockDistance(20.0f); // Obstacle ahead
     NavigationFSM::update();
     assert(NavigationFSM::getState() == STATE_PINDAI);
     std::cout << "  ✓ Test 5: MAJU -> PINDAI triggered on obstacle < 25 cm." << std::endl;
@@ -53,7 +53,7 @@ int main() {
     WaypointQueue::loadRoom(1);
     WaypointQueue::advance(); // On WP2 (180, 70)
     Odometry::resetPose(180.0f, 69.0f, 90.0f); // rho = 1.0 cm <= 2.0 cm
-    Sensors::setMockDistance(15.0f); // Back wall confirmed
+    UltrasonicSonar::setMockDistance(15.0f); // Back wall confirmed
     NavigationFSM::setState(STATE_MAJU);
     NavigationFSM::update();
     assert(NavigationFSM::getState() == STATE_TIBA);

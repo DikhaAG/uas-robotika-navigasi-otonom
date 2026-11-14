@@ -12,6 +12,7 @@ build/
 
 # Test binaries
 tests/test_motors
+tests/test_sensors_peripherals
 tests/test_odometry
 tests/test_waypoint_queue
 tests/test_motion_controller

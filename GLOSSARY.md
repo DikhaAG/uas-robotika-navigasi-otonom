@@ -54,6 +54,20 @@ _Avoid_: Heading alignment, pivoting
 The compile-time target hardware definition setting pin mappings, interrupt assignments, and peripheral driver behaviors for either Arduino Uno R3 or ESP32.
 _Avoid_: Target platform, MCU board config
 
+### Perception & Sensing
+
+**Gyroscope**:
+The dedicated MPU6050 I2C sensor driver responsible for device presence verification, non-blocking zero-bias calibration, and Z-axis rotational angular velocity rate measurement in degrees per second.
+_Avoid_: IMU driver, gyro reader, motion sensor
+
+**UltrasonicSonar**:
+The dedicated HC-SR04 non-blocking distance measurement module responsible for timed trigger pulse generation, echo pulse width capture with 25 ms timeout, and sample rate throttling (`PERIODE_SONAR_MS`).
+_Avoid_: Distance sensor, ultrasonic module, range finder
+
+**WallDetector**:
+The dedicated lateral FC-51 infrared proximity module responsible for active-LOW digital state decoding and corridor boundary wall detection.
+_Avoid_: IR sensor, line tracker, proximity switch
+
 ### Verification & Simulation
 
 **SimulationHarness**:

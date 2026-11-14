@@ -2,7 +2,9 @@ CXX = clang++
 CXXFLAGS = -std=c++11 -Wall -Wextra -Werror -I firmware/RobotNavigasiOtonom
 SRCS = firmware/RobotNavigasiOtonom/Hal.cpp \
        firmware/RobotNavigasiOtonom/Motors.cpp \
-       firmware/RobotNavigasiOtonom/Sensors.cpp \
+       firmware/RobotNavigasiOtonom/Gyroscope.cpp \
+       firmware/RobotNavigasiOtonom/UltrasonicSonar.cpp \
+       firmware/RobotNavigasiOtonom/WallDetector.cpp \
        firmware/RobotNavigasiOtonom/Odometry.cpp \
        firmware/RobotNavigasiOtonom/WaypointQueue.cpp \
        firmware/RobotNavigasiOtonom/MotionController.cpp \
@@ -13,6 +15,7 @@ SRCS = firmware/RobotNavigasiOtonom/Hal.cpp \
        firmware/RobotNavigasiOtonom/CalibrationService.cpp
 
 TESTS = tests/test_motors \
+        tests/test_sensors_peripherals \
         tests/test_odometry \
         tests/test_waypoint_queue \
         tests/test_motion_controller \
@@ -37,10 +40,14 @@ lint:
 	@! grep -rnE '\b(delay|Hal::delay)\(' firmware/RobotNavigasiOtonom/ --exclude="Hal.*" || (echo "ERROR: Blocking delay() detected in firmware algorithms!" && exit 1)
 	@! grep -rnE '#include "(Waypoints\.h|Waypoints)"' firmware/ tests/ || (echo "ERROR: Obsolete Waypoints.h header referenced in active codebase!" && exit 1)
 	@! grep -rnE '#include "(CalibrationProtocol\.h|CalibrationProtocol)"' firmware/ tests/ tools/ || (echo "ERROR: Obsolete CalibrationProtocol.h header referenced in active codebase!" && exit 1)
+	@! grep -rnE '#include "(Sensors\.h|Sensors)"' firmware/ tests/ tools/ || (echo "ERROR: Obsolete Sensors.h header referenced in active codebase!" && exit 1)
 	@python3 -m py_compile tools/*.py tests/*.py || (echo "ERROR: Python syntax error detected in tools/ or tests/!" && exit 1)
 	@echo "  ✓ Mechanical checks and Python syntax validation passed."
 
 tests/test_motors: tests/test_motors.cpp $(SRCS)
+	$(CXX) $(CXXFLAGS) $^ -o $@
+
+tests/test_sensors_peripherals: tests/test_sensors_peripherals.cpp $(SRCS)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 tests/test_odometry: tests/test_odometry.cpp $(SRCS)
@@ -72,6 +79,7 @@ test: $(TESTS)
 	@echo " Running Full C++ Test Suite..."
 	@echo "=========================================="
 	$(TEST_TIMEOUT) ./tests/test_motors
+	$(TEST_TIMEOUT) ./tests/test_sensors_peripherals
 	$(TEST_TIMEOUT) ./tests/test_odometry
 	$(TEST_TIMEOUT) ./tests/test_waypoint_queue
 	$(TEST_TIMEOUT) ./tests/test_motion_controller
