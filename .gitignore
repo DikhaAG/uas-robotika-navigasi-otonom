@@ -13,7 +13,8 @@ build/
 # Test binaries
 tests/test_motors
 tests/test_odometry
-tests/test_waypoints
+tests/test_waypoint_queue
+tests/test_motion_controller
 tests/test_obstacle_avoidance
 tests/test_fsm
 tests/test_calibration_profile

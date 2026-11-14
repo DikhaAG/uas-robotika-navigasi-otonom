@@ -16,6 +16,7 @@ Standards enforced by reviewer agents during code review for this embedded C++/A
 - **No Dynamic Allocation**: Never use dynamic memory (`malloc`, `free`, `new`, `delete`) or the Arduino `String` class in periodic execution. Use fixed-size character arrays (`char[]`) and bounded static buffers.
 - **Flash String Literal Macro**: All constant string literals printed to Serial or log streams must be wrapped in `F("...")` macro (e.g. `Serial.print(F("STATE -> "));`) to keep string constants in Flash ROM instead of consuming precious SRAM.
 - **Fixed-Size Data Structures**: Waypoint queues, circular buffers, and arrays must use compile-time static capacities with boundary checks before insertion.
+- **Minimal Refactored Interfaces**: When splitting or deepening embedded C++ modules, never retain speculative backward-compatibility forwarding wrappers or dead aliases when all callers reside internally in the repository. Keep public interfaces strictly minimal.
 
 ## 4. Hardware Abstraction & Portability
 - **Pin Isolation**: No hardcoded digital/analog pin numbers in algorithm modules. All pin mapping must reference definitions in `Config.h` / `Hal.h`.
@@ -24,6 +25,7 @@ Standards enforced by reviewer agents during code review for this embedded C++/A
 ## 5. Motion Control & Kinematic Conventions
 - **Cumulative Stall Detection**: Never use translational displacement $\Delta d = \frac{\Delta d_L + \Delta d_R}{2}$ for stall detection, because in-place pivot turning ($dL = -dR$) produces $\Delta d \approx 0$ and causes false stall timeouts. Stall watchdogs must track cumulative encoder pulses ($|\Delta P_L| + |\Delta P_R|$) against active motor PWM.
 - **Steering Polarity & Lateral Centering**: Steering offset signs must consistently steer away from the detected boundary. If the left lateral sensor trips, the robot must steer right ($PWM_{\text{left}} > PWM_{\text{right}}$ by adding steering adjustment $u$ to left and subtracting from right).
+- **Encapsulated Kinematic Transformations**: Geometric trigonometry and target heading angle calculations (`atan2f`) must remain encapsulated in domain control modules (`MotionController::computeTargetHeading`) rather than re-computed inline in state machine callers.
 
 ## 6. Python Development Tools & Host Utilities
 - **Explicit Typing**: Public functions, parameters, and class attributes in `tools/` and `tests/` must include type hints (`typing.Optional`, `Tuple`, `List`, `Dict`).

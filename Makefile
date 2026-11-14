@@ -29,6 +29,7 @@ lint:
 	@echo " Running Linter & Mechanical Checks..."
 	@echo "=========================================="
 	@! grep -rnE '\b(delay|Hal::delay)\(' firmware/RobotNavigasiOtonom/ --exclude="Hal.*" || (echo "ERROR: Blocking delay() detected in firmware algorithms!" && exit 1)
+	@! grep -rnE '#include "(Waypoints\.h|Waypoints)"' firmware/ tests/ || (echo "ERROR: Obsolete Waypoints.h header referenced in active codebase!" && exit 1)
 	@python3 -m py_compile tools/*.py tests/*.py || (echo "ERROR: Python syntax error detected in tools/ or tests/!" && exit 1)
 	@echo "  ✓ Mechanical checks and Python syntax validation passed."
 

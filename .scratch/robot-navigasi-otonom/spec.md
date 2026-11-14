@@ -83,8 +83,9 @@ The implementation adopts the project domain language defined in `GLOSSARY.md` (
    Fuses pulse counter increments with high-frequency MPU6050 gyroscope integration to calculate real-time robot pose $(x, y, \theta)$ every 20 ms.
 5. **Sensors (`Sensors.h` / `Sensors.cpp`)**:
    Handles I2C communication with MPU6050 (register 0x68), non-blocking ultrasonic trigger and pulse timing for HC-SR04, and digital reading of lateral FC-51 IR sensors.
-6. **Waypoints (`Waypoints.h` / `Waypoints.cpp`)**:
-   Stores fixed room coordinates (Room 1–4) and manages a dynamic FIFO queue of up to 8 coordinates for injecting temporary bypass waypoints during obstacle avoidance.
+6. **MotionController & WaypointQueue (`MotionController.h/.cpp`, `WaypointQueue.h/.cpp`, ADR-0004)**:
+   - `WaypointQueue`: Passive bounded FIFO buffer (up to 8 waypoints) managing doorway coordinates, room centers, and dynamic detour insertions without kinematics knowledge.
+   - `MotionController`: Deep, stateless closed-loop control module calculating Go-to-Goal mathematics, in-place rotation (`rotateTowards`), approach deceleration, proportional steering, and lateral wall-centering bias.
 7. **Navigation FSM (`NavigationFSM.h` / `NavigationFSM.cpp`)**:
    Implements the 8-state navigation automaton (`IDLE`, `KALIBRASI`, `ORIENTASI`, `MAJU`, `PINDAI`, `MUNDUR`, `TIBA`, `GAGAL`) and executes continuous safety watchdog checks.
 
