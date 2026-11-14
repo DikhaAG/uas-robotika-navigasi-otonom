@@ -27,7 +27,7 @@ lint:
 	@echo " Running Linter & Mechanical Checks..."
 	@echo "=========================================="
 	@! grep -rnE '\b(delay|Hal::delay)\(' firmware/RobotNavigasiOtonom/ --exclude="Hal.*" || (echo "ERROR: Blocking delay() detected in firmware algorithms!" && exit 1)
-	@python3 -m py_compile tools/*.py || (echo "ERROR: Python syntax error detected in tools/!" && exit 1)
+	@python3 -m py_compile tools/*.py tests/*.py || (echo "ERROR: Python syntax error detected in tools/ or tests/!" && exit 1)
 	@echo "  ✓ Mechanical checks and Python syntax validation passed."
 
 tests/test_motors: tests/test_motors.cpp $(SRCS)

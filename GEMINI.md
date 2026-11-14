@@ -3,11 +3,13 @@
 ## Current Project Pointers
 
 - **Course Brief**: [Brief_Tugas_Akhir_Robot_Navigasi_Otonom.pdf](file:///Users/a69/Desktop/DESKTOP/POLSRI%20D3%20TEKKOM/MK/smt_5/5cm_prak_robotika/uas/Brief_Tugas_Akhir_Robot_Navigasi_Otonom.pdf) (Robotics Final Project specification, Polsri TC253421).
-- **Active Specification**: [.scratch/robot-navigasi-otonom/spec.md](file:///Users/a69/Desktop/DESKTOP/POLSRI%20D3%20TEKKOM/MK/smt_5/5cm_prak_robotika/uas/.scratch/robot-navigasi-otonom/spec.md) (Architecture, state machine, and requirements).
-- **Active Tickets Backlog**: [.scratch/robot-navigasi-otonom/issues/](file:///Users/a69/Desktop/DESKTOP/POLSRI%20D3%20TEKKOM/MK/smt_5/5cm_prak_robotika/uas/.scratch/robot-navigasi-otonom/issues/) (Numbered implementation tickets 01–07).
+- **Navigation Specification**: [.scratch/robot-navigasi-otonom/spec.md](file:///Users/a69/Desktop/DESKTOP/POLSRI%20D3%20TEKKOM/MK/smt_5/5cm_prak_robotika/uas/.scratch/robot-navigasi-otonom/spec.md) (Autonomous mobile robot navigation suite).
+- **Navigation Tickets Backlog**: [.scratch/robot-navigasi-otonom/issues/](file:///Users/a69/Desktop/DESKTOP/POLSRI%20D3%20TEKKOM/MK/smt_5/5cm_prak_robotika/uas/.scratch/robot-navigasi-otonom/issues/) (Numbered implementation tickets 01–07).
+- **Calibration Specification**: [.scratch/auto-kalibrasi/spec.md](file:///Users/a69/Desktop/DESKTOP/POLSRI%20D3%20TEKKOM/MK/smt_5/5cm_prak_robotika/uas/.scratch/auto-kalibrasi/spec.md) (Automated pre-flight diagnostic wizard & kinematic calibration).
+- **Calibration Tickets Backlog**: [.scratch/auto-kalibrasi/issues/](file:///Users/a69/Desktop/DESKTOP/POLSRI%20D3%20TEKKOM/MK/smt_5/5cm_prak_robotika/uas/.scratch/auto-kalibrasi/issues/) (Numbered implementation tickets 01–04).
 - **Domain Glossary**: [GLOSSARY.md](file:///Users/a69/Desktop/DESKTOP/POLSRI%20D3%20TEKKOM/MK/smt_5/5cm_prak_robotika/uas/GLOSSARY.md) (Ubiquitous vocabulary).
-- **Coding Standards**: [CODING_STANDARDS.md](file:///Users/a69/Desktop/DESKTOP/POLSRI%20D3%20TEKKOM/MK/smt_5/5cm_prak_robotika/uas/CODING_STANDARDS.md) (Embedded C++ rules enforced during `/code-review`).
-- **Architectural Decisions**: [docs/adr/](file:///Users/a69/Desktop/DESKTOP/POLSRI%20D3%20TEKKOM/MK/smt_5/5cm_prak_robotika/uas/docs/adr/) (ADR-0001 Modular Architecture, ADR-0002 Dual MCU).
+- **Coding Standards**: [CODING_STANDARDS.md](file:///Users/a69/Desktop/DESKTOP/POLSRI%20D3%20TEKKOM/MK/smt_5/5cm_prak_robotika/uas/CODING_STANDARDS.md) (Embedded C++ and Python tooling standards).
+- **Architectural Decisions**: [docs/adr/](file:///Users/a69/Desktop/DESKTOP/POLSRI%20D3%20TEKKOM/MK/smt_5/5cm_prak_robotika/uas/docs/adr/) (ADR-0001 Modular Architecture, ADR-0002 Dual MCU, ADR-0003 Host Wizard Architecture).
 - **Verification & Tests**: [Makefile](file:///Users/a69/Desktop/DESKTOP/POLSRI%20D3%20TEKKOM/MK/smt_5/5cm_prak_robotika/uas/Makefile) (`make check`, `make test`, `make run_simulation`).
 
 ## Agent skills

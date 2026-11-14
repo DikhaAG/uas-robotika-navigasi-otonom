@@ -11,6 +11,8 @@ Validates public interfaces and seams:
 import unittest
 import sys
 import os
+import io
+import contextlib
 
 # Add repo root to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -153,11 +155,13 @@ class TestHardGating(unittest.TestCase):
 
 class TestCLIHeadlessExecution(unittest.TestCase):
     def test_cli_mock_pass(self):
-        exit_code = main(["--mock", "--headless"])
+        with contextlib.redirect_stdout(io.StringIO()):
+            exit_code = main(["--mock", "--headless"])
         self.assertEqual(exit_code, 0)
 
     def test_cli_mock_fail_mpu(self):
-        exit_code = main(["--mock", "--headless", "--fail-mpu"])
+        with contextlib.redirect_stdout(io.StringIO()):
+            exit_code = main(["--mock", "--headless", "--fail-mpu"])
         self.assertNotEqual(exit_code, 0)
 
 
@@ -324,7 +328,8 @@ class TestSafetyGatingWithKinematics(unittest.TestCase):
         
         # When attempting to run kinematic test directly without passing U0
         with self.assertRaises(SafetyGateError):
-            main(["--mock", "--headless", "--test", "U1", "--fail-mpu"])
+            with contextlib.redirect_stdout(io.StringIO()):
+                main(["--mock", "--headless", "--test", "U1", "--fail-mpu"])
 
 
 

@@ -1,6 +1,6 @@
 # Specification: Autonomous Navigation Mobile Robot to Target Room
 
-Status: ready-for-agent
+Status: completed
 
 ## Problem Statement
 

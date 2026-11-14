@@ -24,3 +24,10 @@ Standards enforced by reviewer agents during code review for this embedded C++/A
 ## 5. Motion Control & Kinematic Conventions
 - **Cumulative Stall Detection**: Never use translational displacement $\Delta d = \frac{\Delta d_L + \Delta d_R}{2}$ for stall detection, because in-place pivot turning ($dL = -dR$) produces $\Delta d \approx 0$ and causes false stall timeouts. Stall watchdogs must track cumulative encoder pulses ($|\Delta P_L| + |\Delta P_R|$) against active motor PWM.
 - **Steering Polarity & Lateral Centering**: Steering offset signs must consistently steer away from the detected boundary. If the left lateral sensor trips, the robot must steer right ($PWM_{\text{left}} > PWM_{\text{right}}$ by adding steering adjustment $u$ to left and subtracting from right).
+
+## 6. Python Development Tools & Host Utilities
+- **Explicit Typing**: Public functions, parameters, and class attributes in `tools/` and `tests/` must include type hints (`typing.Optional`, `Tuple`, `List`, `Dict`).
+- **Structured Domain Types**: Multi-attribute results (such as telemetry frames, diagnostic reports, and test results) must use dedicated data classes rather than raw, loosely-typed tuples.
+- **Deterministic Formatting**: Floating-point values written to telemetry streams, CSV logs, or ASCII protocol frames must use fixed precision format specifiers (e.g. `{val:.2f}`) to prevent precision ambiguity.
+- **Headless & CI Execution**: CLI utilities must support non-interactive execution (`--headless` and `--mock`) without blocking on user terminal input (`input()`).
+- **Test Output Discipline**: Unit tests invoking CLI entry points (`main()`) must redirect or suppress stdout to preserve clean, un-truncated test runner logs.

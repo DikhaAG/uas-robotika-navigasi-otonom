@@ -1,6 +1,6 @@
 # Spec: Automated Pre-Flight Hardware Diagnostics & Iterative Calibration Wizard
 
-Status: ready-for-agent
+Status: completed
 
 ## Problem Statement
 
