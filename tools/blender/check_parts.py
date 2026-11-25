@@ -8,7 +8,9 @@ For each part it builds the part alone in an empty scene and checks that
   * its bounding box matches layout.Placement.footprint_mm within ±1 mm,
   * its anchor names equal the pins of its netlist component exactly,
   * every anchor lies inside the part's bounding box.
-Prints "PARTS OK" or every error and exits 1. With --render DIR it also renders
+Downloaded models (IMPORTED) are normalised by assets/3d/anchors.json first; if
+any model file is missing the script tells you to run make blender_fetch and
+make blender_convert. Prints "PARTS OK" or every error and exits 1. With --render DIR it also renders
 a labelled close-up of each part to DIR/<part>.png for visual review.
 """
 
@@ -19,7 +21,7 @@ from typing import Callable, Dict, List, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from tools.blender import bl_common, bl_parts  # noqa: E402
+from tools.blender import bl_common, bl_import, bl_parts  # noqa: E402
 from tools.blender.bl_common import PartResult  # noqa: E402
 from tools.blender.layout import placements  # noqa: E402
 from tools.blender.netlist import COMPONENTS  # noqa: E402
@@ -39,6 +41,18 @@ PROCEDURAL: Dict[str, Callable[[], PartResult]] = {
     "caster": bl_parts.make_caster,
     "cell_1": lambda: bl_parts.make_cell("cell_1"),
     "cap_l": lambda: bl_parts.make_cap_100nf("cap_l"),
+}
+
+# part id in layout -> manifest key of the downloaded model it is built from
+IMPORTED: Dict[str, str] = {
+    "uno": "uno",
+    "l298n": "l298n",
+    "sonar": "sonar",
+    "mpu": "mpu",
+    "btn": "btn",
+    "motor_l": "motor_tt",
+    "batt": "batt_holder",
+    "disk_l": "enc_disk",
 }
 
 
@@ -84,7 +98,16 @@ def main() -> int:
     parser.add_argument("--render", type=Path, default=None, help="directory for close-up PNGs")
     args = parser.parse_args(argv)
 
-    errors = run(PROCEDURAL, args.render)
+    missing = bl_import.missing_model_files()
+    if missing:
+        print("ERROR: model files missing — jalankan: make blender_fetch && make blender_convert")
+        for name in missing:
+            print(f"  - {name}")
+        return 1
+    builders: Dict[str, Callable[[], PartResult]] = dict(PROCEDURAL)
+    for part_id, key in IMPORTED.items():
+        builders[part_id] = lambda key=key, part_id=part_id: bl_import.import_part(key, part_id)
+    errors = run(builders, args.render)
     if errors:
         for e in errors:
             print(f"ERROR: {e}")

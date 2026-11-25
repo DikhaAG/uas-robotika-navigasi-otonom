@@ -390,7 +390,7 @@ def studio_lighting(center: Vector, radius: float, collection: Optional["bpy.typ
 def aim_camera(
     name: str, center: Vector, direction: Vector, distance: float, ortho_scale: Optional[float] = None
 ) -> "bpy.types.Object":
-    """Camera at center + direction*distance looking at center (metres)."""
+    """Camera at center + direction*distance looking at center (metres); +Z (or +Y when vertical) is up."""
     cam_data = bpy.data.cameras.new(name)
     cam_data.clip_start = 0.001
     cam_data.clip_end = 10.0
@@ -401,8 +401,14 @@ def aim_camera(
         cam_data.lens = 50.0
     cam = bpy.data.objects.new(name, cam_data)
     cam.location = center + direction.normalized() * distance
-    up = "Y" if abs(direction.normalized().z) < 0.99 else "Y"
-    cam.rotation_euler = (center - cam.location).to_track_quat("-Z", up).to_euler()
+    forward = (center - cam.location).normalized()
+    world_up = Vector((0.0, 0.0, 1.0)) if abs(forward.z) < 0.99 else Vector((0.0, 1.0, 0.0))
+    right = forward.cross(world_up).normalized()
+    if forward.z > 0.99:
+        right = Vector((-1.0, 0.0, 0.0))
+    up = right.cross(forward).normalized()
+    basis = Matrix((right, up, -forward)).transposed()
+    cam.rotation_euler = basis.to_euler()
     bpy.context.scene.collection.objects.link(cam)
     return cam
 

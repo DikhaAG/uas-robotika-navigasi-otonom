@@ -270,7 +270,8 @@ class TestBlenderNetlist(unittest.TestCase):
         self.assertTrue(all(n.startswith("wire_") for n in names))
 
     def test_end_types(self) -> None:
-        bare_components = {"batt", "switch", "motor_l", "motor_r"}
+        # btn: the 12 mm tactile switch has bent PCB legs, not header pins, so its wires are soldered.
+        bare_components = {"batt", "switch", "motor_l", "motor_r", "btn"}
         bare_l298n = {"+12V", "GND", "OUT1", "OUT2", "OUT3", "OUT4"}
         for w in self.wires:
             for ref, end in ((w.src, w.src_end), (w.dst, w.dst_end)):

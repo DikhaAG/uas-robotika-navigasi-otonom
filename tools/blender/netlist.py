@@ -79,7 +79,8 @@ NET_COLORS: Dict[str, str] = {
     "interface": "#0891b2",
 }
 
-_BARE_COMPONENTS: FrozenSet[str] = frozenset({"batt", "switch", "motor_l", "motor_r"})
+# btn: the 12 mm tactile switch has bent PCB legs (no header), so its wires are soldered on.
+_BARE_COMPONENTS: FrozenSet[str] = frozenset({"batt", "switch", "motor_l", "motor_r", "btn"})
 _BARE_L298N_PINS: FrozenSet[str] = frozenset({"+12V", "GND", "OUT1", "OUT2", "OUT3", "OUT4"})
 
 
@@ -108,7 +109,7 @@ MULTI_USE_PINS: FrozenSet[PinRef] = frozenset({PinRef("switch", "OUT")})
 
 
 def end_kind(ref: PinRef) -> EndKind:
-    """Screw terminals, battery leads, switch and soldered motor tabs take bare ends; headers take dupont."""
+    """Screw terminals, battery leads, switch, button legs and motor tabs take bare ends; headers take dupont."""
     if ref.component in _BARE_COMPONENTS:
         return "bare"
     if ref.component == "l298n" and ref.pin in _BARE_L298N_PINS:
