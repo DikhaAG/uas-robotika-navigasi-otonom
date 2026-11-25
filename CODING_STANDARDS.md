@@ -31,8 +31,9 @@ Standards enforced by reviewer agents during code review for this embedded C++/A
 - **Encapsulated Kinematic Transformations**: Geometric trigonometry and target heading angle calculations (`atan2f`) must remain encapsulated in domain control modules (`MotionController::computeTargetHeading`) rather than re-computed inline in state machine callers.
 
 ## 6. Python Development Tools & Host Utilities
-- **Explicit Typing**: Public functions, parameters, and class attributes in `tools/` and `tests/` must include type hints (`typing.Optional`, `Tuple`, `List`, `Dict`).
-- **Structured Domain Types**: Multi-attribute results (such as telemetry frames, diagnostic reports, and test results) must use dedicated data classes rather than raw, loosely-typed tuples.
+- **Explicit Typing**: Public functions, parameters, and class attributes in `tools/` and `tests/` must include type hints (`typing.Optional`, `Tuple`, `List`, `Dict`) — mechanically enforced by `tools/check_python_standards.py` in `make lint`.
+- **Structured Domain Types**: Multi-attribute results (such as telemetry frames, diagnostic reports, and test results) must use `@dataclass` domain types rather than raw, loosely-typed tuples (implementing `__iter__` only when legacy callers require tuple unpacking).
+- **Seam Isolation**: Domain engines (`CalibrationEngine`) must depend solely on `Protocol` seams (`TransportAdapter`, `ObservationAdapter`, `ReporterAdapter`) and never inspect concrete adapter internals via `getattr` or `isinstance`.
 - **Deterministic Formatting**: Floating-point values written to telemetry streams, CSV logs, or ASCII protocol frames must use fixed precision format specifiers (e.g. `{val:.2f}`) to prevent precision ambiguity.
 - **Headless & CI Execution**: CLI utilities must support non-interactive execution (`--headless` and `--mock`) without blocking on user terminal input (`input()`).
 - **Test Output Discipline**: Unit tests invoking CLI entry points (`main()`) must redirect or suppress stdout to preserve clean, un-truncated test runner logs.

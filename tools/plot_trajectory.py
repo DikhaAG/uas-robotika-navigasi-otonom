@@ -5,9 +5,10 @@ Parses serial CSV telemetry (t_ms,state,x,y,theta,jarak,iWp) and renders
 publication-quality SVG / PNG trajectory diagrams over the 480x80cm arena.
 """
 
-import sys
-import csv
 import argparse
+import csv
+import sys
+from typing import Any, Dict, List, Optional, Tuple
 
 # Arena definitions in cm
 CORRIDOR_X_MIN = 0.0
@@ -26,7 +27,7 @@ OBSTACLES = [
     (90.0, 0.0, 20.0, 20.0) # Standard 20x20 cm obstacle box
 ]
 
-def parse_telemetry(csv_filepath):
+def parse_telemetry(csv_filepath: str) -> List[Dict[str, Any]]:
     points = []
     with open(csv_filepath, "r", encoding="utf-8") as f:
         reader = csv.reader(f)
@@ -49,7 +50,11 @@ def parse_telemetry(csv_filepath):
                 continue
     return points
 
-def render_svg(points, output_svg, obstacles=None):
+def render_svg(
+    points: List[Dict[str, Any]],
+    output_svg: str,
+    obstacles: Optional[List[Tuple[float, float, float, float]]] = None,
+) -> None:
     if obstacles is None:
         obstacles = OBSTACLES
 
@@ -190,7 +195,7 @@ def render_svg(points, output_svg, obstacles=None):
         f.write("\n".join(svg))
     print(f"Generated trajectory SVG: {output_svg}")
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Plot Robot Navigation Telemetry Path")
     parser.add_argument("csv_file", help="Path to telemetry CSV log")
     parser.add_argument("-o", "--output", default="tools/trajectory_plot.svg", help="Output SVG filepath")
