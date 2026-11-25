@@ -38,13 +38,13 @@ WHEEL_NOTCH_ABS_Y_MM: Tuple[float, float] = (52.5, CHASSIS_MM[1] / 2)
 
 # Cable slots through the plate (centre); sizes are (length X, width Y).
 CHASSIS_SLOTS_MM: Dict[str, Vec3] = {
-    "left": (57.5, 35.0, CHASSIS_MID_Z_MM),
-    "right": (57.5, -35.0, CHASSIS_MID_Z_MM),
+    "left": (57.5, 33.5, CHASSIS_MID_Z_MM),
+    "right": (57.5, -33.5, CHASSIS_MID_Z_MM),
     "rear": (-44.0, -61.0, CHASSIS_MID_Z_MM),
 }
 CHASSIS_SLOT_SIZES_MM: Dict[str, Tuple[float, float]] = {
-    "left": (36.0, 24.0),
-    "right": (36.0, 24.0),
+    "left": (36.0, 27.0),
+    "right": (36.0, 27.0),
     "rear": (8.0, 16.0),
 }
 
@@ -98,15 +98,15 @@ def placements() -> Dict[str, Placement]:
         _p("cell_2", (-34.5, 0.0, -5.0), (18.0, 65.0, 18.0), "bottom"),
         _p("caster", (-90.0, 0.0, FLOOR_Z_MM), (25.0, 25.0, CHASSIS_BOTTOM_Z_MM - FLOOR_Z_MM), "bottom"),
         # On top of the chassis
-        _p("l298n", (58.0, 0.0, raised), (43.04, 43.04, 26.12), "top"),
+        _p("l298n", (69.0, 0.0, raised), (43.04, 43.04, 26.12), "top"),
         _p("mpu", (22.0, 18.0, top + 2.0), (20.32, 15.1, 11.5), "top"),
         _p("uno", (-77.33, 37.135, top + 2.0), (75.27, 53.34, 14.5), "top", (0.0, 0.0, -90.0)),
         _p("bb", (-21.75, -11.15, top), (82.5, 54.5, 8.5), "top", (0.0, 0.0, 90.0)),
-        _p("switch", (-95.0, -40.0, top), (15.0, 21.0, 18.0), "top"),
-        _p("btn", (-78.0, -40.0, top), (12.0, 12.9, 10.3), "top"),
-        _p("buzzer", (-62.0, -40.0, top), (12.0, 12.0, 9.5), "top"),
+        _p("switch", (-97.0, -40.0, top), (15.0, 21.0, 18.0), "top"),
+        _p("btn", (-80.0, -62.0, top), (12.0, 12.9, 10.3), "top"),
+        _p("buzzer", (-62.0, -62.0, top), (16.0, 12.0, 9.5), "top"),
         # Edges
-        _p("sonar", (95.0, 0.0, top), (17.95, 45.0, 25.15), "front"),
+        _p("sonar", (100.0, 0.0, top), (17.95, 45.0, 25.15), "front"),
         _p("ir_l", (52.0, 66.0, top), (14.0, 32.0, 7.0), "left"),
         _p("ir_r", (52.0, -66.0, top), (14.0, 32.0, 7.0), "right", turn_z),
     ]
