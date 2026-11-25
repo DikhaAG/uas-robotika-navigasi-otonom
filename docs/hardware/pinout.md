@@ -12,8 +12,8 @@ Dokumentasi pemetaan pin mikrokontroler untuk robot navigasi otonom (Praktikum R
 | **D6** | L293D Pin 9 (3,4EN) | PWM Motor Kanan | Output (PWM Timer0) | Mengatur kecepatan motor kanan (0–255) |
 | **D5** | L293D Pin 10 (3A) | Arah Motor Kanan (IN3) | Output Digital | Logika arah maju/mundur motor kanan (via resistor 220 $\Omega$) |
 | **D4** | L293D Pin 15 (4A) | Arah Motor Kanan (IN4) | Output Digital | Logika arah maju/mundur motor kanan (via resistor 220 $\Omega$) |
-| **D2 (INT0)** | Modul LM393 Kiri (D0) | Pulsa Encoder Kiri | Input Interrupt | Interupsi eksternal INT0 (`CHANGE`), pulsa rotasi roda kiri |
-| **D3 (INT1)** | Modul LM393 Kanan (D0) | Pulsa Encoder Kanan | Input Interrupt | Interupsi eksternal INT1 (`CHANGE`), pulsa rotasi roda kanan |
+| **D2 (INT0)** | Modul LM393 Kiri (D0) | Pulsa Encoder Kiri | Input Interrupt | Interupsi eksternal INT0 (`RISING`), pulsa rotasi roda kiri |
+| **D3 (INT1)** | Modul LM393 Kanan (D0) | Pulsa Encoder Kanan | Input Interrupt | Interupsi eksternal INT1 (`RISING`), pulsa rotasi roda kanan |
 | **A0 (D14)** | HC-SR04 Trig | Trigger Ultrasonik | Output Digital | Pulsa trigger 10 $\mu\text{s}$ untuk sonar depan |
 | **A1 (D15)** | HC-SR04 Echo | Echo Ultrasonik | Input Digital | Pulsa durasi pantulan gelombang (timeout 25 ms $\approx 400\text{ cm}$) |
 | **A4 (SDA)** | MPU6050 SDA | I2C Data | Bidireksional (I2C) | Komunikasi I2C IMU (Alamat register 0x68) |
@@ -23,8 +23,8 @@ Dokumentasi pemetaan pin mikrokontroler untuk robot navigasi otonom (Praktikum R
 | **D13** | Built-in LED | Indikator State | Output Digital | Kedip lambat (IDLE), solid (Navigasi/TIBA), kedip cepat (GAGAL) |
 | **A3 (D17)** | FC-51 Kiri (OUT) | Sensor Dinding Kiri | Input Digital | Deteksi batas dinding koridor sisi kiri (Active LOW) |
 | **D11** | FC-51 Kanan (OUT) | Sensor Dinding Kanan | Input Digital | Deteksi batas dinding koridor sisi kanan (Active LOW) |
-| **D10** | HC-05 TXD | Bluetooth RX | Input Digital (Opsional) | Penerimaan konfigurasi ruangan via SoftwareSerial |
-| **D11** | HC-05 RXD | Bluetooth TX | Output Digital (Opsional) | Mengirim telemetri (gunakan voltage divider 1k/2k jika D11 dipakai) |
+| **D10** | HC-05 TXD *(cadangan)* | Bluetooth RX | Input Digital (Cadangan) | Pin cadangan di `Config.h` (`PIN_BT_RX`); firmware aktif memakai `Serial` UART0 |
+| **D12** *(alt)* | HC-05 RXD *(cadangan)* | Bluetooth TX | Output Digital (Cadangan) | Pin cadangan di `Config.h` (`PIN_BT_TX`, berbagi dengan `START`); firmware aktif memakai `Serial` UART0 |
 
 ---
 
@@ -49,5 +49,5 @@ Dokumentasi pemetaan pin mikrokontroler untuk robot navigasi otonom (Praktikum R
 | **GPIO 2** | Built-in Blue LED | Indikator State | Output Digital | LED indikator onboard ESP32 |
 | **GPIO 32** | FC-51 Kiri (OUT) | Dinding Kiri | Input Digital | Proximity dinding kiri |
 | **GPIO 33** | FC-51 Kanan (OUT) | Dinding Kanan | Input Digital | Proximity dinding kanan |
-| **GPIO 16** | HC-05 TXD (UART2 RX) | Serial2 RX | Hardware UART | Komunikasi Bluetooth SPP |
-| **GPIO 17** | HC-05 RXD (UART2 TX) | Serial2 TX | Hardware UART | Komunikasi Bluetooth SPP |
+| **GPIO 16** | HC-05 TXD *(cadangan)* | Serial2 RX *(cadangan)* | Hardware UART | Pin cadangan di `Config.h`; firmware aktif memakai `Serial` UART0 |
+| **GPIO 17** | HC-05 RXD *(cadangan)* | Serial2 TX *(cadangan)* | Hardware UART | Pin cadangan di `Config.h`; firmware aktif memakai `Serial` UART0 |

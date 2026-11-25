@@ -35,7 +35,7 @@ Robot bergerak secara otonom menggunakan sistem penggerak *differential drive* (
 ### Fitur Utama
 - **Estimasi Posisi (*Odometry*):** Menggabungkan jumlah pulsa *optical encoder* roda kiri/kanan (jarak translasi) dengan integrasi laju sudut sumbu-Z *gyroscope* MPU6050 (orientasi $\theta$).
 - **Kontrol Gerak (*MotionController*):** Kendali proporsional *Go-to-Goal* dengan penstabil arah (*heading hold*), perlambatan halus saat mendekati target (`JARAK_DECEL_CM = 30 cm`), dan penengah koridor (*wall-centering*) dari dua sensor IR lateral.
-- **Penghindaran Rintangan (*Obstacle Avoidance*):** Saat sensor ultrasonik mendeteksi halangan di depan pada jarak $\le 25\text{ cm}$, robot berhenti, memindai sisi kiri/kanan ($\pm 30^\circ$), menyisipkan jalur *bypass* sementara (*Temporary Waypoint* dengan offset jalur $\pm 20\text{ cm}$), lalu kembali menuju target utama.
+- **Penghindaran Rintangan (*Obstacle Avoidance*):** Saat sensor ultrasonik mendeteksi halangan di depan pada jarak $< 25\text{ cm}$ (saat bergerak lurus di koridor dengan $|\theta| < 20^\circ$), robot berhenti, memindai sisi kiri/kanan ($\pm 30^\circ$), menyisipkan jalur *bypass* sementara (*Temporary Waypoint* dengan offset jalur $\pm 20\text{ cm}$), lalu kembali menuju target utama.
 - **Finite State Machine (8 State):**
   1. `IDLE` — Menunggu pemilihan ruangan (`1`–`4`) atau perintah kalibrasi serial, serta penekanan tombol `START`.
   2. `KALIBRASI` — Mengambil sampel *zero-bias* gyroscope selama 2 detik dalam keadaan diam sebelum bergerak.
@@ -96,7 +96,8 @@ Robot bergerak secara otonom menggunakan sistem penggerak *differential drive* (
 │   ├── simulate_navigation.py          # Runner simulasi kinematika arena 480x80 cm
 │   ├── sim_navigation.cpp              # Harness simulasi native C++ (menggunakan kode firmware asli)
 │   ├── plot_trajectory.py              # Generator grafik lintasan vektor (.svg) dari telemetri CSV
-│   └── check_python_standards.py       # Pemeriksa type-hint & isolasi modul Python
+│   ├── check_python_standards.py       # Pemeriksa type-hint & isolasi modul Python
+│   └── check_docs_consistency.py       # Pemeriksa konsistensi README.md & docs/ terhadap kode
 ├── tests/                              # Unit test C++ (9 suite) & Python (test_auto_calibrate.py)
 └── docs/
     ├── hardware/                       # pinout.md & power-budget.md
@@ -166,7 +167,7 @@ Pastikan seluruh kebutuhan perangkat lunak dan perangkat keras berikut telah sia
 - **2x Sensor IR Proximity FC-51** (sensor dinding koridor kiri & kanan, *active-LOW*)
 - **1x Push Button Tactile** (tombol `START`)
 - **1x Buzzer Aktif 5V** (indikator suara tiba & failsafe)
-- **1x Modul Bluetooth HC-05** *(opsional, untuk memilih ruangan/telemetri nirkabel)*
+- **1x Modul Bluetooth HC-05** *(opsional / cadangan perangkat keras; firmware aktif saat ini memakai `Serial` UART0)*
 
 ##### Panduan Pemilihan & Pemahaman Modul MPU6050 (GY-521)
 Agar tidak salah memilih modul saat membeli maupun saat merangkai:
@@ -212,7 +213,7 @@ make check
 
 Perintah `make check` otomatis menjalankan 3 tahap:
 1. **`make lint`**: Memeriksa tidak ada `delay()` yang memblokir di algoritma firmware, validasi sintaks Python, dan pengecekan standar tipe Python.
-2. **`make test`**: Mengompilasi dan menjalankan seluruh **9 suite unit test C++** (`tests/test_*`) serta **40 unit test Python** (`tests/test_auto_calibrate.py`).
+2. **`make test`**: Mengompilasi dan menjalankan seluruh **9 suite unit test C++** (`tests/test_*`) serta **42 unit test Python** (`tests/test_auto_calibrate.py`).
 3. **`make run_simulation`**: Mengompilasi simulator native C++ (`tools/sim_navigation`), menjalankan skenario navigasi standar, dan merender `tools/trajectory_plot.svg`.
 
 Jika di akhir terminal muncul pesan:
@@ -292,8 +293,8 @@ Agar Arduino tidak mengalami *brownout* (restart sendiri) dan sensor MPU6050 tid
 | **D6** | Pin 9 (`3,4EN`) | `ENB` *(lepas jumper)* | PWM Motor Kanan | Timer0 PWM (0–255) |
 | **D5** | Pin 10 (`3A` / IN3) | `IN3` | Arah Motor Kanan | Pasang resistor seri $220\,\Omega$ jika memakai IC L293D |
 | **D4** | Pin 15 (`4A` / IN4) | `IN4` | Arah Motor Kanan | Pasang resistor seri $220\,\Omega$ jika memakai IC L293D |
-| **D2 (INT0)** | Encoder LM393 Kiri (`D0`) | — | Pulsa Encoder Kiri | Interupsi eksternal (`CHANGE`) |
-| **D3 (INT1)** | Encoder LM393 Kanan (`D0`) | — | Pulsa Encoder Kanan | Interupsi eksternal (`CHANGE`) |
+| **D2 (INT0)** | Encoder LM393 Kiri (`D0`) | — | Pulsa Encoder Kiri | Interupsi eksternal (`RISING`) |
+| **D3 (INT1)** | Encoder LM393 Kanan (`D0`) | — | Pulsa Encoder Kanan | Interupsi eksternal (`RISING`) |
 | **A0 (D14)** | HC-SR04 `Trig` | — | Trigger Ultrasonik | Output pulsa $10\,\mu\text{s}$ |
 | **A1 (D15)** | HC-SR04 `Echo` | — | Echo Ultrasonik | Input pulsa gema (timeout 25 ms) |
 | **A4 (SDA)** | MPU6050 `SDA` | — | I2C Data | Alamat perangkat `0x68` |
@@ -303,7 +304,7 @@ Agar Arduino tidak mengalami *brownout* (restart sendiri) dan sensor MPU6050 tid
 | **D13** | Built-in LED | — | Indikator State | Kedip lambat (`IDLE`), solid (`MAJU`/`TIBA`), kedip cepat (`GAGAL`) |
 | **A3 (D17)** | FC-51 Kiri (`OUT`) | — | Sensor Dinding Kiri | *Active-LOW* |
 | **D11** | FC-51 Kanan (`OUT`) | — | Sensor Dinding Kanan | *Active-LOW* |
-| **D10** *(Opsional)* | HC-05 `TXD` | — | Bluetooth RX | Hanya jika modul Bluetooth dipasang |
+| **D10** *(Cadangan)* | HC-05 `TXD` | — | Bluetooth RX *(cadangan)* | Didefinisikan di `Config.h`; firmware aktif memakai `Serial` UART0 |
 
 > **Catatan Tambahan Jika Menggunakan Modul L298N:**
 > - **Lepas jumper `ENA` dan `ENB`** pada modul L298N agar kecepatan motor bisa dikontrol oleh sinyal PWM (`D9` dan `D6`).
@@ -322,7 +323,7 @@ Agar Arduino tidak mengalami *brownout* (restart sendiri) dan sensor MPU6050 tid
 | **GPIO 21 / 22** | MPU6050 `SDA` / `SCL` | I2C IMU | Hardware I2C default ESP32 |
 | **GPIO 4 / 15 / 2** | Buzzer / Tombol START / Built-in LED | Antarmuka & Indikator | Buzzer 5V disarankan via transistor 2N2222 |
 | **GPIO 32 / 33** | FC-51 Kiri / Kanan (`OUT`) | Sensor IR Dinding | Input digital (*Active-LOW*) |
-| **GPIO 16 / 17** | Bluetooth HC-05 `TXD` / `RXD` | Komunikasi Serial | Hardware UART2 (`Serial2`) |
+| **GPIO 16 / 17** | Bluetooth HC-05 `TXD` / `RXD` | Komunikasi Serial *(cadangan)* | Didefinisikan di `Config.h`; firmware aktif memakai `Serial` UART0 |
 
 ---
 
@@ -414,7 +415,7 @@ Setelah kalibrasi selesai, cabut kabel USB (robot siap berjalan otonom dengan ba
 
 1. **Letakkan Robot di Titik Start:** Posisikan robot pada koordinat `(0, 0)` di tengah koridor menghadap lurus ke arah sumbu `+X` (sejajar garis tengah koridor). Pastikan robot dalam `STATE_IDLE` (**LED status berkedip lambat setiap 1 detik**).
 2. **Pilih Ruangan Tujuan (`1`–`4`):**
-   - Kirim karakter angka **`1`**, **`2`**, **`3`**, atau **`4`** (tanpa perlu tanda `!`) melalui **Serial Monitor (115200 baud)** atau terminal **Bluetooth HC-05** sebelum melepas kabel/memulai.
+   - Kirim karakter angka **`1`**, **`2`**, **`3`**, atau **`4`** (tanpa perlu tanda `!`) melalui **Serial Monitor (115200 baud)** (atau modul Bluetooth yang terhubung ke jalur UART0 `RX/TX` setelah upload) sebelum melepas kabel/memulai.
    - *(Jika tidak memilih, target default adalah **Room 1**).*
 3. **Mulai Navigasi:** Tekan tombol fisik **START** (`D12` pada Arduino Uno / `GPIO 15` pada ESP32).
 4. **Amati Urutan Eksekusi:**
@@ -435,7 +436,7 @@ Contoh baris log serial:
 # STATE -> MAJU
 2200,MAJU,12.45,0.32,0.85,145.20,0
 ```
-Simpan output Serial Monitor (atau log Bluetooth) tersebut ke dalam file `.csv`, lalu jalankan:
+Simpan output Serial Monitor tersebut ke dalam file `.csv`, lalu jalankan:
 ```bash
 python3 tools/plot_trajectory.py log_uji_arena.csv -o grafik_uji_arena.svg
 ```
