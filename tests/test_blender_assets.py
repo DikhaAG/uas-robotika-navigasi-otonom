@@ -16,11 +16,13 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, REPO_ROOT)
 
 from tools.blender.assets import (  # noqa: E402
+    CACHE_DIR,
     ModelSource,
     load_sources,
     missing_assets,
     verify_sha256,
 )
+from tools.blender.convert_step import glb_path_for, needs_conversion  # noqa: E402
 
 REQUIRED_KEYS = {"uno", "l298n", "sonar", "mpu", "motor_tt", "wheel", "enc_disk", "batt_holder", "btn"}
 
@@ -94,6 +96,39 @@ class TestMissingAssets(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / "a.step").write_bytes(b"x")
             self.assertEqual(missing_assets(sources, Path(tmp)), ["b.stl"])
+
+
+class TestStepConversion(unittest.TestCase):
+    def test_glb_path_for_uses_key(self) -> None:
+        source = _fake_source("uno", "ArduinoUNO_3D.step")
+        self.assertEqual(glb_path_for(source), CACHE_DIR / "uno.glb")
+        self.assertEqual(glb_path_for(source, Path("/c")), Path("/c/uno.glb"))
+
+    def test_needs_conversion_skips_non_step_and_fresh_cache(self) -> None:
+        sources = [
+            _fake_source("fresh", "fresh.step"),
+            _fake_source("stale", "stale.STEP"),
+            _fake_source("absent", "absent.stp"),
+            _fake_source("mesh", "mesh.stl"),
+            _fake_source("obj", "board.obj"),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            vendor, cache = Path(tmp) / "vendor", Path(tmp) / "cache"
+            vendor.mkdir()
+            cache.mkdir()
+            for s in sources:
+                (vendor / s.filename).write_bytes(b"x")
+                os.utime(vendor / s.filename, (1000, 1000))
+            (cache / "fresh.glb").write_bytes(b"glb")
+            os.utime(cache / "fresh.glb", (2000, 2000))
+            (cache / "stale.glb").write_bytes(b"glb")
+            os.utime(cache / "stale.glb", (500, 500))
+
+            pending = needs_conversion(sources, vendor_dir=vendor, cache_dir=cache)
+            self.assertEqual([s.key for s in pending], ["stale", "absent"])
+
+    def test_convert_step_module_imports_without_ocp(self) -> None:
+        self.assertNotIn("OCP", sys.modules)
 
 
 class TestGitignore(unittest.TestCase):
