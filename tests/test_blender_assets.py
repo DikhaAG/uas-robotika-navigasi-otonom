@@ -24,7 +24,8 @@ from tools.blender.assets import (  # noqa: E402
 )
 from tools.blender.convert_step import glb_path_for, needs_conversion  # noqa: E402
 
-REQUIRED_KEYS = {"uno", "l298n", "sonar", "mpu", "motor_tt", "wheel", "enc_disk", "batt_holder", "btn"}
+# "wheel" is procedural: the only login-free TT wheel (Printables 306463) is Ø60, Config.h needs Ø65.
+REQUIRED_KEYS = {"uno", "l298n", "sonar", "mpu", "motor_tt", "enc_disk", "batt_holder", "btn"}
 
 
 def _fake_source(key: str, filename: str) -> ModelSource:

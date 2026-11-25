@@ -67,28 +67,6 @@
       "attribution": "Tom3r"
     },
     {
-      "key": "wheel",
-      "filename": "Wheel_2022-Tyre.stl",
-      "kind": "printables",
-      "url": "",
-      "print_id": 306463,
-      "file_id": 1377082,
-      "sha256": "2ac3d9778684c7244c135e0d377007533155e4d8d97a289a2e174258e24b95a0",
-      "license": "CC0 1.0",
-      "attribution": "Jimbob"
-    },
-    {
-      "key": "wheel_hub",
-      "filename": "Wheel_2022-Body.stl",
-      "kind": "printables",
-      "url": "",
-      "print_id": 306463,
-      "file_id": 1377083,
-      "sha256": "73f0edb24139d4f8999def716aecd43d8be7d3b3274aff00d03fe9b46fa5eec3",
-      "license": "CC0 1.0",
-      "attribution": "Jimbob"
-    },
-    {
       "key": "enc_disk",
       "filename": "Encoder_TT_20_slot_22mm.stl",
       "kind": "printables",
