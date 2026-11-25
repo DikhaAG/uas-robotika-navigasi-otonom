@@ -104,7 +104,13 @@ def main() -> int:
         if res.success:
             print(f"  ✓ Telemetri diekspor ke: {args.output}")
             if args.plot:
-                subprocess.run([sys.executable, str(REPO_ROOT / "tools" / "plot_trajectory.py"), args.output, "-o", args.svg], check=True)
+                plot_cmd: List[str] = [sys.executable, str(REPO_ROOT / "tools" / "plot_trajectory.py"), args.output, "-o", args.svg]
+                if cli_obstacles:
+                    for obs in cli_obstacles:
+                        plot_cmd.extend(["--obs", obs.to_cli_arg()])
+                else:
+                    plot_cmd.extend(["--obs", "none"])
+                subprocess.run(plot_cmd, check=True)
             return 0
         else:
             print(f"  ✗ Simulasi Room {args.room} GAGAL!")

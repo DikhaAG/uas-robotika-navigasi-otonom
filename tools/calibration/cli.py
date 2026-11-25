@@ -133,8 +133,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.headless:
         motor_dirs = (False, True) if args.reverse_left else (True, True)
         observation = ScriptedObservationAdapter(motor_directions=motor_dirs)
-    elif args.reverse_left:
-        observation = ScriptedObservationAdapter(motor_directions=(False, True))
+    elif args.mock and (args.reverse_left or args.fail_mpu or args.fail_sonar or args.fail_motors):
+        motor_dirs = (False, True) if args.reverse_left else (True, True)
+        observation = ScriptedObservationAdapter(motor_directions=motor_dirs)
     else:
         observation = ConsoleObservationAdapter(interactive=True)
 

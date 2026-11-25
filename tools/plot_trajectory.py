@@ -195,15 +195,31 @@ def render_svg(
         f.write("\n".join(svg))
     print(f"Generated trajectory SVG: {output_svg}")
 
+def parse_obstacle_args(obs_args: Optional[List[str]]) -> Optional[List[Tuple[float, float, float, float]]]:
+    """Parse CLI --obs arguments ('x,y,w,h' or 'none') into obstacle tuples."""
+    if obs_args is None:
+        return None
+    parsed: List[Tuple[float, float, float, float]] = []
+    for item in obs_args:
+        if item.strip().lower() == "none":
+            continue
+        parts = [float(p.strip()) for p in item.split(",")]
+        if len(parts) == 4:
+            parsed.append((parts[0], parts[1], parts[2], parts[3]))
+    return parsed
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Plot Robot Navigation Telemetry Path")
     parser.add_argument("csv_file", help="Path to telemetry CSV log")
     parser.add_argument("-o", "--output", default="tools/trajectory_plot.svg", help="Output SVG filepath")
+    parser.add_argument("--obs", action="append", default=None, help="Rintangan format 'x,y,w,h' atau 'none'")
     args = parser.parse_args()
 
     points = parse_telemetry(args.csv_file)
     print(f"Parsed {len(points)} telemetry data points from {args.csv_file}")
-    render_svg(points, args.output)
+    obstacles = parse_obstacle_args(args.obs)
+    render_svg(points, args.output, obstacles=obstacles)
 
 if __name__ == "__main__":
     main()

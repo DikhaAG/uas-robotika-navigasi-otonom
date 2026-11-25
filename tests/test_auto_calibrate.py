@@ -417,6 +417,20 @@ class TestDeepCalibrationEngine(unittest.TestCase):
             if os.path.exists(log_path):
                 os.remove(log_path)
 
+    def test_cli_mock_fail_mpu_without_headless_is_non_interactive(self) -> None:
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            exit_code = main(["--mock", "--fail-mpu", "--log-file", "tests/test_tmp_fail_mpu.csv"])
+        if os.path.exists("tests/test_tmp_fail_mpu.csv"):
+            os.remove("tests/test_tmp_fail_mpu.csv")
+        self.assertEqual(exit_code, 1)
+
+    def test_plot_trajectory_parse_obstacle_args(self) -> None:
+        from tools.plot_trajectory import parse_obstacle_args
+        self.assertIsNone(parse_obstacle_args(None))
+        self.assertEqual(parse_obstacle_args(["none"]), [])
+        self.assertEqual(parse_obstacle_args(["110,0,20,20", "80,0,20,20"]), [(110.0, 0.0, 20.0, 20.0), (80.0, 0.0, 20.0, 20.0)])
+
 
 if __name__ == "__main__":
     unittest.main()
