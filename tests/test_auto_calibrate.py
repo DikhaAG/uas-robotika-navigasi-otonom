@@ -34,6 +34,9 @@ from tools.auto_calibrate import (
     CalibrationLogger,
     KinematicCalibrationRunner,
     main,
+    CalibrationEngine,
+    ScriptedObservationAdapter,
+    NullReporter,
 )
 
 
@@ -331,6 +334,84 @@ class TestSafetyGatingWithKinematics(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()):
                 main(["--mock", "--headless", "--test", "U1", "--fail-mpu"])
 
+
+class TestDeepCalibrationEngine(unittest.TestCase):
+    """Direct verification of the deep CalibrationEngine module across its seams."""
+
+    def setUp(self):
+        self.mock_serial = MockRobotSerial()
+        self.transport = RobotSerialClient(port=None, baud=115200, serial_backend=self.mock_serial)
+        self.observation = ScriptedObservationAdapter()
+        self.reporter = NullReporter()
+        self.engine = CalibrationEngine(
+            transport=self.transport,
+            observation=self.observation,
+            reporter=self.reporter
+        )
+
+    def test_engine_preflight_success(self):
+        report = self.engine.run_preflight()
+        self.assertTrue(report.all_passed)
+        self.assertTrue(self.engine.is_motion_permitted())
+
+    def test_engine_preflight_blocks_motion_on_mpu_failure(self):
+        self.mock_serial.set_mpu_ok(False)
+        report = self.engine.run_preflight()
+        self.assertFalse(report.all_passed)
+        self.assertFalse(self.engine.is_motion_permitted())
+        with self.assertRaises(SafetyGateError):
+            self.engine.calibrate(stage="U1")
+
+    def test_engine_preflight_polarity_inversion(self):
+        self.observation.set_motor_directions(left_forward=False, right_forward=True)
+        report = self.engine.run_preflight()
+        self.assertTrue(report.all_passed)
+        self.assertTrue(report.polarity_inversion_applied)
+        prof = self.engine.get_active_profile()
+        self.assertEqual(prof.invert_motor_kiri, -1)
+
+    def test_engine_u1_convergence_multi_trial(self):
+        self.engine.run_preflight()
+        # Trial 1: ground truth 105.0 cm (drift error triggers scaling)
+        # Trial 2: ground truth 100.5 cm (converged)
+        self.observation.set_u1_ground_truth([105.0, 100.5])
+        res = self.engine.run_u1(max_retries=3)
+        self.assertTrue(res.passed)
+        self.assertEqual(res.iteration, 2)
+        prof = self.engine.get_active_profile()
+        self.assertNotEqual(prof.diameter_roda_mm, 65.0)
+
+    def test_engine_u2_in_place_rotation(self):
+        self.engine.run_preflight()
+        self.observation.set_u2_actual_angle(91.5)
+        res = self.engine.run_u2(target_angle=90.0)
+        self.assertTrue(res.passed)
+        self.assertAlmostEqual(res.angular_error_deg, 1.5, places=2)
+
+    def test_engine_u3_straight_line(self):
+        self.engine.run_preflight()
+        self.observation.set_u3_lateral_dev(1.8)
+        res = self.engine.run_u3()
+        self.assertTrue(res.passed)
+        self.assertAlmostEqual(res.lateral_error_cm, 1.8, places=2)
+
+    def test_engine_u4_ranging_accuracy(self):
+        self.engine.run_preflight()
+        res = self.engine.run_u4()
+        self.assertTrue(res.passed)
+        self.assertEqual(len(res.sub_results), 3)
+
+    def test_engine_calibrate_all_success(self):
+        self.engine.run_preflight()
+        self.observation.set_u1_ground_truth(100.5)
+        self.observation.set_u2_actual_angle(90.5)
+        self.observation.set_u3_lateral_dev(1.2)
+        rep = self.engine.calibrate(stage="ALL")
+        self.assertTrue(rep.all_passed)
+        self.assertIsNotNone(rep.u1)
+        self.assertIsNotNone(rep.u2)
+        self.assertIsNotNone(rep.u3)
+        self.assertIsNotNone(rep.u4)
 
 
 if __name__ == "__main__":

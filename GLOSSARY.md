@@ -92,6 +92,10 @@ _Avoid_: Config file, settings blob
 The host-side interactive orchestrator (`tools/auto_calibrate.py`) guiding the user through pre-flight wiring diagnostics, physical motion tests, human-in-the-loop ground truth verification, iterative parameter tuning, and EEPROM programming.
 _Avoid_: Calibration script, tuning app
 
+**CalibrationEngine**:
+The deep host-side domain module orchestrating pre-flight hardware safety gating (U0), closed-loop kinematic convergence loops (U1–U4), mathematical parameter tuning, and EEPROM calibration profile persistence, independent of transport links or user interface presentation.
+_Avoid_: Calibration runner, tuning logic, calibration manager
+
 **AsciiProtocolDecoder**:
 A pure, hardware-agnostic serial parser that manages frame boundary framing (`!` to `\n`), noise rejection, buffer accumulation, and room selection trigger tokens without coupling to peripheral drivers.
 _Avoid_: Serial reader, frame parser
