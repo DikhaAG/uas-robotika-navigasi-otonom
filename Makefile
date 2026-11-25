@@ -94,6 +94,7 @@ test: $(TESTS)
 	$(TEST_TIMEOUT) python3 tests/test_auto_calibrate.py
 	$(TEST_TIMEOUT) python3 tests/test_blender_netlist.py
 	$(TEST_TIMEOUT) python3 tests/test_blender_assets.py
+	$(TEST_TIMEOUT) python3 tests/test_blender_layout.py
 	@echo "=========================================="
 	@echo " ALL PYTHON DIAGNOSTIC TESTS PASSED!"
 	@echo "=========================================="
