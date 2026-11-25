@@ -8,12 +8,14 @@ Run (normally via `make blender_model`):
 
 Steps: empty metric scene → check model files → build and place every part from
 layout.placements() → route and build the 41 netlist wires → check_scene() (wire
-count, wire ends ≤ 0.5 mm from their pins, no wire through a part) → collections
+count, wire ends ≤ 0.5 mm from their pins, no wire through a part or another wire, no dupont
+housing in a part) plus every part's footprint (±1 mm) and pin names → collections
 Chassis / Electronics / Wires/<stage> → save .blend → renders (iso, top, bottom).
 Any failed check prints every problem and exits 1.
 """
 
 import argparse
+import math
 import sys
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple
@@ -32,10 +34,10 @@ def _missing_models_message() -> Optional[str]:
 
 
 import bpy  # noqa: E402
-from mathutils import Vector  # noqa: E402
+from mathutils import Matrix, Vector  # noqa: E402
 
 from tools.blender import bl_common, bl_import, bl_parts  # noqa: E402
-from tools.blender.bl_checks import check_scene  # noqa: E402
+from tools.blender.bl_checks import check_part, check_scene  # noqa: E402
 from tools.blender.bl_common import PartResult  # noqa: E402
 from tools.blender.bl_wires import assign_lanes, make_wire, world_anchor  # noqa: E402
 from tools.blender.layout import (  # noqa: E402
@@ -46,10 +48,11 @@ from tools.blender.layout import (  # noqa: E402
     Vec3,
     placements,
 )
-from tools.blender.netlist import Wire, build_netlist, wire_name  # noqa: E402
+from tools.blender.netlist import MULTI_USE_PINS, PinRef, Wire, build_netlist, wire_name  # noqa: E402
 from tools.blender.routing import route  # noqa: E402
 
 SLOT_MARGIN_MM = 2.0
+SHARED_PIN_FAN_DEG = 12.0
 STAGE_NAMES = {1: "Tahap 1 - Daya", 2: "Tahap 2 - L298N & Motor", 3: "Tahap 3 - Encoder",
                4: "Tahap 4 - Sensor", 5: "Tahap 5 - START & Buzzer"}
 CHASSIS_PARTS = {"chassis", "wheel_l", "wheel_r", "motor_l", "motor_r", "disk_l", "disk_r", "batt",
@@ -117,14 +120,28 @@ def slot_via(point: Vec3) -> Vec3:
     return best[1]
 
 
+def fan_direction(direction: Vec3, degrees: float) -> Vec3:
+    """Turns a horizontal lead direction about Z, so two wires soldered to one tab leave it apart."""
+    d = Vector(direction)
+    d.rotate(Matrix.Rotation(math.radians(degrees), 3, "Z"))
+    return (d.x, d.y, d.z)
+
+
 def build_wires(parts: Dict[str, PartResult]) -> Dict[str, "bpy.types.Object"]:
     """Routes all netlist wires (bottom parts thread a chassis slot) and builds them."""
     zones = {k: v.zone for k, v in placements().items()}
     wires: List[Wire] = build_netlist()
     plans: Dict[str, Tuple[Wire, Vec3, Vec3, Vec3, Vec3, List[Vec3]]] = {}
     spans: Dict[str, Tuple[Vec3, Vec3]] = {}
+    shared_seen: Dict[PinRef, int] = {}
     for w in wires:
         a, a_dir = world_anchor(parts[w.src.component], w.src.pin)
+        if w.src in MULTI_USE_PINS:
+            k = shared_seen.get(w.src, 0)
+            shared_seen[w.src] = k + 1
+            # first lead leaves straight, the next ones fan out towards +Y (away from the START button
+            # leads, which rise just on the −Y side of the switch tabs)
+            a_dir = fan_direction(a_dir, SHARED_PIN_FAN_DEG * k)
         b, b_dir = world_anchor(parts[w.dst.component], w.dst.pin)
         vias: List[Vec3] = []
         if zones[w.src.component] == "bottom":
@@ -132,12 +149,14 @@ def build_wires(parts: Dict[str, PartResult]) -> Dict[str, "bpy.types.Object"]:
         start = vias[-1] if vias else _offset(a, a_dir, DUPONT_STRAIGHT_MM)
         spans[wire_name(w)] = (start, _offset(b, b_dir, DUPONT_STRAIGHT_MM))
         plans[wire_name(w)] = (w, a, a_dir, b, b_dir, vias)
-    lanes = assign_lanes(wires, spans)
+    routes = assign_lanes(wires, spans)
     objs: Dict[str, "bpy.types.Object"] = {}
     for name, (w, a, a_dir, b, b_dir, vias) in plans.items():
-        obj = make_wire(w, route(a, a_dir, b, b_dir, lanes[name], vias))
+        plan = routes[name]
+        obj = make_wire(w, route(a, a_dir, b, b_dir, plan.lane, vias, plan.shape))
         obj["vias"] = [list(v) for v in vias]
-        obj["lane"] = lanes[name]
+        obj["lane"] = plan.lane
+        obj["shape"] = plan.shape
         objs[name] = obj
     return objs
 
@@ -191,16 +210,28 @@ def render_views(out_dir: Path) -> None:
         bl_common.render_to(out_dir / f"{name}.png", cam, 1920, 1200)
 
 
-def render_closeups(parts: Dict[str, PartResult], out_dir: Path) -> None:
-    """One close-up per header (Uno, L298N, each sensor, breadboard rails)."""
+def _show_only_wires_of(part_id: str, wires: Dict[str, "bpy.types.Object"]) -> None:
+    for obj in wires.values():
+        touches = part_id in (str(obj["src"]).split(".", 1)[0], str(obj["dst"]).split(".", 1)[0])
+        for o in [obj, *obj.children_recursive]:
+            o.hide_render = not touches
+
+
+def render_closeups(parts: Dict[str, PartResult], wires: Dict[str, "bpy.types.Object"], out_dir: Path) -> None:
+    """One close-up per header (Uno, L298N, each sensor, breadboard rails), showing only the wires
+    that land on that part so each housing can be matched to its pin."""
     ensure_studio()
     for part_id, direction in CLOSEUPS.items():
+        _show_only_wires_of(part_id, wires)
         lo, hi = bl_common.local_bbox_mm(parts[part_id].obj)
         center_local = Vector(((lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2)) * 0.001
         center = parts[part_id].obj.matrix_world @ center_local
         radius = max(Vector(hi) - Vector(lo)) * 0.0005 + 0.01
         cam = bl_common.aim_camera(f"close_{part_id}", center, Vector(direction), radius * 4.0)
         bl_common.render_to(out_dir / f"{part_id}.png", cam, 1200, 900)
+    for obj in wires.values():
+        for o in [obj, *obj.children_recursive]:
+            o.hide_render = False
 
 
 def main() -> int:
@@ -220,8 +251,9 @@ def main() -> int:
 
     bl_common.reset_scene()
     parts = build_parts()
+    errors = [e for part_id, part in parts.items() for e in check_part(part_id, part)]
     wires = build_wires(parts)
-    errors = check_scene(parts, wires)
+    errors += check_scene(parts, wires)
     if errors:
         for e in errors:
             print(f"ERROR: {e}")
@@ -234,7 +266,7 @@ def main() -> int:
     if not args.no_render and args.renders is not None:
         render_views(args.renders)
     if args.closeups is not None:
-        render_closeups(parts, args.closeups)
+        render_closeups(parts, wires, args.closeups)
     print(f"ROBOT MODEL OK: {len(wires)} wires, {len(parts)} parts")
     return 0
 

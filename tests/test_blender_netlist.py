@@ -246,6 +246,19 @@ class TestBlenderNetlist(unittest.TestCase):
         reused = {ref: n for ref, n in counts.items() if n > 1 and ref not in MULTI_USE_PINS}
         self.assertEqual(reused, {})
 
+    def test_rail_holes_interleave_between_rails(self) -> None:
+        # +5V takes odd holes and GND even holes, so no two used holes face each other across the
+        # two rails (a wire dropping onto one would otherwise pass over the other's dupont).
+        holes = {
+            ref.pin for w in self.wires for ref in (w.src, w.dst) if ref.component == "bb"
+        }
+        p5v = sorted(int(h.split("_")[1]) for h in holes if h.startswith("P5V_"))
+        gnd = sorted(int(h.split("_")[1]) for h in holes if h.startswith("GND_"))
+        self.assertTrue(all(i % 2 == 1 for i in p5v), p5v)
+        self.assertTrue(all(i % 2 == 0 for i in gnd), gnd)
+        self.assertEqual(p5v, list(range(1, 2 * len(p5v), 2)))
+        self.assertEqual(gnd, list(range(2, 2 * len(gnd) + 1, 2)))
+
     def test_unconnected_pins(self) -> None:
         used = {ref for w in self.wires for ref in (w.src, w.dst)}
         self.assertNotIn(PinRef("l298n", "+5V"), used)

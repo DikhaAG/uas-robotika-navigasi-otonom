@@ -17,17 +17,13 @@ a labelled close-up of each part to DIR/<part>.png for visual review.
 import argparse
 import sys
 from pathlib import Path
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from tools.blender import bl_common, bl_import, bl_parts  # noqa: E402
+from tools.blender.bl_checks import check_part  # noqa: E402
 from tools.blender.bl_common import PartResult  # noqa: E402
-from tools.blender.layout import placements  # noqa: E402
-from tools.blender.netlist import COMPONENTS  # noqa: E402
-
-TOLERANCE_MM = 1.0
-ANCHOR_SLACK_MM = 0.5
 
 # part id in layout -> builder
 PROCEDURAL: Dict[str, Callable[[], PartResult]] = {
@@ -56,25 +52,7 @@ IMPORTED: Dict[str, str] = {
 }
 
 
-def check_part(part_id: str, result: PartResult) -> List[str]:
-    """Bounding-box, anchor-name and anchor-position checks for one freshly built part."""
-    errors: List[str] = []
-    expected = placements()[part_id].footprint_mm
-    errors.extend(f"{part_id}: {e}" for e in bl_common.check_dimensions(result, expected, TOLERANCE_MM))
-
-    lo, hi = bl_common.local_bbox_mm(result.obj)
-    want = set(COMPONENTS.get(part_id, {}))
-    have = set(result.anchors)
-    if want != have:
-        errors.append(f"{part_id}: anchors missing {sorted(want - have)} extra {sorted(have - want)}")
-    for pin, (pos, _direction) in result.anchors.items():
-        inside = all(lo[i] - ANCHOR_SLACK_MM <= pos[i] <= hi[i] + ANCHOR_SLACK_MM for i in range(3))
-        if not inside:
-            errors.append(f"{part_id}.{pin}: anchor {pos} outside bbox {lo}..{hi}")
-    return errors
-
-
-def run(builders: Dict[str, Callable[[], PartResult]], render_dir: Path = None) -> List[str]:
+def run(builders: Dict[str, Callable[[], PartResult]], render_dir: Optional[Path] = None) -> List[str]:
     """Builds and checks each part in isolation; optionally renders a labelled close-up."""
     errors: List[str] = []
     for part_id, build in builders.items():

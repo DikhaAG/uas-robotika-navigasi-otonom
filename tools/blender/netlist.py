@@ -132,16 +132,18 @@ def _color_for(net: str) -> str:
 
 
 class _RailAllocator:
-    """Hands out breadboard rail holes in order, so each rail wire gets its own hole."""
+    """Hands out breadboard rail holes in order, so each rail wire gets its own hole.
+    +5V uses the odd holes and GND the even ones: the two rails sit 2.54 mm apart, so no used
+    hole faces another across the rails and a wire dropping onto one never passes over the other."""
 
     def __init__(self) -> None:
-        self._next: Dict[str, int] = {"P5V": 1, "GND": 1}
+        self._next: Dict[str, int] = {"P5V": 1, "GND": 2}
 
     def take(self, rail: str) -> PinRef:
         index = self._next[rail]
         if index > RAIL_HOLES:
             raise ValueError(f"breadboard rail {rail} has no free hole left")
-        self._next[rail] = index + 1
+        self._next[rail] = index + 2
         return PinRef("bb", f"{rail}_{index}")
 
 

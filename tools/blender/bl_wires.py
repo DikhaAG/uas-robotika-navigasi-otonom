@@ -20,13 +20,13 @@ from mathutils import Vector
 from tools.blender.bl_common import Anchor, PartResult, box, material, mm
 from tools.blender.layout import DUPONT_STRAIGHT_MM, Vec3
 from tools.blender.netlist import Wire, wire_name
-from tools.blender.routing import LaneRun, assign_lanes as _assign_lanes
+from tools.blender.routing import RoutePlan, WireSpan, plan_routes
 
 WIRE_RADIUS_MM = 0.8
 COPPER_RADIUS_MM = 0.45
 BARE_LENGTH_MM = 5.0
 DUPONT_SIZE_MM: Vec3 = (2.54, 2.54, 14.0)
-FILLET_MM = 4.0
+FILLET_MM = 2.0  # small enough that a rounded corner never cuts towards a neighbouring riser
 FILLET_STEPS = 6
 END_FILLET_MM = DUPONT_STRAIGHT_MM - DUPONT_SIZE_MM[2] - 0.5
 
@@ -138,8 +138,7 @@ def make_wire(w: Wire, points_mm: List[Vec3]) -> "bpy.types.Object":
     return obj
 
 
-def assign_lanes(wires: List[Wire], spans: Dict[str, Tuple[Vec3, Vec3]]) -> Dict[str, int]:
-    """wire_name -> lane. spans[name] = (start, end) of the wire's horizontal run in the routing
-    layer; wires of one stage are allocated together, so a bundle sits in adjacent lanes."""
-    runs = [LaneRun(wire_name(w), w.stage, *spans[wire_name(w)]) for w in wires]
-    return _assign_lanes(runs)
+def assign_lanes(wires: List[Wire], spans: Dict[str, Tuple[Vec3, Vec3]]) -> Dict[str, RoutePlan]:
+    """wire_name -> (lane, L-shape). spans[name] = (start, end) of the wire's horizontal run in the
+    routing layer; see routing.plan_routes for the layering rules."""
+    return plan_routes([WireSpan(wire_name(w), w.stage, *spans[wire_name(w)]) for w in wires])

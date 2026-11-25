@@ -23,6 +23,7 @@ from tools.blender.assets import (  # noqa: E402
     verify_sha256,
 )
 from tools.blender.convert_step import glb_path_for, needs_conversion  # noqa: E402
+from tools.blender.fetch_models import fetch_all  # noqa: E402
 
 # "wheel" is procedural: the only login-free TT wheel (Printables 306463) is Ø60, Config.h needs Ø65.
 REQUIRED_KEYS = {"uno", "l298n", "sonar", "mpu", "motor_tt", "enc_disk", "batt_holder", "btn"}
@@ -130,6 +131,49 @@ class TestStepConversion(unittest.TestCase):
 
     def test_convert_step_module_imports_without_ocp(self) -> None:
         self.assertNotIn("OCP", sys.modules)
+
+
+class TestFetch(unittest.TestCase):
+    """Real downloads through urllib, from file:// URLs (no network, no mocks)."""
+
+    def _source(self, url: str, sha: str, filename: str = "ArduinoUNO_3D.step") -> ModelSource:
+        return ModelSource(
+            key="uno", filename=filename, kind="github", url=url, print_id=0, file_id=0,
+            sha256=sha, license="test", attribution="test",
+        )
+
+    def test_hash_mismatch_never_lands_in_vendor(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            upstream = Path(tmp) / "upstream.step"
+            upstream.write_bytes(b"ISO-10303-21; changed upstream\n")
+            vendor = Path(tmp) / "vendor"
+            with self.assertRaises(ValueError) as ctx:
+                fetch_all([self._source(upstream.as_uri(), "a" * 64)], pin=False, vendor_dir=vendor)
+            self.assertIn("ArduinoUNO_3D.step", str(ctx.exception))
+            self.assertEqual(sorted(p.name for p in vendor.glob("*")) if vendor.exists() else [], [])
+
+    def test_matching_download_lands_in_vendor(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            upstream = Path(tmp) / "upstream.step"
+            upstream.write_bytes(b"ISO-10303-21;\n")
+            sha = hashlib.sha256(upstream.read_bytes()).hexdigest()
+            vendor = Path(tmp) / "vendor"
+            fetch_all([self._source(upstream.as_uri(), sha)], pin=False, vendor_dir=vendor)
+            self.assertEqual((vendor / "ArduinoUNO_3D.step").read_bytes(), b"ISO-10303-21;\n")
+
+    def test_dead_url_error_names_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            dead = (Path(tmp) / "gone.step").as_uri()
+            with self.assertRaises(RuntimeError) as ctx:
+                fetch_all([self._source(dead, "a" * 64, "HC-SR04.step")], pin=False, vendor_dir=Path(tmp) / "v")
+            self.assertIn("HC-SR04.step", str(ctx.exception))
+
+    def test_malformed_manifest_entry_is_value_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            bad = Path(tmp) / "sources.json"
+            bad.write_text('{"sources": [{"key": "uno"}]}', encoding="utf-8")
+            with self.assertRaises(ValueError):
+                load_sources(bad)
 
 
 class TestGitignore(unittest.TestCase):

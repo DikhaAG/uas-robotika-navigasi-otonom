@@ -10,7 +10,7 @@ import math
 import os
 import sys
 import unittest
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, REPO_ROOT)
@@ -27,7 +27,7 @@ from tools.blender.layout import (  # noqa: E402
     world_aabb,
 )
 from tools.blender.netlist import COMPONENTS  # noqa: E402
-from tools.blender.routing import LaneRun, assign_lanes, route  # noqa: E402
+from tools.blender.routing import RoutePlan, WireSpan, plan_routes, route  # noqa: E402
 
 Box = Tuple[Vec3, Vec3]
 UPPER_ZONES = ("top", "front", "left", "right")
@@ -209,41 +209,92 @@ class TestRouting(unittest.TestCase):
             self.assertFalse(_close(p, q))
 
 
-class TestLaneAssignment(unittest.TestCase):
+class TestRoutePlanning(unittest.TestCase):
+    """Lane + L-shape choice so that no two wires pass through each other in 3D."""
+
     def test_overlapping_parallel_runs_get_different_lanes(self) -> None:
-        runs = [
-            LaneRun("a", 1, (0.0, 10.0, 0.0), (50.0, 30.0, 0.0)),
-            LaneRun("b", 1, (5.0, 11.0, 0.0), (60.0, -20.0, 0.0)),
-        ]
-        lanes = assign_lanes(runs)
-        self.assertNotEqual(lanes["a"], lanes["b"])
+        plans = plan_routes([
+            WireSpan("a", 1, (0.0, 10.0, 0.0), (50.0, 10.0, 0.0)),
+            WireSpan("b", 1, (5.0, 11.0, 0.0), (40.0, 11.0, 0.0)),
+        ])
+        self.assertNotEqual(plans["a"].lane, plans["b"].lane)
+
+    def test_mutually_covering_wires_are_rejected(self) -> None:
+        # Each run passes over the other's drop: no lane order avoids a collision, so refuse loudly.
+        with self.assertRaises(ValueError) as ctx:
+            plan_routes([
+                WireSpan("a", 1, (0.0, 10.0, 0.0), (50.0, 10.0, 0.0)),
+                WireSpan("b", 1, (5.0, 11.0, 0.0), (60.0, 11.0, 0.0)),
+            ])
+        self.assertIn("'a'", str(ctx.exception))
 
     def test_disjoint_runs_share_lane_zero(self) -> None:
-        runs = [
-            LaneRun("a", 1, (0.0, 10.0, 0.0), (20.0, 30.0, 0.0)),
-            LaneRun("b", 2, (40.0, 10.0, 0.0), (60.0, 30.0, 0.0)),
-        ]
-        self.assertEqual(assign_lanes(runs), {"a": 0, "b": 0})
+        plans = plan_routes([
+            WireSpan("a", 1, (0.0, 10.0, 0.0), (20.0, 30.0, 0.0)),
+            WireSpan("b", 2, (40.0, 10.0, 0.0), (60.0, 30.0, 0.0)),
+        ])
+        self.assertEqual((plans["a"].lane, plans["b"].lane), (0, 0))
 
-    def test_crossing_runs_may_share_a_lane(self) -> None:
-        runs = [
-            LaneRun("a", 1, (0.0, 0.0, 0.0), (40.0, 5.0, 0.0)),
-            LaneRun("b", 1, (20.0, -20.0, 0.0), (21.0, 20.0, 0.0)),
-        ]
-        self.assertEqual(assign_lanes(runs), {"a": 0, "b": 0})
+    def test_crossing_runs_never_share_a_lane(self) -> None:
+        plans = plan_routes([
+            WireSpan("a", 1, (0.0, 0.0, 0.0), (40.0, 5.0, 0.0)),
+            WireSpan("b", 1, (20.0, -20.0, 0.0), (21.0, 20.0, 0.0)),
+        ])
+        self.assertNotEqual(plans["a"].lane, plans["b"].lane)
 
-    def test_overlapping_y_runs_get_different_lanes(self) -> None:
-        runs = [
-            LaneRun("a", 3, (0.0, 0.0, 0.0), (30.0, 40.0, 0.0)),
-            LaneRun("b", 3, (-10.0, 50.0, 0.0), (31.0, 10.0, 0.0)),
-        ]
-        lanes = assign_lanes(runs)
-        self.assertNotEqual(lanes["a"], lanes["b"])
+    def test_run_over_a_riser_is_lifted_above_that_wire(self) -> None:
+        # b's riser stands at (25, 0); a's only shape-free path must pass over it in one of its shapes.
+        plans = plan_routes([
+            WireSpan("a", 1, (0.0, 0.0, 0.0), (50.0, 0.5, 0.0)),
+            WireSpan("b", 1, (25.0, 0.0, 0.0), (25.0, 40.0, 0.0)),
+        ])
+        self.assertGreater(plans["a"].lane, plans["b"].lane)
 
-    def test_same_stage_bundle_uses_adjacent_lanes(self) -> None:
-        runs = [LaneRun(f"w{i}", 2, (0.0, float(i), 0.0), (50.0, 40.0 + i, 0.0)) for i in range(4)]
-        lanes = assign_lanes(runs)
-        self.assertEqual(sorted(lanes.values()), [0, 1, 2, 3])
+    def test_shape_avoids_other_risers_when_it_can(self) -> None:
+        # Going X first would pass over b's riser at (25, 0); going Y first does not.
+        plans = plan_routes([
+            WireSpan("a", 1, (0.0, 0.0, 0.0), (50.0, 40.0, 0.0)),
+            WireSpan("b", 2, (25.0, 0.0, 0.0), (25.0, -30.0, 0.0)),
+        ])
+        self.assertEqual(plans["a"].shape, "YX")
+
+    def test_parallel_header_columns_use_z_shape(self) -> None:
+        # Like Uno D9..D4 -> L298N ENA..IN4: two pin columns along Y, rows in a different order.
+        spans = [WireSpan(f"w{i}", 2, (-50.0, 10.0 + 2.54 * i, 0.0), (50.0, -2.54 * i, 0.0)) for i in range(4)]
+        plans = plan_routes(spans)
+        self.assertIn("XYX", {p.shape for p in plans.values()}, "inner wires must leave/enter the columns square")
+        self._assert_apart(spans, plans)
+
+    def _assert_apart(self, spans: List[WireSpan], plans: Dict[str, RoutePlan]) -> None:
+        lines = {}
+        for sp in spans:
+            pl = plans[sp.name]
+            a = (sp.start[0], sp.start[1], 20.0)
+            b = (sp.end[0], sp.end[1], 20.0)
+            lines[sp.name] = route(a, (0.0, 0.0, 1.0), b, (0.0, 0.0, 1.0), pl.lane, shape=pl.shape)
+        for x, y in itertools.combinations(spans, 2):
+            gap = min(_segment_distance(p, q, r, t) for p, q in _segments(lines[x.name])
+                      for r, t in _segments(lines[y.name]))
+            with self.subTest(a=x.name, b=y.name):
+                self.assertGreaterEqual(gap, 1.6, f"plans {plans[x.name]} {plans[y.name]}")
+
+    def test_planned_routes_keep_wires_apart(self) -> None:
+        spans = [WireSpan(f"w{i}", 1 + i % 3, (float(7 * i % 50), float(5 * i), 0.0),
+                          (float(60 - 9 * i % 40), float(40 - 3 * i), 0.0)) for i in range(10)]
+        self._assert_apart(spans, plan_routes(spans))
+
+    def test_same_stage_bundle_uses_contiguous_lanes(self) -> None:
+        spans = [WireSpan(f"w{i}", 2, (0.0, 3.0 * i, 0.0), (50.0, 40.0 + 3.0 * i, 0.0)) for i in range(4)]
+        lanes = {p.lane for p in plan_routes(spans).values()}
+        self.assertEqual(lanes, set(range(min(lanes), max(lanes) + 1)), "bundle lanes must be contiguous")
+
+
+def _segment_distance(p1: Vec3, p2: Vec3, q1: Vec3, q2: Vec3) -> float:
+    """Minimum distance between two 3D segments (sampled finely; segments here are axis-aligned)."""
+    def pts(a: Vec3, b: Vec3) -> List[Vec3]:
+        n = max(1, int(math.dist(a, b) / 0.5))
+        return [tuple(a[i] + (b[i] - a[i]) * k / n for i in range(3)) for k in range(n + 1)]  # type: ignore[misc]
+    return min(math.dist(a, b) for a in pts(p1, p2) for b in pts(q1, q2))
 
 
 if __name__ == "__main__":

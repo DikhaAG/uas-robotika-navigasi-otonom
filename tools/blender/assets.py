@@ -42,7 +42,10 @@ def load_sources(path: Path = SOURCES_JSON) -> List[ModelSource]:
     raw = json.loads(path.read_text(encoding="utf-8"))
     sources: List[ModelSource] = []
     for entry in raw["sources"]:
-        source = ModelSource(**entry)
+        try:
+            source = ModelSource(**entry)
+        except TypeError as exc:
+            raise ValueError(f"{path}: malformed source entry {entry.get('key', '?')!r}: {exc}") from exc
         if source.kind not in ("github", "printables"):
             raise ValueError(f"{path}: source '{source.key}' has unknown kind '{source.kind}'")
         sources.append(source)

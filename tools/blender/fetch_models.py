@@ -12,12 +12,13 @@ getDownloadLink; GitHub files through raw URLs pinned to a commit SHA. Stdlib on
 
 import argparse
 import dataclasses
+import http.client
 import json
 import sys
 import tempfile
 import urllib.request
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
@@ -62,26 +63,42 @@ def printables_download_url(source: ModelSource) -> str:
     return str(result["output"]["link"])
 
 
-def download(source: ModelSource, dest: Path) -> None:
-    """Downloads one source to dest (atomic rename from a temp file in the same directory)."""
-    url = printables_download_url(source) if source.kind == "printables" else source.url
-    data = _http(urllib.request.Request(url, headers={"User-Agent": USER_AGENT}))
+def download(source: ModelSource, dest: Path, expected_sha256: Optional[str]) -> None:
+    """Downloads one source to dest. The bytes land in a temp file first and are only renamed
+    into place once their hash matches, so a changed upstream file never sits in vendor/.
+    Any transfer failure is re-raised as RuntimeError naming the file."""
+    try:
+        url = printables_download_url(source) if source.kind == "printables" else source.url
+        data = _http(urllib.request.Request(url, headers={"User-Agent": USER_AGENT}))
+    except (OSError, http.client.HTTPException, ValueError, KeyError) as exc:
+        raise RuntimeError(f"download failed for {source.filename}: {exc}") from exc
     if not data:
         raise RuntimeError(f"empty download for {source.filename} from {url}")
     dest.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(dir=dest.parent, delete=False, suffix=".part") as tmp:
         tmp.write(data)
-    Path(tmp.name).replace(dest)
+    part = Path(tmp.name)
+    try:
+        if expected_sha256 is not None:
+            actual = sha256_of(part)
+            if actual != expected_sha256:
+                raise ValueError(
+                    f"hash mismatch for {source.filename}: expected {expected_sha256}, actual {actual} "
+                    "(upstream file changed? re-check the source, then re-pin with fetch_models.py --pin)"
+                )
+        part.replace(dest)
+    finally:
+        part.unlink(missing_ok=True)
 
 
-def fetch_all(sources: List[ModelSource], pin: bool) -> List[ModelSource]:
+def fetch_all(sources: List[ModelSource], pin: bool, vendor_dir: Path = VENDOR_DIR) -> List[ModelSource]:
     """Fetches missing files and verifies hashes; with pin=True returns sources carrying fresh hashes."""
     updated: List[ModelSource] = []
     for source in sources:
-        dest = VENDOR_DIR / source.filename
+        dest = vendor_dir / source.filename
         if not dest.is_file():
             print(f"  ↓ {source.key:12s} {source.filename}")
-            download(source, dest)
+            download(source, dest, None if pin else source.sha256)
         if pin:
             source = dataclasses.replace(source, sha256=sha256_of(dest))
         else:
