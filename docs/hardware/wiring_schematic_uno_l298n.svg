@@ -1,0 +1,327 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1650 1060" width="1650" height="1060">
+<style>
+  .bg { fill: #f8fafc; }
+  .title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 21px; font-weight: 700; fill: #0f172a; }
+  .subtitle { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; fill: #475569; }
+  .box-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 700; fill: #ffffff; text-anchor: middle; }
+  .box-sub { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 10.5px; fill: #cbd5e1; text-anchor: middle; }
+  .pin-l { font-family: "SFMono-Regular", Consolas, monospace; font-size: 11px; font-weight: 600; fill: #0f172a; text-anchor: start; }
+  .pin-r { font-family: "SFMono-Regular", Consolas, monospace; font-size: 11px; font-weight: 600; fill: #0f172a; text-anchor: end; }
+  .pin-c { font-family: "SFMono-Regular", Consolas, monospace; font-size: 10.5px; font-weight: 600; fill: #0f172a; text-anchor: middle; }
+  .wire-lbl { font-family: "SFMono-Regular", Consolas, monospace; font-size: 10.5px; font-weight: 700; }
+  .note { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; fill: #334155; }
+  .note-bold { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11.5px; font-weight: 700; fill: #991b1b; }
+  .legend-txt { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11.5px; font-weight: 600; fill: #1e293b; }
+</style>
+<rect width="1650" height="1060" class="bg" />
+<text x="40" y="36" class="title">Skematik Perkabelan Robot Navigasi Otonom — Arduino Uno R3 + Modul L298N</text>
+<text x="40" y="57" class="subtitle">Referensi Pinout Resmi Config.h (Praktikum Robotika TC253421, D3 Teknik Komputer Polsri) | Ikuti warna kabel &amp; Star Ground agar bebas reset/error</text>
+<line x1="40" y1="80" x2="64" y2="80" stroke="#dc2626" stroke-width="4" stroke-linecap="round" />
+<text x="70" y="84" class="legend-txt">+7.4V Baterai (Motor &amp; VIN)</text>
+<line x1="263.5" y1="80" x2="287.5" y2="80" stroke="#ea580c" stroke-width="4" stroke-linecap="round" />
+<text x="293.5" y="84" class="legend-txt">+5V Bus Logika Sensor</text>
+<line x1="448.0" y1="80" x2="472.0" y2="80" stroke="#1e293b" stroke-width="4" stroke-linecap="round" />
+<text x="478.0" y="84" class="legend-txt">GND / Star Ground (Satu Titik)</text>
+<line x1="691.0" y1="80" x2="715.0" y2="80" stroke="#2563eb" stroke-width="4" stroke-linecap="round" />
+<text x="721.0" y="84" class="legend-txt">PWM &amp; Arah Motor (L298N)</text>
+<line x1="895.0" y1="80" x2="919.0" y2="80" stroke="#059669" stroke-width="4" stroke-linecap="round" />
+<text x="925.0" y="84" class="legend-txt">Sensor Digital / Sonar / Encoder</text>
+<line x1="1151.0" y1="80" x2="1175.0" y2="80" stroke="#7c3aed" stroke-width="4" stroke-linecap="round" />
+<text x="1181.0" y="84" class="legend-txt">I2C Bus (MPU6050)</text>
+<line x1="1309.5" y1="80" x2="1333.5" y2="80" stroke="#0891b2" stroke-width="4" stroke-linecap="round" />
+<text x="1339.5" y="84" class="legend-txt">Tombol START &amp; Buzzer</text>
+<path d="M 280,134 L 1615,134" fill="none" stroke="#ea580c" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="658" y="118" width="256.0" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" />
+<text x="662" y="129" class="wire-lbl" fill="#ea580c">+5V LOGIKA BUS (Dari Pin 5V Arduino Uno)</text>
+<path d="M 40,985 L 1592,985" fill="none" stroke="#1e293b" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="640" y="968" width="330" height="32" rx="6" fill="#0f172a" />
+<text x="805" y="989" class="box-title">STAR GROUND HUB (Titik Pertemuan Semua GND)</text>
+<rect x="40" y="165" width="185" height="105" rx="8" ry="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2" />
+<path d="M48,165 h169 a8,8 0 0 1 8,8 v30 h-185 v-30 a8,8 0 0 1 8,-8 z" fill="#b91c1c" />
+<text x="132.5" y="183" class="box-title">Baterai 2S Li-Ion</text>
+<text x="132.5" y="197" class="box-sub">7.4V Nom / 8.4V Penuh</text>
+<circle cx="225" cy="215" r="4.5" fill="#dc2626" stroke="#ffffff" stroke-width="1.2" />
+<text x="216" y="219" class="pin-r">+ (7.4V)</text>
+<circle cx="225" cy="245" r="4.5" fill="#1e293b" stroke="#ffffff" stroke-width="1.2" />
+<text x="216" y="249" class="pin-r">- (GND)</text>
+<rect x="265" y="165" width="125" height="78" rx="8" ry="8" fill="#fff7ed" stroke="#ea580c" stroke-width="2" />
+<path d="M273,165 h109 a8,8 0 0 1 8,8 v30 h-125 v-30 a8,8 0 0 1 8,-8 z" fill="#9a3412" />
+<text x="327.5" y="183" class="box-title">Switch ON/OFF</text>
+<text x="327.5" y="197" class="box-sub">Sakelar Utama</text>
+<circle cx="265" cy="215" r="4.5" fill="#dc2626" stroke="#ffffff" stroke-width="1.2" />
+<text x="274" y="219" class="pin-l">IN</text>
+<circle cx="390" cy="215" r="4.5" fill="#dc2626" stroke="#ffffff" stroke-width="1.2" />
+<text x="381" y="219" class="pin-r">OUT</text>
+<path d="M 225,215 L 265,215" fill="none" stroke="#dc2626" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M 225,245 L 245,245 L 245,985" fill="none" stroke="#1e293b" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="245" cy="985" r="4.5" fill="#1e293b" />
+<path d="M 390,215 L 420,215 L 420,112 L 1150,112" fill="none" stroke="#dc2626" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="738" y="96" width="107.2" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" />
+<text x="742" y="107" class="wire-lbl" fill="#dc2626">+7.4V DAYA UTAMA</text>
+<circle cx="420" cy="215" r="4.5" fill="#dc2626" />
+<rect x="585" y="210" width="385" height="565" rx="8" ry="8" fill="#eff6ff" stroke="#1d4ed8" stroke-width="2" />
+<path d="M593,210 h369 a8,8 0 0 1 8,8 v30 h-385 v-30 a8,8 0 0 1 8,-8 z" fill="#1e40af" />
+<text x="777.5" y="228" class="box-title">ARDUINO UNO R3</text>
+<text x="777.5" y="242" class="box-sub">ATmega328P (Baseline MCU)</text>
+<circle cx="585" cy="275" r="4.5" fill="#dc2626" stroke="#ffffff" stroke-width="1.2" />
+<text x="594" y="279" class="pin-l">VIN</text>
+<circle cx="585" cy="310" r="4.5" fill="#ea580c" stroke="#ffffff" stroke-width="1.2" />
+<text x="594" y="314" class="pin-l">5V</text>
+<circle cx="585" cy="345" r="4.5" fill="#1e293b" stroke="#ffffff" stroke-width="1.2" />
+<text x="594" y="349" class="pin-l">GND</text>
+<circle cx="585" cy="415" r="4.5" fill="#059669" stroke="#ffffff" stroke-width="1.2" />
+<text x="594" y="419" class="pin-l">A0 (D14)</text>
+<circle cx="585" cy="450" r="4.5" fill="#059669" stroke="#ffffff" stroke-width="1.2" />
+<text x="594" y="454" class="pin-l">A1 (D15)</text>
+<circle cx="585" cy="495" r="4.5" fill="#0891b2" stroke="#ffffff" stroke-width="1.2" />
+<text x="594" y="499" class="pin-l">A2 (D16)</text>
+<circle cx="585" cy="540" r="4.5" fill="#059669" stroke="#ffffff" stroke-width="1.2" />
+<text x="594" y="544" class="pin-l">A3 (D17)</text>
+<circle cx="585" cy="610" r="4.5" fill="#7c3aed" stroke="#ffffff" stroke-width="1.2" />
+<text x="594" y="614" class="pin-l">A4 (SDA)</text>
+<circle cx="585" cy="645" r="4.5" fill="#7c3aed" stroke="#ffffff" stroke-width="1.2" />
+<text x="594" y="649" class="pin-l">A5 (SCL)</text>
+<circle cx="970" cy="275" r="4.5" fill="#64748b" stroke="#ffffff" stroke-width="1.2" />
+<text x="961" y="279" class="pin-r">D13 (LED Built-in)</text>
+<circle cx="970" cy="315" r="4.5" fill="#0891b2" stroke="#ffffff" stroke-width="1.2" />
+<text x="961" y="319" class="pin-r">D12 (START)</text>
+<circle cx="970" cy="355" r="4.5" fill="#059669" stroke="#ffffff" stroke-width="1.2" />
+<text x="961" y="359" class="pin-r">D11 (IR Kanan)</text>
+<circle cx="970" cy="425" r="4.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.2" />
+<text x="961" y="429" class="pin-r">D9 (~ PWM L)</text>
+<circle cx="970" cy="460" r="4.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.2" />
+<text x="961" y="464" class="pin-r">D8 (IN1)</text>
+<circle cx="970" cy="495" r="4.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.2" />
+<text x="961" y="499" class="pin-r">D7 (IN2)</text>
+<circle cx="970" cy="530" r="4.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.2" />
+<text x="961" y="534" class="pin-r">D6 (~ PWM R)</text>
+<circle cx="970" cy="565" r="4.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.2" />
+<text x="961" y="569" class="pin-r">D5 (~ IN3)</text>
+<circle cx="970" cy="600" r="4.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.2" />
+<text x="961" y="604" class="pin-r">D4 (IN4)</text>
+<circle cx="970" cy="665" r="4.5" fill="#059669" stroke="#ffffff" stroke-width="1.2" />
+<text x="961" y="669" class="pin-r">D3 (INT1 Enc R)</text>
+<circle cx="970" cy="705" r="4.5" fill="#059669" stroke="#ffffff" stroke-width="1.2" />
+<text x="961" y="709" class="pin-r">D2 (INT0 Enc L)</text>
+<circle cx="970" cy="745" r="4.5" fill="#1e293b" stroke="#ffffff" stroke-width="1.2" />
+<text x="961" y="749" class="pin-r">GND</text>
+<rect x="680" y="420" width="165" height="92" rx="6" fill="#dbeafe" stroke="#93c5fd" />
+<text x="762" y="443" class="pin-c">D13: LED Onboard</text>
+<text x="762" y="463" class="note" text-anchor="middle">Baud: 115200 bps</text>
+<text x="762" y="481" class="note" text-anchor="middle">Bluetooth HC-05:</text>
+<text x="762" y="497" class="note" text-anchor="middle">D10 (Opsional)</text>
+<path d="M 420,215 L 420,275 L 585,275" fill="none" stroke="#dc2626" stroke-width="3.0" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="463" y="259" width="76.2" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" />
+<text x="467" y="270" class="wire-lbl" fill="#dc2626">VIN (+7.4V)</text>
+<path d="M 585,310 L 545,310 L 545,134" fill="none" stroke="#ea580c" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="545" cy="134" r="4.5" fill="#ea580c" />
+<path d="M 585,345 L 520,345 L 520,985" fill="none" stroke="#1e293b" stroke-width="3.0" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="520" cy="985" r="4.5" fill="#1e293b" />
+<path d="M 970,745 L 990,745 L 990,985" fill="none" stroke="#1e293b" stroke-width="3.0" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="990" cy="985" r="4.5" fill="#1e293b" />
+<rect x="40" y="380" width="240" height="100" rx="8" ry="8" fill="#ecfdf5" stroke="#059669" stroke-width="2" />
+<path d="M48,380 h224 a8,8 0 0 1 8,8 v30 h-240 v-30 a8,8 0 0 1 8,-8 z" fill="#047857" />
+<text x="160.0" y="398" class="box-title">Ultrasonik HC-SR04</text>
+<text x="160.0" y="412" class="box-sub">Jarak Rintangan Depan</text>
+<circle cx="280" cy="412" r="4.5" fill="#ea580c" stroke="#ffffff" stroke-width="1.2" />
+<text x="271" y="416" class="pin-r">VCC (5V)</text>
+<circle cx="280" cy="432" r="4.5" fill="#059669" stroke="#ffffff" stroke-width="1.2" />
+<text x="271" y="436" class="pin-r">Trig</text>
+<circle cx="280" cy="452" r="4.5" fill="#059669" stroke="#ffffff" stroke-width="1.2" />
+<text x="271" y="456" class="pin-r">Echo</text>
+<circle cx="280" cy="470" r="4.5" fill="#1e293b" stroke="#ffffff" stroke-width="1.2" />
+<text x="271" y="474" class="pin-r">GND</text>
+<path d="M 280,412 L 310,412 L 310,134" fill="none" stroke="#ea580c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="310" cy="134" r="4.5" fill="#ea580c" />
+<path d="M 280,432 L 465,432 L 465,415 L 585,415" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="478" y="399" width="70.0" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" />
+<text x="482" y="410" class="wire-lbl" fill="#059669">Trig -&gt; A0</text>
+<path d="M 280,452 L 585,450" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="478" y="434" width="70.0" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" />
+<text x="482" y="445" class="wire-lbl" fill="#059669">Echo -&gt; A1</text>
+<path d="M 280,470 L 295,470 L 295,985" fill="none" stroke="#1e293b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="295" cy="985" r="4.5" fill="#1e293b" />
+<rect x="40" y="500" width="240" height="72" rx="8" ry="8" fill="#ecfeff" stroke="#0891b2" stroke-width="2" />
+<path d="M48,500 h224 a8,8 0 0 1 8,8 v30 h-240 v-30 a8,8 0 0 1 8,-8 z" fill="#0e7490" />
+<text x="160.0" y="518" class="box-title">Buzzer Aktif 5V</text>
+<text x="160.0" y="532" class="box-sub">Indikator Tiba &amp; Failsafe</text>
+<circle cx="280" cy="540" r="4.5" fill="#0891b2" stroke="#ffffff" stroke-width="1.2" />
+<text x="271" y="544" class="pin-r">+ (Positif)</text>
+<circle cx="280" cy="560" r="4.5" fill="#1e293b" stroke="#ffffff" stroke-width="1.2" />
+<text x="271" y="564" class="pin-r">- (GND)</text>
+<path d="M 280,540 L 465,540 L 465,495 L 585,495" fill="none" stroke="#0891b2" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="476" y="479" width="82.4" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" />
+<text x="480" y="490" class="wire-lbl" fill="#0891b2">Buzzer -&gt; A2</text>
+<path d="M 280,560 L 295,560" fill="none" stroke="#1e293b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="295" cy="560" r="4.5" fill="#1e293b" />
+<rect x="40" y="592" width="240" height="90" rx="8" ry="8" fill="#ecfdf5" stroke="#059669" stroke-width="2" />
+<path d="M48,592 h224 a8,8 0 0 1 8,8 v30 h-240 v-30 a8,8 0 0 1 8,-8 z" fill="#047857" />
+<text x="160.0" y="610" class="box-title">Sensor IR FC-51 Kiri</text>
+<text x="160.0" y="624" class="box-sub">Dinding Koridor Kiri (Active-LOW)</text>
+<circle cx="280" cy="628" r="4.5" fill="#ea580c" stroke="#ffffff" stroke-width="1.2" />
+<text x="271" y="632" class="pin-r">VCC (5V)</text>
+<circle cx="280" cy="648" r="4.5" fill="#059669" stroke="#ffffff" stroke-width="1.2" />
+<text x="271" y="652" class="pin-r">OUT</text>
+<circle cx="280" cy="668" r="4.5" fill="#1e293b" stroke="#ffffff" stroke-width="1.2" />
+<text x="271" y="672" class="pin-r">GND</text>
+<path d="M 280,628 L 330,628 L 330,134" fill="none" stroke="#ea580c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="330" cy="134" r="4.5" fill="#ea580c" />
+<path d="M 280,648 L 450,648 L 450,540 L 585,540" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="476" y="524" width="88.60000000000001" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" />
+<text x="480" y="535" class="wire-lbl" fill="#059669">IR Kiri -&gt; A3</text>
+<path d="M 280,668 L 295,668" fill="none" stroke="#1e293b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="295" cy="668" r="4.5" fill="#1e293b" />
+<rect x="40" y="705" width="240" height="140" rx="8" ry="8" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2" />
+<path d="M48,705 h224 a8,8 0 0 1 8,8 v30 h-240 v-30 a8,8 0 0 1 8,-8 z" fill="#5b21b6" />
+<text x="160.0" y="723" class="box-title">IMU MPU6050 (GY-521)</text>
+<text x="160.0" y="737" class="box-sub">Gyroscope I2C (Alamat 0x68)</text>
+<circle cx="280" cy="745" r="4.5" fill="#ea580c" stroke="#ffffff" stroke-width="1.2" />
+<text x="271" y="749" class="pin-r">VCC (5V)</text>
+<circle cx="280" cy="767" r="4.5" fill="#1e293b" stroke="#ffffff" stroke-width="1.2" />
+<text x="271" y="771" class="pin-r">GND</text>
+<circle cx="280" cy="789" r="4.5" fill="#7c3aed" stroke="#ffffff" stroke-width="1.2" />
+<text x="271" y="793" class="pin-r">SCL</text>
+<circle cx="280" cy="811" r="4.5" fill="#7c3aed" stroke="#ffffff" stroke-width="1.2" />
+<text x="271" y="815" class="pin-r">SDA</text>
+<circle cx="280" cy="833" r="4.5" fill="#1e293b" stroke="#ffffff" stroke-width="1.2" />
+<text x="271" y="837" class="pin-r">AD0 (Biarkan / GND)</text>
+<path d="M 280,745 L 350,745 L 350,134" fill="none" stroke="#ea580c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="350" cy="134" r="4.5" fill="#ea580c" />
+<path d="M 280,767 L 295,767" fill="none" stroke="#1e293b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="295" cy="767" r="4.5" fill="#1e293b" />
+<path d="M 280,789 L 495,789 L 495,645 L 585,645" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="501" y="629" width="63.800000000000004" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" />
+<text x="505" y="640" class="wire-lbl" fill="#7c3aed">SCL -&gt; A5</text>
+<path d="M 280,811 L 475,811 L 475,610 L 585,610" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="501" y="594" width="63.800000000000004" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" />
+<text x="505" y="605" class="wire-lbl" fill="#7c3aed">SDA -&gt; A4</text>
+<rect x="1110" y="175" width="210" height="88" rx="8" ry="8" fill="#ecfeff" stroke="#0891b2" stroke-width="2" />
+<path d="M1118,175 h194 a8,8 0 0 1 8,8 v30 h-210 v-30 a8,8 0 0 1 8,-8 z" fill="#0e7490" />
+<text x="1215.0" y="193" class="box-title">Push Button START</text>
+<text x="1215.0" y="207" class="box-sub">Aktif LOW (INPUT_PULLUP)</text>
+<circle cx="1110" cy="224" r="4.5" fill="#0891b2" stroke="#ffffff" stroke-width="1.2" />
+<text x="1119" y="228" class="pin-l">Kaki 1 (Sinyal)</text>
+<circle cx="1110" cy="248" r="4.5" fill="#1e293b" stroke="#ffffff" stroke-width="1.2" />
+<text x="1119" y="252" class="pin-l">Kaki 2 (GND)</text>
+<path d="M 970,315 L 1045,315 L 1045,224 L 1110,224" fill="none" stroke="#0891b2" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="1050" y="208" width="26.6" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" />
+<text x="1054" y="219" class="wire-lbl" fill="#0891b2">D12</text>
+<path d="M 1110,248 L 1075,248 L 1075,985" fill="none" stroke="#1e293b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="1075" cy="985" r="4.5" fill="#1e293b" />
+<rect x="1355" y="175" width="230" height="96" rx="8" ry="8" fill="#ecfdf5" stroke="#059669" stroke-width="2" />
+<path d="M1363,175 h214 a8,8 0 0 1 8,8 v30 h-230 v-30 a8,8 0 0 1 8,-8 z" fill="#047857" />
+<text x="1470.0" y="193" class="box-title">Sensor IR FC-51 Kanan</text>
+<text x="1470.0" y="207" class="box-sub">Dinding Koridor Kanan</text>
+<circle cx="1355" cy="220" r="4.5" fill="#ea580c" stroke="#ffffff" stroke-width="1.2" />
+<text x="1364" y="224" class="pin-l">VCC (5V)</text>
+<circle cx="1355" cy="240" r="4.5" fill="#059669" stroke="#ffffff" stroke-width="1.2" />
+<text x="1364" y="244" class="pin-l">OUT</text>
+<circle cx="1355" cy="260" r="4.5" fill="#1e293b" stroke="#ffffff" stroke-width="1.2" />
+<text x="1364" y="264" class="pin-l">GND</text>
+<path d="M 1355,220 L 1330,220 L 1330,134" fill="none" stroke="#ea580c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="1330" cy="134" r="4.5" fill="#ea580c" />
+<path d="M 970,355 L 1060,355 L 1060,280 L 1338,280 L 1338,240 L 1355,240" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="1168" y="264" width="101.0" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" />
+<text x="1172" y="275" class="wire-lbl" fill="#059669">D11 -&gt; IR Kanan</text>
+<path d="M 1355,260 L 1342,260 L 1342,300 L 1075,300" fill="none" stroke="#1e293b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="1075" cy="300" r="4.5" fill="#1e293b" />
+<rect x="1100" y="340" width="245" height="290" rx="8" ry="8" fill="#fff7ed" stroke="#c2410c" stroke-width="2" />
+<path d="M1108,340 h229 a8,8 0 0 1 8,8 v30 h-245 v-30 a8,8 0 0 1 8,-8 z" fill="#9a3412" />
+<text x="1222.5" y="358" class="box-title">MODUL DRIVER L298N</text>
+<text x="1222.5" y="372" class="box-sub">LEPAS JUMPER ENA &amp; ENB!</text>
+<circle cx="1150" cy="340" r="4.5" fill="#dc2626" stroke="#ffffff" stroke-width="1.2" />
+<text x="1150" y="355" class="pin-c">+12V</text>
+<circle cx="1222" cy="340" r="4.5" fill="#1e293b" stroke="#ffffff" stroke-width="1.2" />
+<text x="1222" y="355" class="pin-c">GND</text>
+<circle cx="1295" cy="340" r="4.5" fill="#ea580c" stroke="#ffffff" stroke-width="1.2" />
+<text x="1295" y="355" class="pin-c">+5V (NC*)</text>
+<path d="M 1150,112 L 1150,340" fill="none" stroke="#dc2626" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M 1222,340 L 1222,318 L 1075,318" fill="none" stroke="#1e293b" stroke-width="3.0" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="1075" cy="318" r="4.5" fill="#1e293b" />
+<circle cx="1100" cy="425" r="4.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.2" />
+<text x="1109" y="429" class="pin-l">ENA (Lepas Jumper)</text>
+<path d="M 970,425 L 1100,425" fill="none" stroke="#2563eb" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="1100" cy="460" r="4.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.2" />
+<text x="1109" y="464" class="pin-l">IN1</text>
+<path d="M 970,460 L 1100,460" fill="none" stroke="#2563eb" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="1100" cy="495" r="4.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.2" />
+<text x="1109" y="499" class="pin-l">IN2</text>
+<path d="M 970,495 L 1100,495" fill="none" stroke="#2563eb" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="1100" cy="530" r="4.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.2" />
+<text x="1109" y="534" class="pin-l">ENB (Lepas Jumper)</text>
+<path d="M 970,530 L 1100,530" fill="none" stroke="#2563eb" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="1100" cy="565" r="4.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.2" />
+<text x="1109" y="569" class="pin-l">IN3</text>
+<path d="M 970,565 L 1100,565" fill="none" stroke="#2563eb" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="1100" cy="600" r="4.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.2" />
+<text x="1109" y="604" class="pin-l">IN4</text>
+<path d="M 970,600 L 1100,600" fill="none" stroke="#2563eb" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="1345" cy="415" r="4.5" fill="#b45309" stroke="#ffffff" stroke-width="1.2" />
+<text x="1336" y="419" class="pin-r">OUT1</text>
+<circle cx="1345" cy="445" r="4.5" fill="#b45309" stroke="#ffffff" stroke-width="1.2" />
+<text x="1336" y="449" class="pin-r">OUT2</text>
+<circle cx="1345" cy="540" r="4.5" fill="#b45309" stroke="#ffffff" stroke-width="1.2" />
+<text x="1336" y="544" class="pin-r">OUT3</text>
+<circle cx="1345" cy="570" r="4.5" fill="#b45309" stroke="#ffffff" stroke-width="1.2" />
+<text x="1336" y="574" class="pin-r">OUT4</text>
+<rect x="1410" y="380" width="175" height="95" rx="8" ry="8" fill="#fefce8" stroke="#a16207" stroke-width="2" />
+<path d="M1418,380 h159 a8,8 0 0 1 8,8 v30 h-175 v-30 a8,8 0 0 1 8,-8 z" fill="#854d0e" />
+<text x="1497.5" y="398" class="box-title">Motor DC Kiri</text>
+<text x="1497.5" y="412" class="box-sub">TT 1:48 (+ Kap. 100nF)</text>
+<circle cx="1410" cy="415" r="4.5" fill="#b45309" stroke="#ffffff" stroke-width="1.2" />
+<text x="1419" y="419" class="pin-l">M+</text>
+<circle cx="1410" cy="445" r="4.5" fill="#b45309" stroke="#ffffff" stroke-width="1.2" />
+<text x="1419" y="449" class="pin-l">M-</text>
+<path d="M 1345,415 L 1410,415" fill="none" stroke="#b45309" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M 1345,445 L 1410,445" fill="none" stroke="#b45309" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="1410" y="505" width="175" height="95" rx="8" ry="8" fill="#fefce8" stroke="#a16207" stroke-width="2" />
+<path d="M1418,505 h159 a8,8 0 0 1 8,8 v30 h-175 v-30 a8,8 0 0 1 8,-8 z" fill="#854d0e" />
+<text x="1497.5" y="523" class="box-title">Motor DC Kanan</text>
+<text x="1497.5" y="537" class="box-sub">TT 1:48 (+ Kap. 100nF)</text>
+<circle cx="1410" cy="540" r="4.5" fill="#b45309" stroke="#ffffff" stroke-width="1.2" />
+<text x="1419" y="544" class="pin-l">M+</text>
+<circle cx="1410" cy="570" r="4.5" fill="#b45309" stroke="#ffffff" stroke-width="1.2" />
+<text x="1419" y="574" class="pin-l">M-</text>
+<path d="M 1345,540 L 1410,540" fill="none" stroke="#b45309" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M 1345,570 L 1410,570" fill="none" stroke="#b45309" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="1110" y="650" width="250" height="92" rx="8" ry="8" fill="#ecfdf5" stroke="#059669" stroke-width="2" />
+<path d="M1118,650 h234 a8,8 0 0 1 8,8 v30 h-250 v-30 a8,8 0 0 1 8,-8 z" fill="#047857" />
+<text x="1235.0" y="668" class="box-title">Encoder LM393 Kanan</text>
+<text x="1235.0" y="682" class="box-sub">Cakram 20 Slot (INT1)</text>
+<circle cx="1110" cy="706" r="4.5" fill="#059669" stroke="#ffffff" stroke-width="1.2" />
+<text x="1119" y="710" class="pin-l">D0 (Pulsa)</text>
+<circle cx="1360" cy="696" r="4.5" fill="#ea580c" stroke="#ffffff" stroke-width="1.2" />
+<text x="1351" y="700" class="pin-r">VCC (5V)</text>
+<circle cx="1360" cy="724" r="4.5" fill="#1e293b" stroke="#ffffff" stroke-width="1.2" />
+<text x="1351" y="728" class="pin-r">GND</text>
+<path d="M 970,665 L 1030,665 L 1030,706 L 1110,706" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="1034" y="650" width="20.4" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" />
+<text x="1038" y="661" class="wire-lbl" fill="#059669">D3</text>
+<path d="M 1360,696 L 1615,696 L 1615,134" fill="none" stroke="#ea580c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="1615" cy="134" r="4.5" fill="#ea580c" />
+<path d="M 1360,724 L 1592,724 L 1592,985" fill="none" stroke="#1e293b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="1592" cy="985" r="4.5" fill="#1e293b" />
+<rect x="1110" y="780" width="250" height="92" rx="8" ry="8" fill="#ecfdf5" stroke="#059669" stroke-width="2" />
+<path d="M1118,780 h234 a8,8 0 0 1 8,8 v30 h-250 v-30 a8,8 0 0 1 8,-8 z" fill="#047857" />
+<text x="1235.0" y="798" class="box-title">Encoder LM393 Kiri</text>
+<text x="1235.0" y="812" class="box-sub">Cakram 20 Slot (INT0)</text>
+<circle cx="1110" cy="836" r="4.5" fill="#059669" stroke="#ffffff" stroke-width="1.2" />
+<text x="1119" y="840" class="pin-l">D0 (Pulsa)</text>
+<circle cx="1360" cy="826" r="4.5" fill="#ea580c" stroke="#ffffff" stroke-width="1.2" />
+<text x="1351" y="830" class="pin-r">VCC (5V)</text>
+<circle cx="1360" cy="854" r="4.5" fill="#1e293b" stroke="#ffffff" stroke-width="1.2" />
+<text x="1351" y="858" class="pin-r">GND</text>
+<path d="M 970,705 L 1010,705 L 1010,836 L 1110,836" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="1014" y="820" width="20.4" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" />
+<text x="1018" y="831" class="wire-lbl" fill="#059669">D2</text>
+<path d="M 1360,826 L 1615,826 L 1615,696" fill="none" stroke="#ea580c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="1615" cy="696" r="4.5" fill="#ea580c" />
+<path d="M 1360,854 L 1592,854" fill="none" stroke="#1e293b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="1592" cy="854" r="4.5" fill="#1e293b" />
+<rect x="40" y="860" width="590" height="100" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.8" />
+<text x="55" y="882" class="note-bold">CHECKLIST ANTI-SALAH SEBELUM MENYALAKAN SWITCH:</text>
+<text x="55" y="901" class="note">1. Lepas kedua jumper hitam ENA &amp; ENB di modul L298N sebelum menghubungkan D9 &amp; D6.</text>
+<text x="55" y="918" class="note">2. *Pin +5V L298N jangan dihubungkan ke 5V Arduino jika jumper 5V-EN L298N terpasang!</text>
+<text x="55" y="935" class="note">3. Pastikan semua GND (Baterai -, Arduino, L298N, semua sensor) bertemu di STAR GROUND.</text>
+<text x="55" y="952" class="note">4. Jika arah roda terbalik, tidak perlu bongkar kabel: jalankan tools/auto_calibrate.py (Stage U0.5).</text>
+</svg>
