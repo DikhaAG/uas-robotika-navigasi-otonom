@@ -28,6 +28,10 @@ public:
     static long getPulsaKanan();
     static void resetPulses();
 
+    static void setWheelDiameterMm(float diameterMm);
+    static float getWheelDiameterMm();
+    static float getCmPerPulse();
+
     static float normalizeAngleDeg(float deg);
 
     // Interrupt handlers
@@ -40,6 +44,8 @@ public:
 private:
     static Pose currentPose;
     static float totalDistanceMoved;
+    static float wheelDiameterMm;
+    static float cmPerPulse;
 
     static volatile long pulsaKiri;
     static volatile long pulsaKanan;

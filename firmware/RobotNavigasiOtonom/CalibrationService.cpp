@@ -14,6 +14,7 @@ void CalibrationService::init() {
     }
     Motors::setInversion(activeProfile.getInvertMotorKiri(), activeProfile.getInvertMotorKanan());
     Motors::setTrim(activeProfile.getTrimMotorKiri(), activeProfile.getTrimMotorKanan());
+    Odometry::setWheelDiameterMm(activeProfile.getDiameterRodaMm());
 }
 
 CalibrationProfile& CalibrationService::getActiveProfile() {
@@ -320,6 +321,7 @@ bool CalibrationService::handleCalibWrite(const char* args, char* response, size
             activeProfile.save();
             Motors::setInversion(activeProfile.getInvertMotorKiri(), activeProfile.getInvertMotorKanan());
             Motors::setTrim(activeProfile.getTrimMotorKiri(), activeProfile.getTrimMotorKanan());
+            Odometry::setWheelDiameterMm(activeProfile.getDiameterRodaMm());
 
             if (response != NULL && responseSize > 0) {
                 snprintf(response, responseSize, "!OK");
@@ -344,6 +346,7 @@ bool CalibrationService::handleCalibReset(char* response, size_t responseSize) {
     activeProfile.resetToDefaults();
     Motors::setInversion(1, 1);
     Motors::setTrim(TRIM_MOTOR_KIRI, TRIM_MOTOR_KANAN);
+    Odometry::setWheelDiameterMm(DIAMETER_RODA_MM);
 
     if (response != NULL && responseSize > 0) {
         snprintf(response, responseSize, "!RESET:OK");

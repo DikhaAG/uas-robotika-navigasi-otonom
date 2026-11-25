@@ -4,6 +4,8 @@
 
 Pose Odometry::currentPose = {0.0f, 0.0f, 0.0f};
 float Odometry::totalDistanceMoved = 0.0f;
+float Odometry::wheelDiameterMm = DIAMETER_RODA_MM;
+float Odometry::cmPerPulse = CM_PER_PULSA;
 
 volatile long Odometry::pulsaKiri = 0;
 volatile long Odometry::pulsaKanan = 0;
@@ -22,7 +24,23 @@ void Odometry::init() {
     attachInterrupt(digitalPinToInterrupt(PIN_ENC_KANAN), Odometry::isrKanan, RISING);
 #endif
 
+    setWheelDiameterMm(DIAMETER_RODA_MM);
     resetPose(0.0f, 0.0f, 0.0f);
+}
+
+void Odometry::setWheelDiameterMm(float diameterMm) {
+    if (diameterMm >= 30.0f && diameterMm <= 150.0f) {
+        wheelDiameterMm = diameterMm;
+        cmPerPulse = (PI * wheelDiameterMm / (float)JUMLAH_SLOT_ENCODER) / 10.0f;
+    }
+}
+
+float Odometry::getWheelDiameterMm() {
+    return wheelDiameterMm;
+}
+
+float Odometry::getCmPerPulse() {
+    return cmPerPulse;
 }
 
 void Odometry::resetPose(float x, float y, float theta) {
@@ -84,8 +102,8 @@ void Odometry::update(float dt_sec) {
     int dirL = Motors::getDirectionLeft();
     int dirR = Motors::getDirectionRight();
 
-    float dL = (float)dPulsaKiri * CM_PER_PULSA * (float)(dirL != 0 ? dirL : 1);
-    float dR = (float)dPulsaKanan * CM_PER_PULSA * (float)(dirR != 0 ? dirR : 1);
+    float dL = (float)dPulsaKiri * cmPerPulse * (float)(dirL != 0 ? dirL : 1);
+    float dR = (float)dPulsaKanan * cmPerPulse * (float)(dirR != 0 ? dirR : 1);
 
     float d = (dL + dR) / 2.0f;
     totalDistanceMoved += (d >= 0.0f ? d : -d);

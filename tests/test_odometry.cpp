@@ -73,6 +73,18 @@ int main() {
     assert(approxEqual(Odometry::getY(), 14.44f, 0.2f));
     std::cout << "  ✓ Test 6: Diagonal 2D odometry passed (x = " << Odometry::getX() << ", y = " << Odometry::getY() << ")." << std::endl;
 
+    // Test 7: Dynamic wheel diameter scaling updates cmPerPulse
+    Odometry::resetPose(0.0f, 0.0f, 0.0f);
+    Odometry::setWheelDiameterMm(70.0f);
+    assert(approxEqual(Odometry::getWheelDiameterMm(), 70.0f, 0.01f));
+    Motors::setMotor(170, 170);
+    Odometry::injectPulses(20, 20);
+    Odometry::update(0.02f);
+    // 1 full rotation at 70mm diameter = pi * 7.0 cm = 21.991 cm
+    assert(approxEqual(Odometry::getX(), 21.99f, 0.1f));
+    Odometry::setWheelDiameterMm(DIAMETER_RODA_MM);
+    std::cout << "  ✓ Test 7: Dynamic wheel diameter scaling passed (x = " << Odometry::getX() << " cm)." << std::endl;
+
     std::cout << "[TDD] ALL test_odometry passed successfully!" << std::endl;
     return 0;
 }
