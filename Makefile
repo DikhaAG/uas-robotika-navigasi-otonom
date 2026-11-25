@@ -29,7 +29,7 @@ SIM_BIN = tools/sim_navigation
 TIMEOUT_BIN ?= $(shell which timeout 2>/dev/null || which gtimeout 2>/dev/null)
 TEST_TIMEOUT ?= $(if $(TIMEOUT_BIN),$(TIMEOUT_BIN) 10s,)
 
-.PHONY: all test check lint run_simulation install-hooks clean blender_fetch blender_convert
+.PHONY: all test check lint run_simulation install-hooks clean blender_fetch blender_convert blender_model
 
 all: check
 
@@ -122,6 +122,10 @@ blender_convert: blender_fetch
 	test -x .venv/bin/python || $(CAD_PYTHON) -m venv .venv
 	.venv/bin/python -c "import OCP" 2>/dev/null || .venv/bin/pip install -r tools/blender/requirements-cad.txt
 	.venv/bin/python tools/blender/convert_step.py
+
+BLENDER ?= /Applications/Blender.app/Contents/MacOS/Blender
+blender_model: blender_convert
+	"$(BLENDER)" -b --factory-startup --python-exit-code 1 -P tools/blender/build_robot.py -- --out build/robot_3d.blend --renders docs/hardware/renders
 
 install-hooks:
 	@echo "#!/bin/sh" > .git/hooks/pre-commit

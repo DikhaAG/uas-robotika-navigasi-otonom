@@ -8,6 +8,8 @@ Panduan perakitan kabel langkah-demi-langkah untuk **Robot Navigasi Otonom (Ardu
 
 ![Skematik Perkabelan Arduino Uno R3 + L298N](wiring_schematic_uno_l298n.svg)
 
+> **Model 3D:** lihat rangkaian ini dalam 3D (41 kabel pada pin yang benar) di [renders/robot_iso.png](renders/robot_iso.png), [tampak atas](renders/robot_top.png), dan [tampak bawah](renders/robot_bottom.png). Cara membangunnya ada di [tools/README.md](../../tools/README.md#4-model-3d-rangkaian-blender-blender).
+
 > **Tips Membaca Diagram:**
 > - **Merah (`+7.4V`)**: Daya baterai menuju `VIN` Arduino dan `+12V` L298N.
 > - **Oranye (`+5V`)**: Suplai logika 5V dari pin `5V` Arduino menuju semua sensor.

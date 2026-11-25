@@ -98,3 +98,45 @@ python3 tools/auto_calibrate.py --mock --fail-mpu
 python3 tools/auto_calibrate.py --mock --fail-sonar
 python3 tools/auto_calibrate.py --mock --reverse-left
 ```
+
+---
+
+## 4. Model 3D Rangkaian (Blender) (`blender/`)
+
+Membangun `build/robot_3d.blend`, yaitu robot 2WD lengkap (sasis akrilik, motor TT, Uno R3, L298N, sensor) dengan **41 kabel** yang menancap di pin yang benar sesuai [`docs/hardware/wiring-schematic.md`](../docs/hardware/wiring-schematic.md). Render-nya ada di [`docs/hardware/renders/`](../docs/hardware/renders/).
+
+![Model 3D robot (isometrik)](../docs/hardware/renders/robot_iso.png)
+
+### Prasyarat:
+- **Blender 5.3** di `/Applications/Blender.app` (atau set `BLENDER=/path/ke/blender`).
+- **Koneksi internet** untuk mengunduh model sekali (`make blender_fetch`), dan **Python 3.12** untuk konverter STEP (`cadquery-ocp` dipasang otomatis ke `.venv/` repo).
+- Model unduhan **tidak di-commit** (sebagian tanpa lisensi redistribusi). Sumber, lisensi, dan atribusinya ada di [`assets/3d/SOURCES.md`](../assets/3d/SOURCES.md).
+
+### Cara Menjalankan:
+
+```bash
+# 1. Unduh model (hash SHA-256 diverifikasi) ke assets/3d/vendor/
+make blender_fetch
+
+# 2. Konversi STEP -> GLB, rakit robot, periksa 41 kabel, simpan .blend, dan render 3 PNG
+make blender_model
+
+# 3. (Opsional) Close-up setiap header untuk memeriksa letak housing dupont
+"/Applications/Blender.app/Contents/MacOS/Blender" -b --factory-startup --python-exit-code 1 \
+  -P tools/blender/build_robot.py -- --out build/robot_3d.blend --no-render --closeups build/renders/closeup
+```
+
+Build akan **gagal (exit 1)** jika ada kabel yang ujungnya meleset lebih dari 0.5 mm dari pinnya, ada kabel yang menembus badan komponen, atau jumlah kabelnya bukan 41. Baris terakhir yang menandakan sukses adalah `ROBOT MODEL OK: 41 wires, 25 parts`.
+
+### Membuka Model:
+Buka `build/robot_3d.blend` di Blender. Di Outliner, objek dikelompokkan menjadi collection **Chassis**, **Electronics**, dan **Wires** → *Tahap 1 – Daya* … *Tahap 5 – START & Buzzer*. Klik ikon mata pada sebuah tahap untuk menyembunyikan atau menampilkan kabelnya, mengikuti urutan perakitan 5 tahap. Setiap kabel bernama `wire_<net>_<komponen.pin>_<komponen.pin>`.
+
+### Struktur Modul:
+| Berkas | Isi |
+| :--- | :--- |
+| `netlist.py` | 41 kabel (sumber kebenaran), dicek terhadap `Config.h` dan `wiring-schematic.md` oleh `tests/test_blender_netlist.py` |
+| `layout.py`, `routing.py` | Posisi setiap komponen di sasis serta rute kabel ortogonal dan lane (Python murni, dites di `make test`) |
+| `fetch_models.py`, `convert_step.py`, `assets.py` | Manifest `assets/3d/sources.json`, unduhan terverifikasi hash, dan konversi STEP → GLB |
+| `bl_parts.py`, `bl_import.py` | Komponen prosedural dan import model unduhan, dinormalisasi oleh `assets/3d/anchors.json` (koordinat pin) |
+| `bl_wires.py`, `bl_checks.py`, `build_robot.py` | Kabel dupont/telanjang, pemeriksaan scene, dan rakitan penuh + render |
+| `check_parts.py`, `measure_model.py` | Pemeriksa dimensi/anchor setiap part dan alat bantu ukur pin |
