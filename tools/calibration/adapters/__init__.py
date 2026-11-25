@@ -18,7 +18,6 @@ from tools.calibration.adapters.reporter import (
     AnsiConsoleReporter,
     NullReporter,
     CalibrationLogger,
-    CompositeReporter,
     Colors,
 )
 
@@ -34,6 +33,5 @@ __all__ = [
     "AnsiConsoleReporter",
     "NullReporter",
     "CalibrationLogger",
-    "CompositeReporter",
     "Colors",
 ]

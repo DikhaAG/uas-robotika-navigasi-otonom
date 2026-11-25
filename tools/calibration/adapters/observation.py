@@ -2,7 +2,7 @@
 Observation adapter seam and implementations for ground-truth data collection.
 """
 
-from typing import Optional, Tuple, List, Union
+from typing import List, Optional, Tuple, Union
 try:
     from typing import Protocol
 except ImportError:
@@ -24,8 +24,8 @@ class ObservationAdapter(Protocol):
 
 class ConsoleObservationAdapter:
     """Interactive CLI adapter prompting human operator via stdin."""
-    def __init__(self, interactive: bool = True):
-        self.interactive = interactive
+    def __init__(self, interactive: bool = True) -> None:
+        self.interactive: bool = interactive
 
     def verify_ir_sensors(self, initial_left: bool, initial_right: bool) -> bool:
         if not self.interactive:
@@ -121,6 +121,16 @@ class ConsoleObservationAdapter:
             pass
 
 
+def _split_sequence_or_single(
+    val: Optional[Union[float, List[float]]]
+) -> Tuple[Optional[List[float]], Optional[float]]:
+    if isinstance(val, list):
+        return [float(x) for x in val], None
+    if val is None:
+        return None, None
+    return None, float(val)
+
+
 class ScriptedObservationAdapter:
     """Deterministic observation adapter for automated testing and CI execution."""
     def __init__(self,
@@ -130,58 +140,25 @@ class ScriptedObservationAdapter:
                  u3_lateral_dev: Optional[Union[float, List[float]]] = None,
                  motor_directions: Tuple[bool, bool] = (True, True),
                  ir_verified: bool = True,
-                 indicators_verified: bool = True):
-        if isinstance(u1_ground_truth, list):
-            self.u1_sequence = list(u1_ground_truth)
-            self.u1_single = None
-        else:
-            self.u1_sequence = None
-            self.u1_single = u1_ground_truth
+                 indicators_verified: bool = True) -> None:
+        self.u1_sequence, self.u1_single = _split_sequence_or_single(u1_ground_truth)
+        self.u2_sequence, self.u2_single = _split_sequence_or_single(u2_actual_angle)
+        self.u3_sequence, self.u3_single = _split_sequence_or_single(u3_lateral_dev)
+        self.u2_direction_ok: bool = bool(u2_direction_ok)
+        self.motor_directions: Tuple[bool, bool] = motor_directions
+        self.ir_verified: bool = bool(ir_verified)
+        self.indicators_verified: bool = bool(indicators_verified)
 
-        if isinstance(u2_actual_angle, list):
-            self.u2_sequence = list(u2_actual_angle)
-            self.u2_single = None
-        else:
-            self.u2_sequence = None
-            self.u2_single = u2_actual_angle
+    def set_u1_ground_truth(self, val: Union[float, List[float]]) -> None:
+        self.u1_sequence, self.u1_single = _split_sequence_or_single(val)
 
-        if isinstance(u3_lateral_dev, list):
-            self.u3_sequence = list(u3_lateral_dev)
-            self.u3_single = None
-        else:
-            self.u3_sequence = None
-            self.u3_single = u3_lateral_dev
+    def set_u2_actual_angle(self, val: Union[float, List[float]]) -> None:
+        self.u2_sequence, self.u2_single = _split_sequence_or_single(val)
 
-        self.u2_direction_ok = bool(u2_direction_ok)
-        self.motor_directions = motor_directions
-        self.ir_verified = bool(ir_verified)
-        self.indicators_verified = bool(indicators_verified)
+    def set_u3_lateral_dev(self, val: Union[float, List[float]]) -> None:
+        self.u3_sequence, self.u3_single = _split_sequence_or_single(val)
 
-    def set_u1_ground_truth(self, val: Union[float, List[float]]):
-        if isinstance(val, list):
-            self.u1_sequence = list(val)
-            self.u1_single = None
-        else:
-            self.u1_sequence = None
-            self.u1_single = float(val)
-
-    def set_u2_actual_angle(self, val: Union[float, List[float]]):
-        if isinstance(val, list):
-            self.u2_sequence = list(val)
-            self.u2_single = None
-        else:
-            self.u2_sequence = None
-            self.u2_single = float(val)
-
-    def set_u3_lateral_dev(self, val: Union[float, List[float]]):
-        if isinstance(val, list):
-            self.u3_sequence = list(val)
-            self.u3_single = None
-        else:
-            self.u3_sequence = None
-            self.u3_single = float(val)
-
-    def set_motor_directions(self, left_forward: bool, right_forward: bool):
+    def set_motor_directions(self, left_forward: bool, right_forward: bool) -> None:
         self.motor_directions = (bool(left_forward), bool(right_forward))
 
     def verify_ir_sensors(self, initial_left: bool, initial_right: bool) -> bool:

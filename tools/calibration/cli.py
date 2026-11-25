@@ -2,18 +2,31 @@
 Command-line interface (CLI) and interactive wizard menu for calibration.
 """
 
-import sys
 import argparse
-from typing import Optional, List
+import sys
+from typing import List, Optional
 
-from tools.calibration.models import SafetyGateError
-from tools.calibration.adapters.transport import SerialTransportAdapter, MockRobotSerial, autodetect_serial_port
-from tools.calibration.adapters.observation import ConsoleObservationAdapter, ScriptedObservationAdapter
-from tools.calibration.adapters.reporter import AnsiConsoleReporter, NullReporter, CalibrationLogger, Colors
+from tools.calibration.adapters.observation import (
+    ConsoleObservationAdapter,
+    ObservationAdapter,
+    ScriptedObservationAdapter,
+)
+from tools.calibration.adapters.reporter import (
+    AnsiConsoleReporter,
+    CalibrationLogger,
+    Colors,
+    _CompositeReporter,
+)
+from tools.calibration.adapters.transport import (
+    MockRobotSerial,
+    SerialTransportAdapter,
+    autodetect_serial_port,
+)
 from tools.calibration.engine import CalibrationEngine
+from tools.calibration.models import SafetyGateError
 
 
-def show_interactive_menu(engine: CalibrationEngine, reporter: AnsiConsoleReporter):
+def show_interactive_menu(engine: CalibrationEngine) -> None:
     """Interactive CLI menu for selecting individual tests or complete calibration."""
     while True:
         print(f"\n{Colors.BOLD}{Colors.CYAN}===================================================={Colors.RESET}")
@@ -43,16 +56,8 @@ def show_interactive_menu(engine: CalibrationEngine, reporter: AnsiConsoleReport
             if not engine.is_motion_permitted():
                 print(f"{Colors.RED}Ditolak: Hard-gate keamanan terkunci. Jalankan Stage U0 terlebih dahulu.{Colors.RESET}")
             else:
-                if choice == "1":
-                    engine.calibrate(stage="U1")
-                elif choice == "2":
-                    engine.calibrate(stage="U2")
-                elif choice == "3":
-                    engine.calibrate(stage="U3")
-                elif choice == "4":
-                    engine.calibrate(stage="U4")
-                elif choice == "5":
-                    engine.calibrate(stage="ALL")
+                stage_map = {"1": "U1", "2": "U2", "3": "U3", "4": "U4", "5": "ALL"}
+                engine.calibrate(stage=stage_map[choice])
         elif choice == "6":
             prof = engine.get_active_profile()
             print(f"\n{Colors.BOLD}Profil Kalibrasi Aktif di EEPROM:{Colors.RESET}")
@@ -124,56 +129,48 @@ def main(argv: Optional[List[str]] = None) -> int:
     print(f"{Colors.GREEN}✓ Handshake koneksi robot berhasil (!PONG).{Colors.RESET}")
 
     # 2. Wire Observation Adapter
+    observation: ObservationAdapter
     if args.headless:
         motor_dirs = (False, True) if args.reverse_left else (True, True)
         observation = ScriptedObservationAdapter(motor_directions=motor_dirs)
+    elif args.reverse_left:
+        observation = ScriptedObservationAdapter(motor_directions=(False, True))
     else:
-        if args.reverse_left:
-            observation = ScriptedObservationAdapter(motor_directions=(False, True))
-        else:
-            observation = ConsoleObservationAdapter(interactive=True)
+        observation = ConsoleObservationAdapter(interactive=True)
 
-    # 3. Wire Reporter Adapter & Logger
-    reporter = AnsiConsoleReporter(verbose=True)
-    logger = CalibrationLogger(filepath=args.log_file)
+    # 3. Wire Reporter Adapter (Console + CSV Logger via ReporterAdapter seam)
+    reporter = _CompositeReporter([
+        AnsiConsoleReporter(verbose=True),
+        CalibrationLogger(filepath=args.log_file),
+    ])
 
     # 4. Construct Deep CalibrationEngine
     engine = CalibrationEngine(
         transport=transport,
         observation=observation,
         reporter=reporter,
-        logger=logger
     )
 
-    # Step 1: Pre-flight Diagnostics
-    u0_report = engine.run_preflight()
+    try:
+        # Step 1: Pre-flight Diagnostics
+        engine.run_preflight()
 
-    # Hard-gate enforcement
-    if not engine.is_motion_permitted():
-        if args.test in ["U1", "U2", "U3", "U4"]:
-            transport.close()
-            raise SafetyGateError(
-                f"HARD-GATE LOCKED: Motion calibration ({args.test}) DILARANG sebelum pengujian hardware U0 100% lulus!"
-            )
-        transport.close()
-        return 1
+        # Hard-gate enforcement
+        if not engine.is_motion_permitted():
+            if args.test in ("U1", "U2", "U3", "U4"):
+                raise SafetyGateError(
+                    f"HARD-GATE LOCKED: Motion calibration ({args.test}) DILARANG sebelum pengujian hardware U0 100% lulus!"
+                )
+            return 1
 
-    if args.test == "U0":
-        transport.close()
-        return 0
+        if args.test == "U0":
+            return 0
 
-    # Step 2: Kinematic Calibration
-    if args.headless:
-        if args.test == "ALL":
-            cal_rep = engine.calibrate(stage="ALL")
-            transport.close()
-            return 0 if cal_rep.all_passed else 1
-        else:
+        # Step 2: Kinematic Calibration
+        if args.headless:
             cal_rep = engine.calibrate(stage=args.test)
-            transport.close()
             return 0 if cal_rep.all_passed else 1
-    else:
-        # Interactive mode
+
         mode_choice = args.mode
         if args.mode == "full" and args.test == "ALL":
             print(f"\n{Colors.BOLD}Pilih Mode Operasional Kalibrasi:{Colors.RESET}")
@@ -187,17 +184,13 @@ def main(argv: Optional[List[str]] = None) -> int:
                 mode_choice = "full"
 
         if mode_choice == "individual":
-            show_interactive_menu(engine, reporter)
-            transport.close()
+            show_interactive_menu(engine)
             return 0
-        else:
-            # Full wizard (U0 already passed, run U1-U4)
-            cal_rep = engine.calibrate(stage="ALL")
-            transport.close()
-            return 0 if cal_rep.all_passed else 1
 
-    transport.close()
-    return 0
+        cal_rep = engine.calibrate(stage=args.test)
+        return 0 if cal_rep.all_passed else 1
+    finally:
+        transport.close()
 
 
 if __name__ == "__main__":

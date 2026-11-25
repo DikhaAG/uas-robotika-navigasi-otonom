@@ -5,29 +5,29 @@ Reporter and telemetry adapters for displaying UI progress and writing CSV logs.
 import os
 import sys
 import time
-from typing import Optional, List
+from typing import Any, List, Optional
 try:
     from typing import Protocol
 except ImportError:
     from typing_extensions import Protocol
 
-from tools.calibration.models import U0Report, CalibrationProfileData
+from tools.calibration.models import CalibrationProfileData, TrialRecord, U0Report
 
 
 class Colors:
     """ANSI color codes for terminal styling."""
-    RESET = "\033[0m"
-    BOLD = "\033[1m"
-    GREEN = "\033[32m"
-    RED = "\033[31m"
-    YELLOW = "\033[33m"
-    CYAN = "\033[36m"
-    MAGENTA = "\033[35m"
-    BLUE = "\033[34m"
-    DIM = "\033[2m"
+    RESET: str = "\033[0m"
+    BOLD: str = "\033[1m"
+    GREEN: str = "\033[32m"
+    RED: str = "\033[31m"
+    YELLOW: str = "\033[33m"
+    CYAN: str = "\033[36m"
+    MAGENTA: str = "\033[35m"
+    BLUE: str = "\033[34m"
+    DIM: str = "\033[2m"
 
     @classmethod
-    def disable(cls):
+    def disable(cls) -> None:
         cls.RESET = ""
         cls.BOLD = ""
         cls.GREEN = ""
@@ -48,9 +48,7 @@ class ReporterAdapter(Protocol):
     def on_stage_start(self, stage_name: str, description: str) -> None: ...
     def on_subtest_result(self, name: str, passed: bool, details: str, hints: Optional[List[str]] = None) -> None: ...
     def on_trial_progress(self, test_id: str, iteration: int, max_iterations: int, details: str) -> None: ...
-    def on_trial_result(self, test_id: str, iteration: int, status: str, target: float,
-                        measured: float, ground_truth: float, error: float,
-                        profile: Optional[CalibrationProfileData] = None, notes: str = "") -> None: ...
+    def on_trial_result(self, record: TrialRecord) -> None: ...
     def on_stage_summary(self, title: str, passed: bool, summary_lines: List[str]) -> None: ...
     def on_hard_gate_status(self, is_permitted: bool, report: U0Report) -> None: ...
     def on_info(self, message: str) -> None: ...
@@ -64,9 +62,7 @@ class NullReporter:
     def on_stage_start(self, stage_name: str, description: str) -> None: pass
     def on_subtest_result(self, name: str, passed: bool, details: str, hints: Optional[List[str]] = None) -> None: pass
     def on_trial_progress(self, test_id: str, iteration: int, max_iterations: int, details: str) -> None: pass
-    def on_trial_result(self, test_id: str, iteration: int, status: str, target: float,
-                        measured: float, ground_truth: float, error: float,
-                        profile: Optional[CalibrationProfileData] = None, notes: str = "") -> None: pass
+    def on_trial_result(self, record: TrialRecord) -> None: pass
     def on_stage_summary(self, title: str, passed: bool, summary_lines: List[str]) -> None: pass
     def on_hard_gate_status(self, is_permitted: bool, report: U0Report) -> None: pass
     def on_info(self, message: str) -> None: pass
@@ -77,10 +73,10 @@ class NullReporter:
 
 class AnsiConsoleReporter:
     """Rich interactive terminal reporter using ANSI colors and formatted banners."""
-    def __init__(self, verbose: bool = True):
-        self.verbose = verbose
+    def __init__(self, verbose: bool = True) -> None:
+        self.verbose: bool = verbose
 
-    def log(self, *args, **kwargs):
+    def log(self, *args: Any, **kwargs: Any) -> None:
         if self.verbose:
             print(*args, **kwargs)
 
@@ -101,15 +97,19 @@ class AnsiConsoleReporter:
     def on_trial_progress(self, test_id: str, iteration: int, max_iterations: int, details: str) -> None:
         self.log(f"{Colors.BOLD}[{test_id} - Iterasi {iteration}/{max_iterations}] {details}{Colors.RESET}")
 
-    def on_trial_result(self, test_id: str, iteration: int, status: str, target: float,
-                        measured: float, ground_truth: float, error: float,
-                        profile: Optional[CalibrationProfileData] = None, notes: str = "") -> None:
-        if status == "PASS":
-            self.log(f"  {Colors.GREEN}✓ {test_id} Lulus: Terukur={measured:.2f}, Aktual={ground_truth:.2f}, Galat={error:.2f}. {notes}{Colors.RESET}")
-        elif status == "RETRY":
-            self.log(f"  {Colors.YELLOW}⚠ {test_id} Iterasi {iteration} Belum Konvergen: Galat={error:.2f}. {notes}{Colors.RESET}")
+    def on_trial_result(self, record: TrialRecord) -> None:
+        if record.status == "PASS":
+            self.log(
+                f"  {Colors.GREEN}✓ {record.test_id} Lulus: Terukur={record.measured:.2f}, "
+                f"Aktual={record.ground_truth:.2f}, Galat={record.error:.2f}. {record.notes}{Colors.RESET}"
+            )
+        elif record.status == "RETRY":
+            self.log(
+                f"  {Colors.YELLOW}⚠ {record.test_id} Iterasi {record.iteration} Belum Konvergen: "
+                f"Galat={record.error:.2f}. {record.notes}{Colors.RESET}"
+            )
         else:
-            self.log(f"  {Colors.RED}✗ {test_id} Gagal: Galat={error:.2f}. {notes}{Colors.RESET}")
+            self.log(f"  {Colors.RED}✗ {record.test_id} Gagal: Galat={record.error:.2f}. {record.notes}{Colors.RESET}")
 
     def on_stage_summary(self, title: str, passed: bool, summary_lines: List[str]) -> None:
         self.log(f"\n{Colors.BOLD}{Colors.CYAN}===================================================={Colors.RESET}")
@@ -157,12 +157,15 @@ class AnsiConsoleReporter:
 
 
 class CalibrationLogger:
-    """Exports structured calibration telemetry, trials, and tuned profiles to CSV."""
-    def __init__(self, filepath: str = "tools/calibration_log.csv"):
-        self.filepath = filepath
+    """
+    Exports structured calibration telemetry, trials, and tuned profiles to CSV,
+    and satisfies the ReporterAdapter seam.
+    """
+    def __init__(self, filepath: str = "tools/calibration_log.csv") -> None:
+        self.filepath: str = filepath
         self._ensure_header()
 
-    def _ensure_header(self):
+    def _ensure_header(self) -> None:
         dir_name = os.path.dirname(os.path.abspath(self.filepath))
         if dir_name and not os.path.exists(dir_name):
             os.makedirs(dir_name, exist_ok=True)
@@ -179,7 +182,7 @@ class CalibrationLogger:
                    ground_truth: float,
                    error: float,
                    profile: Optional[CalibrationProfileData] = None,
-                   notes: str = ""):
+                   notes: str = "") -> None:
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
         diam = f"{profile.diameter_roda_mm:.2f}" if profile else ""
         trim_l = f"{profile.trim_motor_kiri:.3f}" if profile else ""
@@ -190,7 +193,7 @@ class CalibrationLogger:
         with open(self.filepath, "a", encoding="utf-8") as f:
             f.write(line)
 
-    def log_u0(self, report: U0Report, profile: Optional[CalibrationProfileData] = None):
+    def log_u0(self, report: U0Report, profile: Optional[CalibrationProfileData] = None) -> None:
         """Logs all pre-flight diagnostic subtests (U0.1 - U0.5) to the CSV log."""
         for st in report.subtests:
             status = "PASS" if st.passed else "FAIL"
@@ -203,14 +206,41 @@ class CalibrationLogger:
                 ground_truth=0.0,
                 error=0.0,
                 profile=profile,
-                notes=st.details
+                notes=st.details,
             )
 
+    def on_stage_start(self, stage_name: str, description: str) -> None: pass
+    def on_subtest_result(self, name: str, passed: bool, details: str, hints: Optional[List[str]] = None) -> None: pass
+    def on_trial_progress(self, test_id: str, iteration: int, max_iterations: int, details: str) -> None: pass
 
-class CompositeReporter:
-    """Dispatches reporter events to multiple underlying adapters."""
-    def __init__(self, reporters: List[ReporterAdapter]):
-        self.reporters = list(reporters)
+    def on_trial_result(self, record: TrialRecord) -> None:
+        self.log_result(
+            test_id=record.test_id,
+            iteration=record.iteration,
+            status=record.status,
+            target=record.target,
+            measured=record.measured,
+            ground_truth=record.ground_truth,
+            error=record.error,
+            profile=record.profile,
+            notes=record.notes,
+        )
+
+    def on_stage_summary(self, title: str, passed: bool, summary_lines: List[str]) -> None: pass
+
+    def on_hard_gate_status(self, is_permitted: bool, report: U0Report) -> None:
+        self.log_u0(report)
+
+    def on_info(self, message: str) -> None: pass
+    def on_warning(self, message: str) -> None: pass
+    def on_error(self, message: str) -> None: pass
+    def on_success(self, message: str) -> None: pass
+
+
+class _CompositeReporter:
+    """Internal fan-out reporter combining multiple ReporterAdapter instances."""
+    def __init__(self, reporters: List[ReporterAdapter]) -> None:
+        self.reporters: List[ReporterAdapter] = list(reporters)
 
     def on_stage_start(self, stage_name: str, description: str) -> None:
         for r in self.reporters:
@@ -224,11 +254,9 @@ class CompositeReporter:
         for r in self.reporters:
             r.on_trial_progress(test_id, iteration, max_iterations, details)
 
-    def on_trial_result(self, test_id: str, iteration: int, status: str, target: float,
-                        measured: float, ground_truth: float, error: float,
-                        profile: Optional[CalibrationProfileData] = None, notes: str = "") -> None:
+    def on_trial_result(self, record: TrialRecord) -> None:
         for r in self.reporters:
-            r.on_trial_result(test_id, iteration, status, target, measured, ground_truth, error, profile, notes)
+            r.on_trial_result(record)
 
     def on_stage_summary(self, title: str, passed: bool, summary_lines: List[str]) -> None:
         for r in self.reporters:

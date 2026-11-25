@@ -4,54 +4,67 @@ Polsri TC253421 - Praktikum Robotika.
 """
 
 from tools.calibration.models import (
-    SafetyGateError,
-    DiagnosticResult,
     CalibrationProfileData,
-    U0SubtestReport,
-    U0Report,
+    CalibrationReport,
+    DiagnosticResult,
+    EncoderTranslationTelemetry,
+    HeadingTelemetry,
+    MotorPulses,
+    MotorTrimPair,
     SafetyGate,
+    SafetyGateError,
+    ToleranceOutcome,
+    TrialRecord,
+    U0Report,
+    U0SubtestReport,
     U1Result,
+    U1ToleranceOutcome,
     U2Result,
     U3Result,
-    U4SubResult,
     U4Result,
-    CalibrationReport,
+    U4SubResult,
 )
 from tools.calibration.formulas import (
-    calculate_wheel_diameter_correction,
     calculate_motor_trim_correction,
+    calculate_wheel_diameter_correction,
     check_u1_tolerances,
     check_u2_tolerances,
     check_u3_tolerances,
     check_u4_tolerances,
 )
 from tools.calibration.adapters.transport import (
-    TransportAdapter,
-    SerialTransportAdapter,
     MockRobotSerial,
+    SerialTransportAdapter,
+    TransportAdapter,
     autodetect_serial_port,
 )
 from tools.calibration.adapters.observation import (
-    ObservationAdapter,
     ConsoleObservationAdapter,
+    ObservationAdapter,
     ScriptedObservationAdapter,
 )
 from tools.calibration.adapters.reporter import (
-    ReporterAdapter,
     AnsiConsoleReporter,
-    NullReporter,
     CalibrationLogger,
-    CompositeReporter,
     Colors,
+    NullReporter,
+    ReporterAdapter,
 )
 from tools.calibration.engine import CalibrationEngine
-from tools.calibration.cli import main
+from tools.calibration.cli import main, show_interactive_menu
 
 __all__ = [
     "CalibrationEngine",
     "SafetyGateError",
     "DiagnosticResult",
     "CalibrationProfileData",
+    "MotorPulses",
+    "EncoderTranslationTelemetry",
+    "HeadingTelemetry",
+    "MotorTrimPair",
+    "U1ToleranceOutcome",
+    "ToleranceOutcome",
+    "TrialRecord",
     "U0SubtestReport",
     "U0Report",
     "SafetyGate",
@@ -78,7 +91,7 @@ __all__ = [
     "AnsiConsoleReporter",
     "NullReporter",
     "CalibrationLogger",
-    "CompositeReporter",
     "Colors",
+    "show_interactive_menu",
     "main",
 ]

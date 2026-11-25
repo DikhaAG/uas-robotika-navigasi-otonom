@@ -2,34 +2,34 @@
 Deep CalibrationEngine module coordinating pre-flight hardware safety and closed-loop kinematic convergence.
 """
 
-import time
-from typing import Optional, List
+from typing import List, Optional
 
 from tools.calibration.models import (
-    DiagnosticResult,
     CalibrationProfileData,
-    U0SubtestReport,
-    U0Report,
+    CalibrationReport,
+    DiagnosticResult,
     SafetyGate,
     SafetyGateError,
+    TrialRecord,
+    U0Report,
+    U0SubtestReport,
     U1Result,
     U2Result,
     U3Result,
-    U4SubResult,
     U4Result,
-    CalibrationReport,
+    U4SubResult,
 )
 from tools.calibration.formulas import (
-    calculate_wheel_diameter_correction,
     calculate_motor_trim_correction,
+    calculate_wheel_diameter_correction,
     check_u1_tolerances,
     check_u2_tolerances,
     check_u3_tolerances,
     check_u4_tolerances,
 )
-from tools.calibration.adapters.transport import TransportAdapter, MockRobotSerial
 from tools.calibration.adapters.observation import ObservationAdapter
-from tools.calibration.adapters.reporter import ReporterAdapter, NullReporter, CalibrationLogger
+from tools.calibration.adapters.reporter import NullReporter, ReporterAdapter
+from tools.calibration.adapters.transport import TransportAdapter
 
 
 class CalibrationEngine:
@@ -41,13 +41,11 @@ class CalibrationEngine:
     def __init__(self,
                  transport: TransportAdapter,
                  observation: ObservationAdapter,
-                 reporter: Optional[ReporterAdapter] = None,
-                 logger: Optional[CalibrationLogger] = None):
-        self.transport = transport
-        self.observation = observation
-        self.reporter = reporter or NullReporter()
-        self.logger = logger
-        self.safety_gate = SafetyGate()
+                 reporter: Optional[ReporterAdapter] = None) -> None:
+        self.transport: TransportAdapter = transport
+        self.observation: ObservationAdapter = observation
+        self.reporter: ReporterAdapter = reporter or NullReporter()
+        self.safety_gate: SafetyGate = SafetyGate()
         self.last_u0_report: Optional[U0Report] = None
 
     def is_motion_permitted(self) -> bool:
@@ -80,7 +78,7 @@ class CalibrationEngine:
 
         # Step 1: Probe sensors via !DIAG:ALL
         try:
-            diag = self.transport.probe_diagnostics()
+            diag: DiagnosticResult = self.transport.probe_diagnostics()
         except Exception as e:
             st = U0SubtestReport("Koneksi & Sensor Bus", False, f"Gagal membaca diagnostik sensor: {e}",
                                  ["Cek kabel USB, baudrate 115200, dan daya baterai robot."])
@@ -98,7 +96,7 @@ class CalibrationEngine:
         else:
             st_mpu = U0SubtestReport("U0.1 MPU6050", False, "WHO_AM_I gagal / I2C bus error", [
                 "Periksa kabel jumper MPU6050: VCC->5V, GND->GND.",
-                "Periksa pin I2C Arduino Uno: SDA terhubung ke Pin A4, SCL terhubung ke Pin A5."
+                "Periksa pin I2C Arduino Uno: SDA terhubung ke Pin A4, SCL terhubung ke Pin A5.",
             ])
             report.u01_mpu_passed = False
         report.add_subtest(st_mpu)
@@ -111,7 +109,7 @@ class CalibrationEngine:
         else:
             st_sonar = U0SubtestReport("U0.2 Sonar", False, f"Timeout sonar ({diag.sonar_dist_cm:.1f} cm)", [
                 "Periksa pin Sonar: Trig terhubung ke Pin A0, Echo terhubung ke Pin A1.",
-                "Pastikan sensor mendapat suplai 5V bersih dan tidak terhalang kabel."
+                "Pastikan sensor mendapat suplai 5V bersih dan tidak terhalang kabel.",
             ])
             report.u02_sonar_passed = False
         report.add_subtest(st_sonar)
@@ -127,7 +125,7 @@ class CalibrationEngine:
             st_ir = U0SubtestReport("U0.3 IR Proximity", False, "Respon logika LOW tidak terdeteksi", [
                 "Periksa pin FC-51 IR Kiri: OUT terhubung ke Pin A3.",
                 "Periksa pin FC-51 IR Kanan: OUT terhubung ke Pin D11.",
-                "Putar potensiometer sensitivitas pada modul FC-51 hingga LED deteksi responsif."
+                "Putar potensiometer sensitivitas pada modul FC-51 hingga LED deteksi responsif.",
             ])
             report.u03_ir_passed = False
         report.add_subtest(st_ir)
@@ -142,18 +140,18 @@ class CalibrationEngine:
         else:
             st_ind = U0SubtestReport("U0.4 Buzzer & LED", False, "Buzzer/LED tidak merespons", [
                 "Periksa Buzzer: Positif terhubung ke Pin A2, negatif ke GND.",
-                "Periksa LED status: Anoda ke Pin D13 (dengan resistor 220Ω), katoda ke GND."
+                "Periksa LED status: Anoda ke Pin D13 (dengan resistor 220Ω), katoda ke GND.",
             ])
             report.u04_indicators_passed = False
         report.add_subtest(st_ind)
         self.reporter.on_subtest_result(st_ind.name, st_ind.passed, st_ind.details, st_ind.pin_hints)
 
         # U0.5: Motor Driver Channels & Optical Encoders
-        pulses_l1, _ = self.transport.spin_motors(140, 0, 400)
-        _, pulses_r2 = self.transport.spin_motors(0, 140, 400)
+        pulses_l1 = self.transport.spin_motors(140, 0, 400).left
+        pulses_r2 = self.transport.spin_motors(0, 140, 400).right
 
         motors_passed = True
-        motor_hints = []
+        motor_hints: List[str] = []
         if pulses_l1 <= 0:
             motors_passed = False
             motor_hints.append("Encoder Kiri tidak mendeteksi pulsa! Cek disk optical encoder & Pin D2 (INT0).")
@@ -205,10 +203,6 @@ class CalibrationEngine:
         self.safety_gate.update_report(report)
         self.last_u0_report = report
         self.reporter.on_hard_gate_status(report.all_passed, report)
-
-        if self.logger:
-            self.logger.log_u0(report, self.transport.read_profile())
-
         return report
 
     def run_u1(self, max_retries: int = 5) -> U1Result:
@@ -216,6 +210,8 @@ class CalibrationEngine:
         Executes Stage U1: Wheel distance and motor balance calibration.
         Iteratively tunes wheel diameter scaling and L/R motor trim multipliers until convergence.
         """
+        if max_retries < 1:
+            raise ValueError("max_retries harus >= 1")
         self.safety_gate.assert_motion_permitted()
         self.reporter.on_stage_start("Stage U1", "Wheel Distance & Motor Balance Calibration")
         self.reporter.on_info("Target translasi: 100.0 cm | Toleransi galat jarak <= 3.0 cm | Disparitas pulsa <= 3.0%")
@@ -224,81 +220,74 @@ class CalibrationEngine:
 
         for iteration in range(1, max_retries + 1):
             self.reporter.on_trial_progress("U1", iteration, max_retries, "Menjalankan translasi maju 100 cm...")
-            pulses_l, pulses_r, fw_dist = self.transport.step_u1()
+            telemetry = self.transport.step_u1()
+            pulses_l = telemetry.pulses_l
+            pulses_r = telemetry.pulses_r
+            fw_dist = telemetry.firmware_dist_cm
             self.reporter.on_info(f"Pulsa tercatat: L={pulses_l}, R={pulses_r} | Jarak kalkulasi firmware: {fw_dist:.2f} cm")
 
             gt_dist = self.observation.measure_u1_distance(fw_dist, iteration)
-            passed, dist_err, drift_pct = check_u1_tolerances(gt_dist, pulses_l, pulses_r)
+            tol = check_u1_tolerances(gt_dist, pulses_l, pulses_r)
             profile = self.transport.read_profile()
 
             new_diam = calculate_wheel_diameter_correction(profile.diameter_roda_mm, gt_dist, fw_dist)
-            new_trim_l, new_trim_r = calculate_motor_trim_correction(
+            trims = calculate_motor_trim_correction(
                 profile.trim_motor_kiri, profile.trim_motor_kanan, pulses_l, pulses_r
             )
 
-            status_str = "PASS" if passed else ("RETRY" if iteration < max_retries else "FAIL")
-            notes = f"Galat={dist_err:.2f}cm, Drift={drift_pct:.2f}%"
+            status_str = "PASS" if tol.passed else ("RETRY" if iteration < max_retries else "FAIL")
+            notes = f"Galat={tol.dist_error_cm:.2f}cm, Drift={tol.pulse_drift_pct:.2f}%"
 
             self.reporter.on_trial_result(
-                test_id="U1",
-                iteration=iteration,
-                status=status_str,
-                target=100.0,
-                measured=fw_dist,
-                ground_truth=gt_dist,
-                error=dist_err,
-                profile=profile,
-                notes=notes
-            )
-
-            if self.logger:
-                self.logger.log_result(
+                TrialRecord(
                     test_id="U1",
                     iteration=iteration,
                     status=status_str,
                     target=100.0,
                     measured=fw_dist,
                     ground_truth=gt_dist,
-                    error=dist_err,
+                    error=tol.dist_error_cm,
                     profile=profile,
-                    notes=notes
+                    notes=notes,
                 )
+            )
 
             last_result = U1Result(
-                passed=passed,
+                passed=tol.passed,
                 iteration=iteration,
                 ground_truth_cm=gt_dist,
                 firmware_dist_cm=fw_dist,
                 pulses_l=pulses_l,
                 pulses_r=pulses_r,
-                dist_error_cm=dist_err,
-                pulse_drift_pct=drift_pct,
+                dist_error_cm=tol.dist_error_cm,
+                pulse_drift_pct=tol.pulse_drift_pct,
                 new_diameter_mm=new_diam,
-                new_trim_l=new_trim_l,
-                new_trim_r=new_trim_r
+                new_trim_l=trims.left,
+                new_trim_r=trims.right,
             )
 
             # Update and persist tuned parameters
             profile.diameter_roda_mm = new_diam
-            profile.trim_motor_kiri = new_trim_l
-            profile.trim_motor_kanan = new_trim_r
+            profile.trim_motor_kiri = trims.left
+            profile.trim_motor_kanan = trims.right
             self.transport.write_profile(profile)
 
-            if passed:
+            if tol.passed:
                 self.reporter.on_success(
-                    f"U1 Toleransi Terpenuhi! Galat={dist_err:.2f} cm (<= 3.0 cm), Drift={drift_pct:.2f}% (<= 3.0%). "
-                    f"Profil EEPROM diperbarui: Diameter={new_diam:.2f} mm, TrimL={new_trim_l:.3f}, TrimR={new_trim_r:.3f}."
+                    f"U1 Toleransi Terpenuhi! Galat={tol.dist_error_cm:.2f} cm (<= 3.0 cm), Drift={tol.pulse_drift_pct:.2f}% (<= 3.0%). "
+                    f"Profil EEPROM diperbarui: Diameter={new_diam:.2f} mm, TrimL={trims.left:.3f}, TrimR={trims.right:.3f}."
                 )
                 return last_result
-            else:
-                self.reporter.on_warning(
-                    f"U1 Belum Konvergen: Galat={dist_err:.2f} cm, Drift={drift_pct:.2f}%. "
-                    f"Penyetelan: Diameter -> {new_diam:.2f} mm, Trim L -> {new_trim_l:.3f}, Trim R -> {new_trim_r:.3f}."
-                )
-                if iteration < max_retries:
-                    self.observation.pause_for_u1_retry(iteration)
+
+            self.reporter.on_warning(
+                f"U1 Belum Konvergen: Galat={tol.dist_error_cm:.2f} cm, Drift={tol.pulse_drift_pct:.2f}%. "
+                f"Penyetelan: Diameter -> {new_diam:.2f} mm, Trim L -> {trims.left:.3f}, Trim R -> {trims.right:.3f}."
+            )
+            if iteration < max_retries:
+                self.observation.pause_for_u1_retry(iteration)
 
         self.reporter.on_error(f"U1 GAGAL setelah {max_retries} iterasi! Periksa roda selip atau alignment disk encoder.")
+        assert last_result is not None
         return last_result
 
     def run_u2(self, target_angle: float = 90.0) -> U2Result:
@@ -311,11 +300,7 @@ class CalibrationEngine:
 
         self.reporter.on_info("[U2.1] Pengambilan Sampel Bias Gyroscope Z-axis (2.0 detik)...")
         self.observation.pause_for_u2_bias_sampling()
-
-        # In physical operation, pause takes 2 seconds
-        ser_obj = getattr(self.transport, "ser", None)
-        if ser_obj is not None and not isinstance(ser_obj, MockRobotSerial):
-            time.sleep(2.0)
+        self.transport.wait_for_gyro_bias(2.0)
         self.reporter.on_success("Sampling bias selesai.")
 
         self.reporter.on_info(f"[U2.2] Menjalankan Rotasi In-Place ({target_angle:.1f}°)...")
@@ -326,44 +311,33 @@ class CalibrationEngine:
         if not polarity_ok:
             self.reporter.on_warning("Arah rotasi terbalik! Periksa orientasi pin MPU6050 atau GYRO_SIGN.")
 
-        passed, angular_error = check_u2_tolerances(actual_angle, target_angle)
-        passed = passed and polarity_ok
+        tol = check_u2_tolerances(actual_angle, target_angle)
+        passed = tol.passed and polarity_ok
 
         profile = self.transport.read_profile()
         status_str = "PASS" if passed else "FAIL"
-        notes = f"Target={target_angle:.1f}°, Aktual={actual_angle:.1f}°, Galat={angular_error:.2f}°"
+        notes = f"Target={target_angle:.1f}°, Aktual={actual_angle:.1f}°, Galat={tol.error:.2f}°"
 
         self.reporter.on_trial_result(
-            test_id="U2",
-            iteration=1,
-            status=status_str,
-            target=target_angle,
-            measured=reported_theta,
-            ground_truth=actual_angle,
-            error=angular_error,
-            profile=profile,
-            notes=notes
-        )
-
-        if self.logger:
-            self.logger.log_result(
+            TrialRecord(
                 test_id="U2",
                 iteration=1,
                 status=status_str,
                 target=target_angle,
                 measured=reported_theta,
                 ground_truth=actual_angle,
-                error=angular_error,
+                error=tol.error,
                 profile=profile,
-                notes=notes
+                notes=notes,
             )
+        )
 
         if passed:
-            self.reporter.on_success(f"U2 Toleransi Terpenuhi! Galat Sudut={angular_error:.2f}° (<= 5.0°).")
+            self.reporter.on_success(f"U2 Toleransi Terpenuhi! Galat Sudut={tol.error:.2f}° (<= 5.0°).")
         else:
-            self.reporter.on_error(f"U2 Gagal Memenuhi Toleransi! Galat Sudut={angular_error:.2f}° (> 5.0°).")
+            self.reporter.on_error(f"U2 Gagal Memenuhi Toleransi! Galat Sudut={tol.error:.2f}° (> 5.0°).")
 
-        return U2Result(passed, target_angle, actual_angle, angular_error, polarity_ok)
+        return U2Result(passed, target_angle, actual_angle, tol.error, polarity_ok)
 
     def run_u3(self) -> U3Result:
         """
@@ -373,47 +347,39 @@ class CalibrationEngine:
         self.reporter.on_stage_start("Stage U3", "Gyro-Guided Straight Line Tracking")
         self.reporter.on_info("Target translasi lurus: 150.0 cm | Toleransi deviasi lateral sumbu Y <= 5.0 cm")
 
-        pulses_l, pulses_r, max_heading_err = self.transport.step_u3()
-        self.reporter.on_info(f"Pulsa tercatat: L={pulses_l}, R={pulses_r} | Maksimum galat heading: {max_heading_err:.2f}°")
-
-        lat_dev = self.observation.measure_u3_lateral_deviation(max_heading_err)
-        passed, lat_error = check_u3_tolerances(lat_dev)
-
-        profile = self.transport.read_profile()
-        status_str = "PASS" if passed else "FAIL"
-        notes = f"MaxHeadingErr={max_heading_err:.2f}°, DeviasiLateral={lat_dev:.2f}cm"
-
-        self.reporter.on_trial_result(
-            test_id="U3",
-            iteration=1,
-            status=status_str,
-            target=0.0,
-            measured=max_heading_err,
-            ground_truth=lat_dev,
-            error=lat_error,
-            profile=profile,
-            notes=notes
+        telemetry = self.transport.step_u3()
+        self.reporter.on_info(
+            f"Pulsa tercatat: L={telemetry.pulses_l}, R={telemetry.pulses_r} | "
+            f"Maksimum galat heading: {telemetry.max_heading_err_deg:.2f}°"
         )
 
-        if self.logger:
-            self.logger.log_result(
+        lat_dev = self.observation.measure_u3_lateral_deviation(telemetry.max_heading_err_deg)
+        tol = check_u3_tolerances(lat_dev)
+
+        profile = self.transport.read_profile()
+        status_str = "PASS" if tol.passed else "FAIL"
+        notes = f"MaxHeadingErr={telemetry.max_heading_err_deg:.2f}°, DeviasiLateral={lat_dev:.2f}cm"
+
+        self.reporter.on_trial_result(
+            TrialRecord(
                 test_id="U3",
                 iteration=1,
                 status=status_str,
                 target=0.0,
-                measured=max_heading_err,
+                measured=telemetry.max_heading_err_deg,
                 ground_truth=lat_dev,
-                error=lat_error,
+                error=tol.error,
                 profile=profile,
-                notes=notes
+                notes=notes,
             )
+        )
 
-        if passed:
-            self.reporter.on_success(f"U3 Toleransi Terpenuhi! Deviasi Lateral={lat_error:.2f} cm (<= 5.0 cm).")
+        if tol.passed:
+            self.reporter.on_success(f"U3 Toleransi Terpenuhi! Deviasi Lateral={tol.error:.2f} cm (<= 5.0 cm).")
         else:
-            self.reporter.on_error(f"U3 Gagal Memenuhi Toleransi! Deviasi Lateral={lat_error:.2f} cm (> 5.0 cm).")
+            self.reporter.on_error(f"U3 Gagal Memenuhi Toleransi! Deviasi Lateral={tol.error:.2f} cm (> 5.0 cm).")
 
-        return U3Result(passed, pulses_l, pulses_r, max_heading_err, lat_error)
+        return U3Result(tol.passed, telemetry.pulses_l, telemetry.pulses_r, telemetry.max_heading_err_deg, tol.error)
 
     def run_u4(self) -> U4Result:
         """
@@ -432,41 +398,30 @@ class CalibrationEngine:
             self.observation.prepare_u4_target(target)
 
             measured = self.transport.step_u4()
-            passed, err = check_u4_tolerances(measured, target)
-            sub_results.append(U4SubResult(target, measured, err, passed))
+            tol = check_u4_tolerances(measured, target)
+            sub_results.append(U4SubResult(target, measured, tol.error, tol.passed))
 
-            status_str = "PASS" if passed else "FAIL"
-            notes = f"Target={target:.1f}cm, Terbaca={measured:.2f}cm, Galat={err:.2f}cm"
+            status_str = "PASS" if tol.passed else "FAIL"
+            notes = f"Target={target:.1f}cm, Terbaca={measured:.2f}cm, Galat={tol.error:.2f}cm"
 
             self.reporter.on_trial_result(
-                test_id=f"U4.{idx}",
-                iteration=1,
-                status=status_str,
-                target=target,
-                measured=measured,
-                ground_truth=target,
-                error=err,
-                profile=profile,
-                notes=notes
-            )
-
-            if self.logger:
-                self.logger.log_result(
+                TrialRecord(
                     test_id=f"U4.{idx}",
                     iteration=1,
                     status=status_str,
                     target=target,
                     measured=measured,
                     ground_truth=target,
-                    error=err,
+                    error=tol.error,
                     profile=profile,
-                    notes=notes
+                    notes=notes,
                 )
+            )
 
-            if passed:
-                self.reporter.on_success(f"U4.{idx} Terbaca: {measured:.2f} cm | Galat={err:.2f} cm (<= 1.0 cm).")
+            if tol.passed:
+                self.reporter.on_success(f"U4.{idx} Terbaca: {measured:.2f} cm | Galat={tol.error:.2f} cm (<= 1.0 cm).")
             else:
-                self.reporter.on_error(f"U4.{idx} Terbaca: {measured:.2f} cm | Galat={err:.2f} cm (> 1.0 cm)!")
+                self.reporter.on_error(f"U4.{idx} Terbaca: {measured:.2f} cm | Galat={tol.error:.2f} cm (> 1.0 cm)!")
 
         all_passed = all(sr.passed for sr in sub_results)
         if all_passed:
@@ -503,16 +458,15 @@ class CalibrationEngine:
             u1=u1_res,
             u2=u2_res,
             u3=u3_res,
-            u4=u4_res
+            u4=u4_res,
         )
 
-        # Stage summary reporting
         if target_stage == "ALL":
             summary_lines = [
                 f"U1 Pulsa & Diameter Roda : {'LULUS' if u1_res and u1_res.passed else 'GAGAL'} (Galat={u1_res.dist_error_cm if u1_res else 0:.2f} cm)",
                 f"U2 Rotasi Gyro In-Place  : {'LULUS' if u2_res and u2_res.passed else 'GAGAL'} (Galat={u2_res.angular_error_deg if u2_res else 0:.2f}°)",
                 f"U3 Lintasan Lurus 150 cm : {'LULUS' if u3_res and u3_res.passed else 'GAGAL'} (Deviasi={u3_res.lateral_error_cm if u3_res else 0:.2f} cm)",
-                f"U4 Akurasi Sonar HC-SR04 : {'LULUS' if u4_res and u4_res.passed else 'GAGAL'}"
+                f"U4 Akurasi Sonar HC-SR04 : {'LULUS' if u4_res and u4_res.passed else 'GAGAL'}",
             ]
             self.reporter.on_stage_summary("Ringkasan Status Kalibrasi Kinematika", rep.all_passed, summary_lines)
 
