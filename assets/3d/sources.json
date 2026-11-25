@@ -1,0 +1,114 @@
+{
+  "sources": [
+    {
+      "key": "uno",
+      "filename": "ArduinoUNO_3D.step",
+      "kind": "github",
+      "url": "https://raw.githubusercontent.com/Sajitha-Aldeniya/KiCad-Simple-Libraries/bcb4717e0a0d5504dfb2fc5ac850ffd459ff8acc/3dmodels/SL_Development_Boards.3dshapes/ArduinoUNO_3D.step",
+      "print_id": 0,
+      "file_id": 0,
+      "sha256": "080cb06bc4b80bb54e6551d3bd77d8b8f31ed52e8100c192baa748829b3e4c61",
+      "license": "none (personal use, not redistributed)",
+      "attribution": "Sajitha Aldeniya, KiCad-Simple-Libraries"
+    },
+    {
+      "key": "sonar",
+      "filename": "HC-SR04.step",
+      "kind": "github",
+      "url": "https://raw.githubusercontent.com/Sajitha-Aldeniya/KiCad-Simple-Libraries/bcb4717e0a0d5504dfb2fc5ac850ffd459ff8acc/3dmodels/SL_Breakout_Boards.3dshapes/HC-SR04.step",
+      "print_id": 0,
+      "file_id": 0,
+      "sha256": "4d5979b9bf20643100d2bd5dd728b7e183a076eacdfa44435382e4165bf793c8",
+      "license": "none (personal use, not redistributed)",
+      "attribution": "Sajitha Aldeniya, KiCad-Simple-Libraries"
+    },
+    {
+      "key": "mpu",
+      "filename": "MPU6050.step",
+      "kind": "github",
+      "url": "https://raw.githubusercontent.com/Sajitha-Aldeniya/KiCad-Simple-Libraries/bcb4717e0a0d5504dfb2fc5ac850ffd459ff8acc/3dmodels/SL_Breakout_Boards.3dshapes/MPU6050.step",
+      "print_id": 0,
+      "file_id": 0,
+      "sha256": "c37bbac6bd8979369211cfc40a2cc8b5210dd55c51fdd8d950f2b60975ae54dd",
+      "license": "none (personal use, not redistributed)",
+      "attribution": "Sajitha Aldeniya, KiCad-Simple-Libraries"
+    },
+    {
+      "key": "btn",
+      "filename": "Push_Button_W12mm.step",
+      "kind": "github",
+      "url": "https://raw.githubusercontent.com/Sajitha-Aldeniya/KiCad-Simple-Libraries/bcb4717e0a0d5504dfb2fc5ac850ffd459ff8acc/3dmodels/SL_Devices.3dshapes/Push_Button_W12mm.step",
+      "print_id": 0,
+      "file_id": 0,
+      "sha256": "c469ab94f2f3fa6a75ca38d03da005f62ff686f403dba05b376a63e923bd0d93",
+      "license": "none (personal use, not redistributed)",
+      "attribution": "Sajitha Aldeniya, KiCad-Simple-Libraries"
+    },
+    {
+      "key": "l298n",
+      "filename": "L298N.obj",
+      "kind": "printables",
+      "url": "",
+      "print_id": 796750,
+      "file_id": 3384367,
+      "sha256": "801d39e864d1edff2f70e4ae29643d79a08f8eecff2d191865598a984904157c",
+      "license": "CC-BY 4.0",
+      "attribution": "Davide Bucci"
+    },
+    {
+      "key": "motor_tt",
+      "filename": "TT_Motor.step",
+      "kind": "printables",
+      "url": "",
+      "print_id": 1336089,
+      "file_id": 5620588,
+      "sha256": "91074c3caee1dbe427cc3d6b8ea78d83227953cdfa9f9b7fcd23acfe46d83eb9",
+      "license": "CC-BY 4.0",
+      "attribution": "Tom3r"
+    },
+    {
+      "key": "wheel",
+      "filename": "Wheel_2022-Tyre.stl",
+      "kind": "printables",
+      "url": "",
+      "print_id": 306463,
+      "file_id": 1377082,
+      "sha256": "2ac3d9778684c7244c135e0d377007533155e4d8d97a289a2e174258e24b95a0",
+      "license": "CC0 1.0",
+      "attribution": "Jimbob"
+    },
+    {
+      "key": "wheel_hub",
+      "filename": "Wheel_2022-Body.stl",
+      "kind": "printables",
+      "url": "",
+      "print_id": 306463,
+      "file_id": 1377083,
+      "sha256": "73f0edb24139d4f8999def716aecd43d8be7d3b3274aff00d03fe9b46fa5eec3",
+      "license": "CC0 1.0",
+      "attribution": "Jimbob"
+    },
+    {
+      "key": "enc_disk",
+      "filename": "Encoder_TT_20_slot_22mm.stl",
+      "kind": "printables",
+      "url": "",
+      "print_id": 129515,
+      "file_id": 532240,
+      "sha256": "a52e243ca7d4301118bb6ce50f56d8042d9ab87f707323570ec0e7b16d6208ad",
+      "license": "CC-BY-NC-SA 4.0",
+      "attribution": "ZDKderPHB"
+    },
+    {
+      "key": "batt_holder",
+      "filename": "18650x2_w_tab.stl",
+      "kind": "printables",
+      "url": "",
+      "print_id": 407681,
+      "file_id": 1774676,
+      "sha256": "5353bb69643346a4722cca52ec7ed8ca99ecd186eaa5f0ce665af8c6a98a1509",
+      "license": "CC0 1.0",
+      "attribution": "syumijin"
+    }
+  ]
+}

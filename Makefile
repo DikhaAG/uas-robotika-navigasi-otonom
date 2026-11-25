@@ -29,7 +29,7 @@ SIM_BIN = tools/sim_navigation
 TIMEOUT_BIN ?= $(shell which timeout 2>/dev/null || which gtimeout 2>/dev/null)
 TEST_TIMEOUT ?= $(if $(TIMEOUT_BIN),$(TIMEOUT_BIN) 10s,)
 
-.PHONY: all test check lint run_simulation install-hooks clean
+.PHONY: all test check lint run_simulation install-hooks clean blender_fetch
 
 all: check
 
@@ -93,6 +93,7 @@ test: $(TESTS)
 	@echo "=========================================="
 	$(TEST_TIMEOUT) python3 tests/test_auto_calibrate.py
 	$(TEST_TIMEOUT) python3 tests/test_blender_netlist.py
+	$(TEST_TIMEOUT) python3 tests/test_blender_assets.py
 	@echo "=========================================="
 	@echo " ALL PYTHON DIAGNOSTIC TESTS PASSED!"
 	@echo "=========================================="
@@ -111,6 +112,9 @@ check: lint test run_simulation
 	@echo "=========================================="
 	@echo " ALL REPOSITORY CHECKS & VERIFICATION PASSED!"
 	@echo "=========================================="
+
+blender_fetch:
+	python3 tools/blender/fetch_models.py
 
 install-hooks:
 	@echo "#!/bin/sh" > .git/hooks/pre-commit

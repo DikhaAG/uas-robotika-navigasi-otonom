@@ -35,3 +35,7 @@ venv/
 *.log
 *.csv
 tools/trajectory_plot.svg
+
+# Downloaded / converted 3D models (no redistribution licence for some sources)
+assets/3d/vendor/
+assets/3d/cache/
