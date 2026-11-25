@@ -18,6 +18,7 @@ Proyek ini berisi firmware mikrokontroler (*Arduino Uno R3* dan portabilitas *ES
    - [Langkah 1: Verifikasi Lingkungan Kerja (Offline)](#langkah-1-verifikasi-lingkungan-kerja-offline)
    - [Langkah 2: Menjalankan Simulasi & Plot Lintasan (Tanpa Robot Fisik)](#langkah-2-menjalankan-simulasi--plot-lintasan-tanpa-robot-fisik)
    - [Langkah 3: Perakitan Hardware, Skematik Kabel, Power Rail, & Pinout](#langkah-3-perakitan-hardware-skematik-kabel-power-rail--pinout)
+     - [C. Model 3D Rangkaian & Perkabelan (Blender, Opsional)](#c-model-3d-rangkaian--perkabelan-blender-opsional)
    - [Langkah 4: Konfigurasi & Upload Firmware ke Mikrokontroler](#langkah-4-konfigurasi--upload-firmware-ke-mikrokontroler)
    - [Langkah 5: Uji Pre-Flight & Kalibrasi Otomatis (`auto_calibrate.py`)](#langkah-5-uji-pre-flight--kalibrasi-otomatis-auto_calibratepy)
    - [Langkah 6: Menjalankan Robot di Arena Navigasi](#langkah-6-menjalankan-robot-di-arena-navigasi)
@@ -97,10 +98,12 @@ Robot bergerak secara otonom menggunakan sistem penggerak *differential drive* (
 │   ├── sim_navigation.cpp              # Harness simulasi native C++ (menggunakan kode firmware asli)
 │   ├── plot_trajectory.py              # Generator grafik lintasan vektor (.svg) dari telemetri CSV
 │   ├── check_python_standards.py       # Pemeriksa type-hint & isolasi modul Python
-│   └── check_docs_consistency.py       # Pemeriksa konsistensi README.md & docs/ terhadap kode
-├── tests/                              # Unit test C++ (9 suite) & Python (test_auto_calibrate.py)
+│   ├── check_docs_consistency.py       # Pemeriksa konsistensi README.md & docs/ terhadap kode
+│   └── blender/                        # Pembangun model 3D robot + 41 kabel (netlist, layout, rute, Blender)
+├── assets/3d/                          # Manifest model 3D (sources.json), koordinat pin (anchors.json), SOURCES.md
+├── tests/                              # Unit test C++ (9 suite) & Python (test_auto_calibrate.py, test_blender_*.py)
 └── docs/
-    ├── hardware/                       # pinout.md & power-budget.md
+    ├── hardware/                       # pinout.md, power-budget.md, wiring-schematic.md & renders/ (gambar model 3D)
     ├── calibration/                    # protocols-u1-u4.md
     └── adr/                            # Architecture Decision Records (ADR-0001 s.d. ADR-0008)
 ```
@@ -122,6 +125,8 @@ Pastikan seluruh kebutuhan perangkat lunak dan perangkat keras berikut telah sia
 | **Pustaka Python `pyserial`** | `pip install pyserial` | Komunikasi serial USB dengan robot pada `auto_calibrate.py` | Kalibrasi robot fisik |
 | **Compiler C++ & Make** | `clang++` (C++11) dan `make` | Kompilasi `sim_navigation` dan menjalankan `make check` / unit test C++ | Simulasi & pengujian |
 | **`timeout` / `gtimeout`** *(Opsional)* | GNU coreutils | Batas waktu eksekusi test otomatis di `Makefile` | Menjalankan `make test` |
+| **Blender** *(Opsional)* | **5.3** (`/Applications/Blender.app` atau set `BLENDER=...`) | Membangun & merender model 3D rangkaian (`make blender_model`) | Model 3D |
+| **Python 3.12** *(Opsional)* | `python3.12` + koneksi internet (sekali) | Konverter STEP → GLB (`cadquery-ocp` dipasang otomatis ke `.venv/`) dan unduhan model (`make blender_fetch`) | Model 3D |
 
 > **Catatan Library Arduino:** Firmware `RobotNavigasiOtonom` hanya menggunakan pustaka standar bawaan Arduino (`Arduino.h`, `Wire.h`, `EEPROM.h`), sehingga **tidak memerlukan instalasi library pihak ketiga** di Arduino IDE.
 
@@ -213,7 +218,7 @@ make check
 
 Perintah `make check` otomatis menjalankan 3 tahap:
 1. **`make lint`**: Memeriksa tidak ada `delay()` yang memblokir di algoritma firmware, validasi sintaks Python, dan pengecekan standar tipe Python.
-2. **`make test`**: Mengompilasi dan menjalankan seluruh **9 suite unit test C++** (`tests/test_*`) serta **42 unit test Python** (`tests/test_auto_calibrate.py`).
+2. **`make test`**: Mengompilasi dan menjalankan seluruh **9 suite unit test C++** (`tests/test_*`) serta **42 unit test Python** (`tests/test_auto_calibrate.py`), ditambah tes model 3D (`tests/test_blender_*.py`: netlist 41 kabel dicocokkan dengan `Config.h` & `wiring-schematic.md`, tata letak sasis, rute kabel, dan manifest model). Semuanya berjalan **tanpa Blender dan tanpa internet**.
 3. **`make run_simulation`**: Mengompilasi simulator native C++ (`tools/sim_navigation`), menjalankan skenario navigasi standar, dan merender `tools/trajectory_plot.svg`.
 
 Jika di akhir terminal muncul pesan:
@@ -324,6 +329,28 @@ Agar Arduino tidak mengalami *brownout* (restart sendiri) dan sensor MPU6050 tid
 | **GPIO 4 / 15 / 2** | Buzzer / Tombol START / Built-in LED | Antarmuka & Indikator | Buzzer 5V disarankan via transistor 2N2222 |
 | **GPIO 32 / 33** | FC-51 Kiri / Kanan (`OUT`) | Sensor IR Dinding | Input digital (*Active-LOW*) |
 | **GPIO 16 / 17** | Bluetooth HC-05 `TXD` / `RXD` | Komunikasi Serial *(cadangan)* | Didefinisikan di `Config.h`; firmware aktif memakai `Serial` UART0 |
+
+#### C. Model 3D Rangkaian & Perkabelan (Blender, Opsional)
+
+Untuk melihat rangkaian fisik sebelum merakit (atau untuk gambar laporan), repositori menyediakan **model 3D robot lengkap** varian **Arduino Uno R3 + L298N**. Model ini berisi sasis akrilik 2WD 210×150 mm, motor TT, roda Ø65 mm, holder 18650, semua sensor, dan **41 kabel yang menancap di pin yang benar** sesuai [docs/hardware/wiring-schematic.md](docs/hardware/wiring-schematic.md).
+
+![Model 3D robot navigasi otonom (isometrik)](docs/hardware/renders/robot_iso.png)
+
+Gambar lainnya: [tampak atas](docs/hardware/renders/robot_top.png) dan [tampak bawah](docs/hardware/renders/robot_bottom.png).
+
+**Cara membangun ulang** (butuh Blender 5.3 dan internet untuk unduhan pertama):
+```bash
+make blender_fetch   # unduh model komponen ke assets/3d/vendor/ (hash SHA-256 diverifikasi)
+make blender_model   # konversi STEP, rakit robot, periksa kabel, simpan build/robot_3d.blend + render PNG
+```
+Baris terakhir yang menandakan sukses adalah `ROBOT MODEL OK: 41 wires, 25 parts`. Build **gagal** jika ada kabel yang ujungnya meleset lebih dari 0.5 mm dari pinnya, kabel yang menembus komponen atau kabel lain, housing dupont yang masuk ke komponen, atau ukuran model komponen yang meleset lebih dari 1 mm.
+
+**Membuka model:** buka `build/robot_3d.blend` di Blender. Di Outliner, kabel dikelompokkan per tahap perakitan (*Wires → Tahap 1 – Daya … Tahap 5 – START & Buzzer*). Klik ikon mata untuk menampilkan atau menyembunyikan kabel per tahap, mengikuti urutan perakitan 5 tahap. Warna kabel mengikuti skematik: merah 7.4V, oranye 5V, hitam GND, biru sinyal motor, cokelat keluaran motor, hijau sensor, ungu I2C, dan biru muda START/buzzer.
+
+> **Catatan saat merakit mengikuti model:**
+> - Modul **MPU6050 (GY-521)** dan **HC-SR04** dipasang **terbalik** di model supaya pin header menghadap ke atas. Jika Anda merakit dengan cara yang sama, arah sumbu-Z gyroscope ikut terbalik; periksa hasil uji **U2** dan sesuaikan `GYRO_SIGN` di `Config.h` bila perlu.
+> - Rel breadboard dipakai **berselang-seling**: kabel `+5V` di lubang ganjil, kabel `GND` di lubang genap, agar konektor tidak berdesakan. Secara listrik setiap lubang pada satu rel tetap sama.
+> - Model komponen unduhan **tidak disertakan di git** (sebagian tanpa lisensi redistribusi). Sumber, lisensi, dan atribusinya ada di [assets/3d/SOURCES.md](assets/3d/SOURCES.md). Penjelasan modul lengkap ada di [tools/README.md](tools/README.md#4-model-3d-rangkaian-blender-blender).
 
 ---
 
@@ -521,6 +548,7 @@ Untuk pendalaman arsitektur, standar kode, dan lembar kerja praktikum, lihat dok
 
 - [Lembar Kerja & Protokol Kalibrasi U1–U4](docs/calibration/protocols-u1-u4.md)
 - [Panduan & Skematik Perkabelan Visual (Uno + L298N)](docs/hardware/wiring-schematic.md)
+- [Model 3D Rangkaian & Perkabelan (Blender)](tools/README.md#4-model-3d-rangkaian-blender-blender) dan [Sumber & Lisensi Model 3D](assets/3d/SOURCES.md)
 - [Spesifikasi Pinout Hardware (Arduino Uno & ESP32)](docs/hardware/pinout.md)
 - [Analisis Catu Daya & Anggaran Arus (Power Budget)](docs/hardware/power-budget.md)
 - [Dokumentasi Utilitas & Simulator (`tools/README.md`)](tools/README.md)
