@@ -27,7 +27,7 @@ from tools.blender.layout import (  # noqa: E402
     world_aabb,
 )
 from tools.blender.netlist import COMPONENTS  # noqa: E402
-from tools.blender.routing import route  # noqa: E402
+from tools.blender.routing import LaneRun, assign_lanes, route  # noqa: E402
 
 Box = Tuple[Vec3, Vec3]
 UPPER_ZONES = ("top", "front", "left", "right")
@@ -207,6 +207,43 @@ class TestRouting(unittest.TestCase):
         pts = route(self.A, self.UP, self.B, self.BACK, lane=0)
         for p, q in _segments(pts):
             self.assertFalse(_close(p, q))
+
+
+class TestLaneAssignment(unittest.TestCase):
+    def test_overlapping_parallel_runs_get_different_lanes(self) -> None:
+        runs = [
+            LaneRun("a", 1, (0.0, 10.0, 0.0), (50.0, 30.0, 0.0)),
+            LaneRun("b", 1, (5.0, 11.0, 0.0), (60.0, -20.0, 0.0)),
+        ]
+        lanes = assign_lanes(runs)
+        self.assertNotEqual(lanes["a"], lanes["b"])
+
+    def test_disjoint_runs_share_lane_zero(self) -> None:
+        runs = [
+            LaneRun("a", 1, (0.0, 10.0, 0.0), (20.0, 30.0, 0.0)),
+            LaneRun("b", 2, (40.0, 10.0, 0.0), (60.0, 30.0, 0.0)),
+        ]
+        self.assertEqual(assign_lanes(runs), {"a": 0, "b": 0})
+
+    def test_crossing_runs_may_share_a_lane(self) -> None:
+        runs = [
+            LaneRun("a", 1, (0.0, 0.0, 0.0), (40.0, 5.0, 0.0)),
+            LaneRun("b", 1, (20.0, -20.0, 0.0), (21.0, 20.0, 0.0)),
+        ]
+        self.assertEqual(assign_lanes(runs), {"a": 0, "b": 0})
+
+    def test_overlapping_y_runs_get_different_lanes(self) -> None:
+        runs = [
+            LaneRun("a", 3, (0.0, 0.0, 0.0), (30.0, 40.0, 0.0)),
+            LaneRun("b", 3, (-10.0, 50.0, 0.0), (31.0, 10.0, 0.0)),
+        ]
+        lanes = assign_lanes(runs)
+        self.assertNotEqual(lanes["a"], lanes["b"])
+
+    def test_same_stage_bundle_uses_adjacent_lanes(self) -> None:
+        runs = [LaneRun(f"w{i}", 2, (0.0, float(i), 0.0), (50.0, 40.0 + i, 0.0)) for i in range(4)]
+        lanes = assign_lanes(runs)
+        self.assertEqual(sorted(lanes.values()), [0, 1, 2, 3])
 
 
 if __name__ == "__main__":

@@ -19,7 +19,7 @@ import bpy
 import numpy as np
 from mathutils import Matrix, Vector
 
-from tools.blender.layout import Vec3
+from tools.blender.layout import Placement, Vec3
 
 Anchor = Tuple[Vec3, Vec3]
 Axis = Literal["X", "Y", "Z"]
@@ -39,6 +39,14 @@ class PartResult:
 def mm(v: Vec3) -> Vector:
     """Millimetre triple to a Blender vector in metres."""
     return Vector((v[0] * 0.001, v[1] * 0.001, v[2] * 0.001))
+
+
+def place(result: PartResult, placement: Placement) -> None:
+    """Moves a part's root to its layout position and rotation."""
+    result.obj.location = mm(placement.position_mm)
+    result.obj.rotation_mode = "XYZ"
+    result.obj.rotation_euler = tuple(math.radians(a) for a in placement.rotation_deg)
+    bpy.context.view_layer.update()
 
 
 def reset_scene() -> None:

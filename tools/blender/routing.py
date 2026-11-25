@@ -9,13 +9,60 @@ Wires from parts under the chassis pass through chassis slots ("vias"): each via
 is entered and left vertically, so the wire threads the slot instead of the plate.
 """
 
-from typing import List, Sequence
+from dataclasses import dataclass
+from typing import Dict, List, Sequence, Tuple
 
 from tools.blender.layout import DUPONT_STRAIGHT_MM, Vec3, route_height_mm
 
 LANE_PITCH_MM: float = 2.0
+LANE_CLEAR_MM: float = 2.2  # parallel runs closer than this (wire Ø1.6 + gap) must not share a lane
 VIA_EXIT_MM: float = 6.0
 _EPS = 1e-9
+
+
+@dataclass(frozen=True)
+class LaneRun:
+    """Horizontal footprint of one wire in the routing layer: X-run from start, then Y-run to end."""
+
+    name: str
+    stage: int
+    start: Vec3
+    end: Vec3
+
+    def x_run(self) -> Tuple[float, float, float]:
+        """(fixed y, x from, x to) of the run along X."""
+        return (self.start[1], min(self.start[0], self.end[0]), max(self.start[0], self.end[0]))
+
+    def y_run(self) -> Tuple[float, float, float]:
+        """(fixed x, y from, y to) of the run along Y."""
+        return (self.end[0], min(self.start[1], self.end[1]), max(self.start[1], self.end[1]))
+
+
+def _collinear_overlap(a: Tuple[float, float, float], b: Tuple[float, float, float]) -> bool:
+    near = abs(a[0] - b[0]) < LANE_CLEAR_MM
+    overlap = min(a[2], b[2]) - max(a[1], b[1]) > _EPS
+    return near and overlap
+
+
+def _conflict(a: LaneRun, b: LaneRun) -> bool:
+    return _collinear_overlap(a.x_run(), b.x_run()) or _collinear_overlap(a.y_run(), b.y_run())
+
+
+def assign_lanes(runs: Sequence[LaneRun]) -> Dict[str, int]:
+    """Greedy lane colouring in (stage, input) order: a wire takes the lowest lane whose wires
+    run nowhere parallel-and-overlapping with it. Crossings are allowed; a stage's bundle,
+    being processed together, ends up in adjacent lanes."""
+    order = sorted(range(len(runs)), key=lambda i: (runs[i].stage, i))
+    lanes: Dict[str, int] = {}
+    members: Dict[int, List[LaneRun]] = {}
+    for i in order:
+        run = runs[i]
+        lane = 0
+        while any(_conflict(run, other) for other in members.get(lane, [])):
+            lane += 1
+        lanes[run.name] = lane
+        members.setdefault(lane, []).append(run)
+    return lanes
 
 
 def _offset(p: Vec3, d: Vec3, k: float) -> Vec3:
