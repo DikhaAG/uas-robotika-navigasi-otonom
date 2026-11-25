@@ -92,6 +92,7 @@ test: $(TESTS)
 	@echo " Running Python Diagnostics Test Suite..."
 	@echo "=========================================="
 	$(TEST_TIMEOUT) python3 tests/test_auto_calibrate.py
+	$(TEST_TIMEOUT) python3 tests/test_blender_netlist.py
 	@echo "=========================================="
 	@echo " ALL PYTHON DIAGNOSTIC TESTS PASSED!"
 	@echo "=========================================="
