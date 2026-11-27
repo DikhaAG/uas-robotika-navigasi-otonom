@@ -4,6 +4,7 @@
 #include "WallDetector.h"
 #include "AsciiProtocolDecoder.h"
 #include "CalibrationService.h"
+#include "FloatText.h"
 #include <stdio.h>
 #include <math.h>
 
@@ -168,12 +169,18 @@ void NavigationFSM::streamTelemetry(const Pose& pose) {
     uint32_t now = Hal::millis();
     if (now - lastTelemetryTimeMs >= PERIODE_TELEMETRI_MS) {
         lastTelemetryTimeMs = now;
+        char xText[FloatText::BUFFER_SIZE];
+        char yText[FloatText::BUFFER_SIZE];
+        char thetaText[FloatText::BUFFER_SIZE];
+        char distText[FloatText::BUFFER_SIZE];
         char line[96];
-        snprintf(line, sizeof(line), "%lu,%s,%.2f,%.2f,%.2f,%.2f,%u\r\n",
+        snprintf(line, sizeof(line), "%lu,%s,%s,%s,%s,%s,%u\r\n",
                  (unsigned long)now,
                  getStateName(currentState),
-                 pose.x, pose.y, pose.theta,
-                 UltrasonicSonar::getDistance(),
+                 FloatText::format(xText, sizeof(xText), pose.x, 2),
+                 FloatText::format(yText, sizeof(yText), pose.y, 2),
+                 FloatText::format(thetaText, sizeof(thetaText), pose.theta, 2),
+                 FloatText::format(distText, sizeof(distText), UltrasonicSonar::getDistance(), 2),
                  WaypointQueue::getCurrentIndex());
         Hal::serialPrint(line);
     }

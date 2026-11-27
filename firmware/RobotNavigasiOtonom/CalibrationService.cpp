@@ -2,6 +2,7 @@
 #include "Gyroscope.h"
 #include "UltrasonicSonar.h"
 #include "WallDetector.h"
+#include "FloatText.h"
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -86,8 +87,9 @@ bool CalibrationService::handleDiagAll(char* response, size_t responseSize) {
     uint8_t irR = WallDetector::isWallRight() ? 1 : 0;
 
     if (response != NULL && responseSize > 0) {
-        snprintf(response, responseSize, "!DIAG:RES:%u:%.2f:%u:%u",
-                 mpuOk, dist, irL, irR);
+        char distText[FloatText::BUFFER_SIZE];
+        snprintf(response, responseSize, "!DIAG:RES:%u:%s:%u:%u",
+                 mpuOk, FloatText::format(distText, sizeof(distText), dist, 2), irL, irR);
     }
     return true;
 }
@@ -184,7 +186,9 @@ bool CalibrationService::handleStepU1(char* response, size_t responseSize) {
     float dist = Odometry::getDistanceMoved();
 
     if (response != NULL && responseSize > 0) {
-        snprintf(response, responseSize, "!U1:DONE:%ld:%ld:%.2f", pL, pR, dist);
+        char distText[FloatText::BUFFER_SIZE];
+        snprintf(response, responseSize, "!U1:DONE:%ld:%ld:%s", pL, pR,
+                 FloatText::format(distText, sizeof(distText), dist, 2));
     }
     return true;
 }
@@ -192,7 +196,8 @@ bool CalibrationService::handleStepU1(char* response, size_t responseSize) {
 bool CalibrationService::handleStepU2(const char* args, char* response, size_t responseSize) {
     float targetAngle = 90.0f;
     if (args != NULL && args[0] == ':') {
-        sscanf(args + 1, "%f", &targetAngle);
+        const char* cursor = args + 1;
+        FloatText::parseFloatField(cursor, '\0', targetAngle);  // keeps 90 deg if unparseable
     }
     Odometry::resetPose(0.0f, 0.0f, 0.0f);
 
@@ -228,7 +233,9 @@ bool CalibrationService::handleStepU2(const char* args, char* response, size_t r
     float finalTheta = Odometry::getTheta();
 
     if (response != NULL && responseSize > 0) {
-        snprintf(response, responseSize, "!U2:DONE:%.2f", finalTheta);
+        char thetaText[FloatText::BUFFER_SIZE];
+        snprintf(response, responseSize, "!U2:DONE:%s",
+                 FloatText::format(thetaText, sizeof(thetaText), finalTheta, 2));
     }
     return true;
 }
@@ -275,7 +282,9 @@ bool CalibrationService::handleStepU3(char* response, size_t responseSize) {
     long pR = Odometry::getPulsaKanan();
 
     if (response != NULL && responseSize > 0) {
-        snprintf(response, responseSize, "!U3:DONE:%ld:%ld:%.2f", pL, pR, maxErr);
+        char errText[FloatText::BUFFER_SIZE];
+        snprintf(response, responseSize, "!U3:DONE:%ld:%ld:%s", pL, pR,
+                 FloatText::format(errText, sizeof(errText), maxErr, 2));
     }
     return true;
 }
@@ -284,18 +293,24 @@ bool CalibrationService::handleStepU4(char* response, size_t responseSize) {
     UltrasonicSonar::update();
     float dist = UltrasonicSonar::getDistance();
     if (response != NULL && responseSize > 0) {
-        snprintf(response, responseSize, "!U4:DONE:%.2f", dist);
+        char distText[FloatText::BUFFER_SIZE];
+        snprintf(response, responseSize, "!U4:DONE:%s",
+                 FloatText::format(distText, sizeof(distText), dist, 2));
     }
     return true;
 }
 
 bool CalibrationService::handleCalibRead(char* response, size_t responseSize) {
     if (response != NULL && responseSize > 0) {
-        snprintf(response, responseSize, "!CALIB:DATA:%.2f:%.3f:%.3f:%.3f:%d:%d",
-                 activeProfile.getDiameterRodaMm(),
-                 activeProfile.getTrimMotorKiri(),
-                 activeProfile.getTrimMotorKanan(),
-                 activeProfile.getGyroBiasZ(),
+        char diamText[FloatText::BUFFER_SIZE];
+        char trimLText[FloatText::BUFFER_SIZE];
+        char trimRText[FloatText::BUFFER_SIZE];
+        char biasText[FloatText::BUFFER_SIZE];
+        snprintf(response, responseSize, "!CALIB:DATA:%s:%s:%s:%s:%d:%d",
+                 FloatText::format(diamText, sizeof(diamText), activeProfile.getDiameterRodaMm(), 2),
+                 FloatText::format(trimLText, sizeof(trimLText), activeProfile.getTrimMotorKiri(), 3),
+                 FloatText::format(trimRText, sizeof(trimRText), activeProfile.getTrimMotorKanan(), 3),
+                 FloatText::format(biasText, sizeof(biasText), activeProfile.getGyroBiasZ(), 3),
                  activeProfile.getInvertMotorKiri(),
                  activeProfile.getInvertMotorKanan());
     }
@@ -304,10 +319,15 @@ bool CalibrationService::handleCalibRead(char* response, size_t responseSize) {
 
 bool CalibrationService::handleCalibWrite(const char* args, char* response, size_t responseSize) {
     float diam = 0.0f, trimL = 0.0f, trimR = 0.0f, biasZ = 0.0f;
-    int invL = 1, invR = 1;
+    long invL = 1, invR = 1;
+    const char* cursor = args;
 
-    if (sscanf(args, "%f:%f:%f:%f:%d:%d",
-               &diam, &trimL, &trimR, &biasZ, &invL, &invR) == 6) {
+    if (FloatText::parseFloatField(cursor, ':', diam) &&
+        FloatText::parseFloatField(cursor, ':', trimL) &&
+        FloatText::parseFloatField(cursor, ':', trimR) &&
+        FloatText::parseFloatField(cursor, ':', biasZ) &&
+        FloatText::parseLongField(cursor, ':', invL) &&
+        FloatText::parseLongField(cursor, '\0', invR)) {
         CalibrationProfile candidate;
         candidate.setDiameterRodaMm(diam);
         candidate.setTrimMotorKiri(trimL);

@@ -13,6 +13,7 @@ import io
 import os
 import sys
 import unittest
+from typing import Dict, List, Optional
 
 # Add repo root to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -39,6 +40,56 @@ from tools.auto_calibrate import (
     main,
     show_interactive_menu,
 )
+from tools.calibration.adapters.transport import response_timeout_s
+
+
+class FakeArduinoSerial:
+    """
+    pyserial stand-in that behaves like a real Uno link: readline() returns b""
+    when its per-read timeout expires, replies only appear after the command is
+    written, and reset_input_buffer() drops bytes that are already waiting.
+    """
+    def __init__(self, replies: Dict[str, List[bytes]], stale: Optional[List[bytes]] = None) -> None:
+        self.replies: Dict[str, List[bytes]] = replies
+        self.buffer: List[bytes] = list(stale or [])
+
+    def write(self, data: bytes) -> None:
+        cmd = data.decode("ascii").strip()
+        self.buffer.extend(self.replies.get(cmd, []))
+
+    def readline(self) -> bytes:
+        return self.buffer.pop(0) if self.buffer else b""
+
+    def reset_input_buffer(self) -> None:
+        self.buffer.clear()
+
+    def close(self) -> None:
+        pass
+
+
+class TestSerialTransportTiming(unittest.TestCase):
+    def test_long_step_reply_survives_read_timeouts_and_log_lines(self) -> None:
+        # !STEP:U1 drives 100 cm (several seconds): pyserial times out on the
+        # first reads and the firmware may print a '#' log line before replying.
+        backend = FakeArduinoSerial({"!STEP:U1": [b"", b"", b"# STATE -> IDLE\r\n", b"!U1:DONE:310:305:100.40\r\n"]})
+        client = RobotSerialClient(port=None, baud=115200, serial_backend=backend)
+        telemetry = client.step_u1()
+        self.assertEqual((telemetry.pulses_l, telemetry.pulses_r), (310, 305))
+        self.assertAlmostEqual(telemetry.firmware_dist_cm, 100.40, places=2)
+
+    def test_stale_late_reply_is_discarded_before_next_command(self) -> None:
+        backend = FakeArduinoSerial({"!PING": [b"!PONG\r\n"]}, stale=[b"!U1:DONE:310:305:100.40\r\n"])
+        client = RobotSerialClient(port=None, baud=115200, serial_backend=backend)
+        self.assertTrue(client.ping())
+
+    def test_response_timeout_covers_firmware_motion_limits(self) -> None:
+        # Firmware gives up after 8 s (U1), 5 s (U2) and 12 s (U3); the host must wait longer.
+        self.assertGreater(response_timeout_s("!STEP:U1"), 8.0)
+        self.assertGreater(response_timeout_s("!STEP:U2:90.00"), 5.0)
+        self.assertGreater(response_timeout_s("!STEP:U3"), 12.0)
+        self.assertGreater(response_timeout_s("!DIAG:MOTOR:140:0:4000"), 4.0)
+        self.assertGreater(response_timeout_s("!DIAG:BEEP:3000"), 3.0)
+        self.assertGreaterEqual(response_timeout_s("!PING"), 1.5)
 
 
 class TestSerialProtocolClient(unittest.TestCase):

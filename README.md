@@ -87,7 +87,8 @@ Robot bergerak secara otonom menggunakan sistem penggerak *differential drive* (
 │   │   ├── WallDetector.h / .cpp       # Driver sensor IR lateral FC-51
 │   │   ├── CalibrationProfile.h / .cpp # Struct EEPROM persisten (magic 0xCA1B + CRC-8)
 │   │   ├── CalibrationService.h / .cpp # Layanan diagnostik U0 & kalibrasi U1-U4 di firmware
-│   │   └── AsciiProtocolDecoder.h/.cpp # Parser perintah serial ASCII ('!...') & ruang ('1'-'4')
+│   │   ├── AsciiProtocolDecoder.h/.cpp # Parser perintah serial ASCII ('!...') & ruang ('1'-'4')
+│   │   └── FloatText.h                 # Format/parse float tanpa "%f" (printf AVR Arduino tak mendukung float)
 │   ├── Uji_Encoder/                    # Sketch uji mandiri U1 (encoder & diameter roda)
 │   └── Uji_MPU6050/                    # Sketch uji mandiri U2 (gyroscope & rotasi 90°)
 ├── tools/
@@ -218,7 +219,7 @@ make check
 
 Perintah `make check` otomatis menjalankan 3 tahap:
 1. **`make lint`**: Memeriksa tidak ada `delay()` yang memblokir di algoritma firmware, validasi sintaks Python, dan pengecekan standar tipe Python.
-2. **`make test`**: Mengompilasi dan menjalankan seluruh **9 suite unit test C++** (`tests/test_*`) serta **42 unit test Python** (`tests/test_auto_calibrate.py`), ditambah tes model 3D (`tests/test_blender_*.py`: netlist 41 kabel dicocokkan dengan `Config.h` & `wiring-schematic.md`, tata letak sasis, rute kabel, dan manifest model). Semuanya berjalan **tanpa Blender dan tanpa internet**.
+2. **`make test`**: Mengompilasi dan menjalankan seluruh **9 suite unit test C++** (`tests/test_*`) serta **45 unit test Python** (`tests/test_auto_calibrate.py`), ditambah tes model 3D (`tests/test_blender_*.py`: netlist 41 kabel dicocokkan dengan `Config.h` & `wiring-schematic.md`, tata letak sasis, rute kabel, dan manifest model). Semuanya berjalan **tanpa Blender dan tanpa internet**.
 3. **`make run_simulation`**: Mengompilasi simulator native C++ (`tools/sim_navigation`), menjalankan skenario navigasi standar, dan merender `tools/trajectory_plot.svg`.
 
 Jika di akhir terminal muncul pesan:

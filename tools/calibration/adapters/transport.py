@@ -4,7 +4,7 @@ Transport adapter seam and implementations for communicating with the robot MCU.
 
 import os
 import time
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 try:
     from typing import Protocol
 except ImportError:
@@ -35,6 +35,33 @@ class TransportAdapter(Protocol):
     def step_u4(self) -> float: ...
     def wait_for_gyro_bias(self, duration_s: float = 2.0) -> None: ...
     def close(self) -> None: ...
+
+
+# The firmware answers a command only after the action finishes. These are its
+# worst-case durations (CalibrationService.cpp loop limits), plus margin for
+# serial latency; a reply that arrives after the host gave up would otherwise be
+# read as the answer to the NEXT command.
+_DEFAULT_RESPONSE_TIMEOUT_S: float = 2.0
+_RESPONSE_MARGIN_S: float = 3.0
+_STEP_FIRMWARE_LIMIT_S: Dict[str, float] = {
+    "!STEP:U1": 8.0,   # 100 cm drive
+    "!STEP:U2": 5.0,   # in-place turn
+    "!STEP:U3": 12.0,  # 150 cm gyro-guided drive
+}
+
+
+def response_timeout_s(cmd: str) -> float:
+    """Seconds the host waits for the reply to `cmd` before giving up."""
+    for prefix, limit_s in _STEP_FIRMWARE_LIMIT_S.items():
+        if cmd.startswith(prefix):
+            return limit_s + _RESPONSE_MARGIN_S
+    if cmd.startswith("!DIAG:MOTOR:") or cmd.startswith("!DIAG:BEEP:"):
+        try:
+            duration_ms = int(cmd.rsplit(":", 1)[1])
+        except ValueError:
+            duration_ms = 0
+        return duration_ms / 1000.0 + _RESPONSE_MARGIN_S
+    return _DEFAULT_RESPONSE_TIMEOUT_S
 
 
 class _AsciiProtocolTransportMixin:
@@ -238,6 +265,9 @@ class MockRobotSerial(_AsciiProtocolTransportMixin):
             return f"!U4:DONE:{d:.2f}\n".encode("ascii")
         return b"!ERR:UNKNOWN\n"
 
+    def reset_input_buffer(self) -> None:
+        """Raw-backend parity with pyserial; the simulator never has stale bytes."""
+
     def wait_for_gyro_bias(self, duration_s: float = 2.0) -> None:
         pass
 
@@ -270,10 +300,20 @@ class SerialTransportAdapter(_AsciiProtocolTransportMixin):
         if not self.ser:
             raise RuntimeError("Koneksi serial tidak aktif.")
 
-        frame = (cmd.strip() + "\n").encode("ascii")
-        self.ser.write(frame)
-        line = self.ser.readline().decode("ascii", errors="replace").strip()
-        return line
+        # Drop anything already waiting (boot banner, a reply that arrived after
+        # an earlier timeout) so it cannot be mistaken for this command's reply.
+        self.ser.reset_input_buffer()
+        self.ser.write((cmd.strip() + "\n").encode("ascii"))
+
+        # readline() returns b"" each time the per-read timeout expires; keep
+        # reading until a protocol reply ('!...') arrives or the command's own
+        # deadline passes. Non-protocol lines ('# STATE -> ...') are skipped.
+        deadline = time.monotonic() + response_timeout_s(cmd.strip())
+        while time.monotonic() < deadline:
+            line = self.ser.readline().decode("ascii", errors="replace").strip()
+            if line.startswith("!"):
+                return line
+        return ""
 
     def wait_for_gyro_bias(self, duration_s: float = 2.0) -> None:
         if self.ser is not None and not isinstance(self.ser, MockRobotSerial):

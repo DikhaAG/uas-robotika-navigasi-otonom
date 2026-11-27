@@ -42,6 +42,7 @@ lint:
 	@! grep -rnE '#include "(CalibrationProtocol\.h|CalibrationProtocol)"' firmware/ tests/ tools/ || (echo "ERROR: Obsolete CalibrationProtocol.h header referenced in active codebase!" && exit 1)
 	@! grep -rnE '#include "(Sensors\.h|Sensors)"' firmware/ tests/ tools/ || (echo "ERROR: Obsolete Sensors.h header referenced in active codebase!" && exit 1)
 	@! grep -rnE 'Wire\.read\(\)[^;\n]*Wire\.read\(\)' firmware/ || (echo "ERROR: Unsequenced multiple Wire.read() calls in single expression!" && exit 1)
+	@! grep -rnE '"[^"]*%[-+ 0#]*[0-9*]*(\.[0-9*]+)?[fFeEgGaA][^"]*"' firmware/ || (echo "ERROR: Float printf/scanf conversion in firmware! Arduino AVR libc prints '?' for it; use FloatText.h instead." && exit 1)
 	@find tools tests -name '*.py' -exec python3 -m py_compile {} + || (echo "ERROR: Python syntax error detected in tools/ or tests/!" && exit 1)
 	@python3 tools/check_python_standards.py || exit 1
 	@python3 tools/check_docs_consistency.py || exit 1

@@ -5,6 +5,7 @@
 #include "test_common.h"
 #include "../firmware/RobotNavigasiOtonom/AsciiProtocolDecoder.h"
 #include "../firmware/RobotNavigasiOtonom/CalibrationService.h"
+#include "../firmware/RobotNavigasiOtonom/FloatText.h"
 
 static bool approxEqual(float a, float b, float tol = 0.05f) {
     return std::fabs(a - b) <= tol;
@@ -203,6 +204,49 @@ int main() {
     CalibrationService::update();
     assert(NavigationFSM::getTargetRoom() == 3);
     std::cout << "  ✓ Test 6: Serial Streaming update() Integration & Digit Preservation passed." << std::endl;
+
+    // ----------------------------------------------------
+    // Test 7: FloatText (AVR-safe replacement for printf/scanf "%f")
+    // ----------------------------------------------------
+    char num[FloatText::BUFFER_SIZE];
+    assert(strcmp(FloatText::format(num, sizeof(num), 25.4f, 2), "25.40") == 0);
+    assert(strcmp(FloatText::format(num, sizeof(num), 1.0f, 3), "1.000") == 0);
+    assert(strcmp(FloatText::format(num, sizeof(num), -0.025f, 3), "-0.025") == 0);
+    assert(strcmp(FloatText::format(num, sizeof(num), -178.015f, 2), "-178.02") == 0);
+    assert(strcmp(FloatText::format(num, sizeof(num), -0.004f, 2), "0.00") == 0);   // no "-0.00"
+    assert(strcmp(FloatText::format(num, sizeof(num), 7.0f, 0), "7") == 0);
+    assert(strcmp(FloatText::format(num, sizeof(num), 1.0e12f, 2), "inf") == 0);    // out of range, still parseable by Python
+    assert(strcmp(FloatText::format(num, sizeof(num), -1.0e12f, 2), "-inf") == 0);
+    assert(strcmp(FloatText::format(num, sizeof(num), NAN, 2), "nan") == 0);
+
+    const char* cursor = "66.50:-0.025:-1:1";
+    float f = 0.0f;
+    long n = 0;
+    assert(FloatText::parseFloatField(cursor, ':', f) && approxEqual(f, 66.5f, 0.001f));
+    assert(FloatText::parseFloatField(cursor, ':', f) && approxEqual(f, -0.025f, 0.0001f));
+    assert(FloatText::parseLongField(cursor, ':', n) && n == -1);
+    assert(FloatText::parseLongField(cursor, '\0', n) && n == 1);
+
+    cursor = "abc:1";
+    assert(!FloatText::parseFloatField(cursor, ':', f));      // not a number
+    cursor = "1.5x:2";
+    assert(!FloatText::parseFloatField(cursor, ':', f));      // trailing junk before separator
+    cursor = "1.5";
+    assert(!FloatText::parseFloatField(cursor, ':', f));      // separator missing
+    cursor = "2.5:3";
+    assert(!FloatText::parseLongField(cursor, ':', n));       // integer field rejects decimals
+
+    // !STEP:U2:<angle> honours a non-default target angle (parsed without sscanf "%f")
+    handled = CalibrationService::executeCommand("!STEP:U2:45.00", response, sizeof(response));
+    assert(handled);
+    float theta = (float)atof(response + 9);
+    assert(theta > 30.0f && theta < 60.0f);
+
+    // Malformed !CALIB:WRITE is rejected instead of half-applied
+    handled = CalibrationService::executeCommand("!CALIB:WRITE:66.50:0.960:x:0.000:1:1", response, sizeof(response));
+    assert(handled);
+    assert(strcmp(response, "!ERR:PARAM") == 0);
+    std::cout << "  ✓ Test 7: FloatText formatting/parsing and float protocol args passed." << std::endl;
 
     std::cout << "[TDD] ALL test_calibration_protocol passed successfully!" << std::endl;
     return 0;
