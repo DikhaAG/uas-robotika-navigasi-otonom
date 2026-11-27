@@ -88,6 +88,7 @@ Robot bergerak secara otonom menggunakan sistem penggerak *differential drive* (
 │   │   ├── CalibrationProfile.h / .cpp # Struct EEPROM persisten (magic 0xCA1B + CRC-8)
 │   │   ├── CalibrationService.h / .cpp # Layanan diagnostik U0 & kalibrasi U1-U4 di firmware
 │   │   ├── AsciiProtocolDecoder.h/.cpp # Parser perintah serial ASCII ('!...') & ruang ('1'-'4')
+│   │   ├── EncoderGlitchFilter.h       # Filter derau PWM motor pada pulsa encoder (level harus bertahan ≥1 ms)
 │   │   └── FloatText.h                 # Format/parse float tanpa "%f" (printf AVR Arduino tak mendukung float)
 │   ├── Uji_Encoder/                    # Sketch uji mandiri U1 (encoder & diameter roda)
 │   └── Uji_MPU6050/                    # Sketch uji mandiri U2 (gyroscope & rotasi 90°)
@@ -299,8 +300,8 @@ Agar Arduino tidak mengalami *brownout* (restart sendiri) dan sensor MPU6050 tid
 | **D6** | Pin 9 (`3,4EN`) | `ENB` *(lepas jumper)* | PWM Motor Kanan | Timer0 PWM (0–255) |
 | **D5** | Pin 10 (`3A` / IN3) | `IN3` | Arah Motor Kanan | Pasang resistor seri $220\,\Omega$ jika memakai IC L293D |
 | **D4** | Pin 15 (`4A` / IN4) | `IN4` | Arah Motor Kanan | Pasang resistor seri $220\,\Omega$ jika memakai IC L293D |
-| **D2 (INT0)** | Encoder LM393 Kiri (`D0`) | — | Pulsa Encoder Kiri | Interupsi eksternal (`RISING`) |
-| **D3 (INT1)** | Encoder LM393 Kanan (`D0`) | — | Pulsa Encoder Kanan | Interupsi eksternal (`RISING`) |
+| **D2 (INT0)** | Encoder LM393 Kiri (`D0`) | — | Pulsa Encoder Kiri | Interupsi eksternal (`CHANGE` + filter glitch) |
+| **D3 (INT1)** | Encoder LM393 Kanan (`D0`) | — | Pulsa Encoder Kanan | Interupsi eksternal (`CHANGE` + filter glitch) |
 | **A0 (D14)** | HC-SR04 `Trig` | — | Trigger Ultrasonik | Output pulsa $10\,\mu\text{s}$ |
 | **A1 (D15)** | HC-SR04 `Echo` | — | Echo Ultrasonik | Input pulsa gema (timeout 25 ms) |
 | **A4 (SDA)** | MPU6050 `SDA` | — | I2C Data | Alamat perangkat `0x68` |

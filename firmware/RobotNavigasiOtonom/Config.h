@@ -95,6 +95,11 @@
 #define CM_PER_PULSA         (MM_PER_PULSA / 10.0f)
 #define TRACK_WIDTH_CM       (JARAK_RODA_MM / 10.0f)
 
+// Encoder glitch filter: an encoder level must persist this long to be real.
+// Motor PWM (490 Hz on D9, 980 Hz on D6) induces microsecond spikes on the
+// encoder lines; a real slot holds its level >= ~6 ms (TT motor 250 RPM, 20 slots).
+#define ENCODER_MIN_LEVEL_US 1000UL
+
 // Gyroscope configuration
 #define MPU6050_I2C_ADDR     0x68
 #define GYRO_SCALE_250DPS    131.0f  // LSB / (deg/s)

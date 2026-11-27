@@ -9,8 +9,8 @@ float Odometry::cmPerPulse = CM_PER_PULSA;
 
 volatile long Odometry::pulsaKiri = 0;
 volatile long Odometry::pulsaKanan = 0;
-volatile uint32_t Odometry::tIsrKiri = 0;
-volatile uint32_t Odometry::tIsrKanan = 0;
+EncoderGlitchFilter Odometry::filterKiri = {0, 0, 0};
+EncoderGlitchFilter Odometry::filterKanan = {0, 0, 0};
 
 long Odometry::lastPulsaKiri = 0;
 long Odometry::lastPulsaKanan = 0;
@@ -19,9 +19,13 @@ void Odometry::init() {
     Hal::pinMode(PIN_ENC_KIRI, INPUT);
     Hal::pinMode(PIN_ENC_KANAN, INPUT);
 
+    filterKiri.reset(Hal::digitalRead(PIN_ENC_KIRI), Hal::micros());
+    filterKanan.reset(Hal::digitalRead(PIN_ENC_KANAN), Hal::micros());
+
 #ifdef ARDUINO
-    attachInterrupt(digitalPinToInterrupt(PIN_ENC_KIRI), Odometry::isrKiri, RISING);
-    attachInterrupt(digitalPinToInterrupt(PIN_ENC_KANAN), Odometry::isrKanan, RISING);
+    // CHANGE (both edges): the glitch filter needs each level's duration
+    attachInterrupt(digitalPinToInterrupt(PIN_ENC_KIRI), Odometry::isrKiri, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(PIN_ENC_KANAN), Odometry::isrKanan, CHANGE);
 #endif
 
     setWheelDiameterMm(DIAMETER_RODA_MM);
@@ -47,8 +51,6 @@ void Odometry::resetPose(float x, float y, float theta) {
     Hal::disableInterrupts();
     pulsaKiri = 0;
     pulsaKanan = 0;
-    tIsrKiri = 0;
-    tIsrKanan = 0;
     Hal::enableInterrupts();
 
     lastPulsaKiri = 0;
@@ -66,18 +68,14 @@ float Odometry::normalizeAngleDeg(float deg) {
 }
 
 void Odometry::isrKiri() {
-    uint32_t now = Hal::micros();
-    if (now - tIsrKiri >= 1000UL) { // 1 ms debounce threshold
+    if (filterKiri.onEdge(Hal::digitalRead(PIN_ENC_KIRI), Hal::micros())) {
         pulsaKiri++;
-        tIsrKiri = now;
     }
 }
 
 void Odometry::isrKanan() {
-    uint32_t now = Hal::micros();
-    if (now - tIsrKanan >= 1000UL) {
+    if (filterKanan.onEdge(Hal::digitalRead(PIN_ENC_KANAN), Hal::micros())) {
         pulsaKanan++;
-        tIsrKanan = now;
     }
 }
 

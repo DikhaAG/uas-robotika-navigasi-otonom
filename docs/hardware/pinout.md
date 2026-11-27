@@ -12,8 +12,8 @@ Dokumentasi pemetaan pin mikrokontroler untuk robot navigasi otonom (Praktikum R
 | **D6** | L293D Pin 9 (3,4EN) | PWM Motor Kanan | Output (PWM Timer0) | Mengatur kecepatan motor kanan (0–255) |
 | **D5** | L293D Pin 10 (3A) | Arah Motor Kanan (IN3) | Output Digital | Logika arah maju/mundur motor kanan (via resistor 220 $\Omega$) |
 | **D4** | L293D Pin 15 (4A) | Arah Motor Kanan (IN4) | Output Digital | Logika arah maju/mundur motor kanan (via resistor 220 $\Omega$) |
-| **D2 (INT0)** | Modul LM393 Kiri (D0) | Pulsa Encoder Kiri | Input Interrupt | Interupsi eksternal INT0 (`RISING`), pulsa rotasi roda kiri |
-| **D3 (INT1)** | Modul LM393 Kanan (D0) | Pulsa Encoder Kanan | Input Interrupt | Interupsi eksternal INT1 (`RISING`), pulsa rotasi roda kanan |
+| **D2 (INT0)** | Modul LM393 Kiri (D0) | Pulsa Encoder Kiri | Input Interrupt | Interupsi eksternal INT0 (`CHANGE` + filter glitch), pulsa rotasi roda kiri |
+| **D3 (INT1)** | Modul LM393 Kanan (D0) | Pulsa Encoder Kanan | Input Interrupt | Interupsi eksternal INT1 (`CHANGE` + filter glitch), pulsa rotasi roda kanan |
 | **A0 (D14)** | HC-SR04 Trig | Trigger Ultrasonik | Output Digital | Pulsa trigger 10 $\mu\text{s}$ untuk sonar depan |
 | **A1 (D15)** | HC-SR04 Echo | Echo Ultrasonik | Input Digital | Pulsa durasi pantulan gelombang (timeout 25 ms $\approx 400\text{ cm}$) |
 | **A4 (SDA)** | MPU6050 SDA | I2C Data | Bidireksional (I2C) | Komunikasi I2C IMU (Alamat register 0x68) |

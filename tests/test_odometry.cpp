@@ -6,9 +6,22 @@
 #include "../firmware/RobotNavigasiOtonom/Motors.h"
 #include "../firmware/RobotNavigasiOtonom/Odometry.h"
 #include "../firmware/RobotNavigasiOtonom/Gyroscope.h"
+#include "../firmware/RobotNavigasiOtonom/EncoderGlitchFilter.h"
 
 static bool approxEqual(float a, float b, float tol = 0.05f) {
     return std::fabs(a - b) <= tol;
+}
+
+// Feeds one CHANGE-interrupt edge to the filter; returns 1 if it confirmed a slot.
+static long edge(EncoderGlitchFilter& f, uint8_t level, uint32_t tUs) {
+    return f.onEdge(level, tUs) ? 1 : 0;
+}
+
+// Drives Odometry::isrKiri() through the mock HAL as the real CHANGE interrupt would.
+static void isrKiriAt(uint8_t level, uint32_t tUs) {
+    Hal::setMockPin(PIN_ENC_KIRI, level);
+    Hal::setMockTimeUs(tUs);
+    Odometry::isrKiri();
 }
 
 int main() {
@@ -84,6 +97,50 @@ int main() {
     assert(approxEqual(Odometry::getX(), 21.99f, 0.1f));
     Odometry::setWheelDiameterMm(DIAMETER_RODA_MM);
     std::cout << "  ✓ Test 7: Dynamic wheel diameter scaling passed (x = " << Odometry::getX() << " cm)." << std::endl;
+
+    // Test 8: Encoder glitch filter rejects motor-PWM spikes, keeps real slots
+    {
+        // 10 real slots (5 ms HIGH / 5 ms LOW), each level hit by a 20 us spike
+        EncoderGlitchFilter f;
+        f.reset(0, 0);
+        long counted = 0;
+        uint32_t t = 10000;
+        for (int slot = 0; slot < 10; ++slot) {
+            counted += edge(f, 1, t + 1000);         // spike while LOW
+            counted += edge(f, 0, t + 1020);
+            counted += edge(f, 1, t + 2500);         // real rising edge
+            counted += edge(f, 0, t + 4000);         // dip spike while HIGH
+            counted += edge(f, 1, t + 4020);
+            counted += edge(f, 0, t + 7500);         // real falling edge
+            t += 10000;
+        }
+        assert(counted == 10);
+
+        // Wheel standing still while motor PWM (490 Hz) induces spikes: nothing counted
+        EncoderGlitchFilter idle;
+        idle.reset(0, 0);
+        long noise = 0;
+        for (uint32_t k = 1; k <= 500; ++k) {
+            noise += edge(idle, 1, k * 2040);
+            noise += edge(idle, 0, k * 2040 + 20);
+        }
+        assert(noise == 0);
+
+        // Same filter wired into Odometry's interrupt handler
+        Hal::setMockPin(PIN_ENC_KIRI, 0);
+        Odometry::init();
+        Odometry::resetPulses();
+        uint32_t u = 1000000;
+        for (int slot = 0; slot < 3; ++slot) {
+            isrKiriAt(1, u + 1000);                   // spike
+            isrKiriAt(0, u + 1015);
+            isrKiriAt(1, u + 3000);                   // real slot
+            isrKiriAt(0, u + 8000);
+            u += 10000;
+        }
+        assert(Odometry::getPulsaKiri() == 3);
+        std::cout << "  ✓ Test 8: Encoder glitch filter (PWM spikes rejected, real slots counted) passed." << std::endl;
+    }
 
     std::cout << "[TDD] ALL test_odometry passed successfully!" << std::endl;
     return 0;

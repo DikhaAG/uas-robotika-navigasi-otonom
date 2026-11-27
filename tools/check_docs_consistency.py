@@ -135,12 +135,12 @@ def check_interrupt_mode(readme_text: str, repo_root: pathlib.Path) -> List[str]
     pinout_md = (repo_root / "docs" / "hardware" / "pinout.md").read_text(encoding="utf-8")
 
     modes = set(re.findall(r"attachInterrupt\([^,]+,[^,]+,\s*(RISING|FALLING|CHANGE)\s*\)", odom_cpp + "\n" + uji_enc))
-    if modes != {"RISING"}:
+    if modes != {"CHANGE"}:
         errors.append(f"Unexpected encoder interrupt mode in firmware: {sorted(modes)}")
-    if "Interupsi eksternal (`RISING`)" not in readme_text:
-        errors.append("README.md encoder rows must document interrupt mode 'RISING'")
-    if "INT0 (`RISING`)" not in pinout_md or "INT1 (`RISING`)" not in pinout_md:
-        errors.append("docs/hardware/pinout.md encoder rows must document interrupt mode 'RISING'")
+    if "Interupsi eksternal (`CHANGE` + filter glitch)" not in readme_text:
+        errors.append("README.md encoder rows must document interrupt mode 'CHANGE' + glitch filter")
+    if "INT0 (`CHANGE` + filter glitch)" not in pinout_md or "INT1 (`CHANGE` + filter glitch)" not in pinout_md:
+        errors.append("docs/hardware/pinout.md encoder rows must document interrupt mode 'CHANGE' + glitch filter")
 
     return errors
 

@@ -6,30 +6,27 @@
 
 #include <Arduino.h>
 #include "../RobotNavigasiOtonom/Config.h"
+#include "../RobotNavigasiOtonom/EncoderGlitchFilter.h"
 
 // --- ISR Variables ---
 volatile long pulsaKiri  = 0;
 volatile long pulsaKanan = 0;
-volatile unsigned long tDebounceKiri  = 0;
-volatile unsigned long tDebounceKanan = 0;
+EncoderGlitchFilter filterKiri  = {0, 0, 0};  // rejects motor-PWM spikes (see header)
+EncoderGlitchFilter filterKanan = {0, 0, 0};
 
 bool isDriving100cm = false;
 long targetPulsa = 0;
 unsigned long lastPrintMs = 0;
 
 void isrKiri() {
-    unsigned long now = micros();
-    if (now - tDebounceKiri >= 1000UL) {
+    if (filterKiri.onEdge(digitalRead(PIN_ENC_KIRI), micros())) {
         pulsaKiri++;
-        tDebounceKiri = now;
     }
 }
 
 void isrKanan() {
-    unsigned long now = micros();
-    if (now - tDebounceKanan >= 1000UL) {
+    if (filterKanan.onEdge(digitalRead(PIN_ENC_KANAN), micros())) {
         pulsaKanan++;
-        tDebounceKanan = now;
     }
 }
 
@@ -81,8 +78,10 @@ void setup() {
     pinMode(PIN_ENC_KIRI, INPUT);
     pinMode(PIN_ENC_KANAN, INPUT);
 
-    attachInterrupt(digitalPinToInterrupt(PIN_ENC_KIRI), isrKiri, RISING);
-    attachInterrupt(digitalPinToInterrupt(PIN_ENC_KANAN), isrKanan, RISING);
+    filterKiri.reset(digitalRead(PIN_ENC_KIRI), micros());
+    filterKanan.reset(digitalRead(PIN_ENC_KANAN), micros());
+    attachInterrupt(digitalPinToInterrupt(PIN_ENC_KIRI), isrKiri, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(PIN_ENC_KANAN), isrKanan, CHANGE);
 
     stopMotors();
 

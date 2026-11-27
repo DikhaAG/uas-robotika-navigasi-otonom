@@ -4,6 +4,7 @@
 #include "Config.h"
 #include "Hal.h"
 #include "Motors.h"
+#include "EncoderGlitchFilter.h"
 #include <stdint.h>
 
 struct Pose {
@@ -49,8 +50,8 @@ private:
 
     static volatile long pulsaKiri;
     static volatile long pulsaKanan;
-    static volatile uint32_t tIsrKiri;
-    static volatile uint32_t tIsrKanan;
+    static EncoderGlitchFilter filterKiri;
+    static EncoderGlitchFilter filterKanan;
 
     static long lastPulsaKiri;
     static long lastPulsaKanan;
