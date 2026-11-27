@@ -48,12 +48,12 @@ void Hal::delay(uint32_t ms) {
     ::delay(ms);
 }
 
-void Hal::noInterrupts() {
-    ::noInterrupts();
+void Hal::disableInterrupts() {
+    noInterrupts();
 }
 
-void Hal::interrupts() {
-    ::interrupts();
+void Hal::enableInterrupts() {
+    interrupts();
 }
 
 uint8_t Hal::eepromRead(uint16_t address) {
@@ -177,11 +177,11 @@ void Hal::delay(uint32_t ms) {
     mock_time_us += ms * 1000;
 }
 
-void Hal::noInterrupts() {
+void Hal::disableInterrupts() {
     mock_interrupts_enabled = false;
 }
 
-void Hal::interrupts() {
+void Hal::enableInterrupts() {
     mock_interrupts_enabled = true;
 }
 

@@ -30,8 +30,8 @@ public:
     static uint32_t micros();
     static void delay(uint32_t ms);
 
-    static void noInterrupts();
-    static void interrupts();
+    static void disableInterrupts();  // not "noInterrupts": Arduino.h #defines that name
+    static void enableInterrupts();   // not "interrupts": Arduino.h #defines that name
 
     // Non-volatile EEPROM storage
     static uint8_t eepromRead(uint16_t address);

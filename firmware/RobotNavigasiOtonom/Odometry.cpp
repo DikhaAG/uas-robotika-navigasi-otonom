@@ -44,12 +44,12 @@ float Odometry::getCmPerPulse() {
 }
 
 void Odometry::resetPose(float x, float y, float theta) {
-    Hal::noInterrupts();
+    Hal::disableInterrupts();
     pulsaKiri = 0;
     pulsaKanan = 0;
     tIsrKiri = 0;
     tIsrKanan = 0;
-    Hal::interrupts();
+    Hal::enableInterrupts();
 
     lastPulsaKiri = 0;
     lastPulsaKanan = 0;
@@ -82,17 +82,17 @@ void Odometry::isrKanan() {
 }
 
 void Odometry::injectPulses(long left, long right) {
-    Hal::noInterrupts();
+    Hal::disableInterrupts();
     pulsaKiri += left;
     pulsaKanan += right;
-    Hal::interrupts();
+    Hal::enableInterrupts();
 }
 
 void Odometry::update(float dt_sec) {
-    Hal::noInterrupts();
+    Hal::disableInterrupts();
     long curKiri = pulsaKiri;
     long curKanan = pulsaKanan;
-    Hal::interrupts();
+    Hal::enableInterrupts();
 
     long dPulsaKiri = curKiri - lastPulsaKiri;
     long dPulsaKanan = curKanan - lastPulsaKanan;
@@ -141,31 +141,31 @@ float Odometry::getDistanceMoved() {
 }
 
 long Odometry::getTotalPulseCount() {
-    Hal::noInterrupts();
+    Hal::disableInterrupts();
     long total = pulsaKiri + pulsaKanan;
-    Hal::interrupts();
+    Hal::enableInterrupts();
     return total;
 }
 
 long Odometry::getPulsaKiri() {
-    Hal::noInterrupts();
+    Hal::disableInterrupts();
     long p = pulsaKiri;
-    Hal::interrupts();
+    Hal::enableInterrupts();
     return p;
 }
 
 long Odometry::getPulsaKanan() {
-    Hal::noInterrupts();
+    Hal::disableInterrupts();
     long p = pulsaKanan;
-    Hal::interrupts();
+    Hal::enableInterrupts();
     return p;
 }
 
 void Odometry::resetPulses() {
-    Hal::noInterrupts();
+    Hal::disableInterrupts();
     pulsaKiri = 0;
     pulsaKanan = 0;
-    Hal::interrupts();
+    Hal::enableInterrupts();
     lastPulsaKiri = 0;
     lastPulsaKanan = 0;
 }
