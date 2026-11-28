@@ -23,7 +23,7 @@ Dokumentasi pemetaan pin mikrokontroler untuk robot navigasi otonom (Praktikum R
 | **D13** | Built-in LED | Indikator State | Output Digital | Kedip lambat (IDLE), solid (Navigasi/TIBA), kedip cepat (GAGAL) |
 | **A3 (D17)** | FC-51 Kiri (OUT) | Sensor Dinding Kiri | Input Digital | Deteksi batas dinding koridor sisi kiri (Active LOW) |
 | **D11** | FC-51 Kanan (OUT) | Sensor Dinding Kanan | Input Digital | Deteksi batas dinding koridor sisi kanan (Active LOW) |
-| **D0 (RX)** | HC-05 TXD *(opsional)* | Bluetooth → Arduino | Hardware UART | Berbagi `Serial` UART0 dengan USB pada `SERIAL_BAUD` = 9600 (baud bawaan HC-05); cabut saat upload |
+| **D0 (RX)** | HC-05 TXD *(opsional)* | Bluetooth → Arduino | Hardware UART | Berbagi `Serial` UART0 dengan USB pada `SERIAL_BAUD` = 9600 (baud bawaan HC-05); lepas dari `D0` setiap kali memakai kabel USB (upload, Serial Monitor, wizard) |
 | **D1 (TX)** | HC-05 RXD *(opsional)* | Arduino → Bluetooth | Hardware UART | Lewat pembagi tegangan 1 kΩ / 2 kΩ (RXD HC-05 bekerja di 3.3 V) |
 
 ---

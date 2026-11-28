@@ -138,9 +138,8 @@ Panduan perakitan kabel langkah-demi-langkah untuk **Robot Navigasi Otonom (Ardu
    - `RXD` $\leftarrow$ Pin **`D1` (TX)** Arduino Uno melalui pembagi tegangan: `D1` — `1 kΩ` — titik — `2 kΩ` — GND, lalu titik tengah ke `RXD` (pin `RXD` HC-05 bekerja di 3.3 V).
    - `EN` dan `STATE` tidak dipakai.
 2. **Aturan pakai:**
-   - **Saat upload firmware:** cabut kabel `TXD` HC-05 dari `D0` (jika tidak, upload gagal `stk500_recv(): programmer is not responding`).
-   - **Saat kalibrasi lewat kabel USB:** cabut `VCC` HC-05 agar perintah dari laptop sampai ke Arduino.
-   - **Lewat Bluetooth:** USB dicabut, robot dari baterai; pasangkan HC-05 di laptop (PIN bawaan `1234`) lalu gunakan port Bluetooth-nya (macOS: `/dev/cu.<nama-HC-05>`).
+   - **Setiap kali memakai kabel USB** (upload firmware, Serial Monitor, wizard lewat kabel): **lepas kabel `TXD` HC-05 dari `D0`**. Saat upload, jika tidak dilepas, upload gagal `stk500_recv(): programmer is not responding`; saat Serial Monitor/wizard, perintah dari laptop tidak sampai karena TXD HC-05 menahan `D0` di HIGH sehingga data dari chip USB (yang lewat resistor 1 kΩ di papan Uno) tidak pernah sampai; arah sebaliknya (`D1` ke laptop dan HC-05) tetap jalan, jadi banner tetap tampil walau perintah tidak diterima. HC-05 boleh tetap menyala. Gunakan kabel dupont yang mudah dilepas atau saklar kecil di jalur ini.
+   - **Lewat Bluetooth (tanpa kabel USB):** USB dicabut, robot dari baterai, `TXD` HC-05 terpasang di `D0`; pasangkan HC-05 di laptop (PIN bawaan `1234`) lalu gunakan port Bluetooth-nya (macOS: `/dev/cu.<nama-HC-05>`) untuk Serial Monitor, wizard kalibrasi U0–U4, dan telemetri. Hanya upload firmware yang wajib lewat USB.
 
 ---
 
@@ -154,7 +153,7 @@ Periksa 8 poin berikut sebelum memindahkan sakelar baterai ke posisi **ON**:
 - [ ] **Tidak ada kabel `VCC` dan `GND` yang terbalik** (terutama pada Baterai, MPU6050, dan HC-SR04).
 - [ ] **Semua kabel `GND` bertemu di satu titik (*Star Ground*)** — baterai, Arduino, L298N, dan semua sensor.
 - [ ] **Pin `SDA` (`A4`) dan `SCL` (`A5`) MPU6050 tidak tertukar**, dan pin `AD0` tidak terhubung ke `5V`.
-- [ ] **Kabel `TXD` HC-05 dicabut dari `D0` saat upload** (jika memakai HC-05).
+- [ ] **Kabel `TXD` HC-05 dilepas dari `D0` selama memakai kabel USB** (upload, Serial Monitor, wizard lewat kabel).
 - [ ] **Robot diganjal/diangkat** dari lantai sebelum menjalankan pengujian pertama kali (`python3 tools/auto_calibrate.py`).
 
 > **Catatan Jika Arah Putar Roda Terbalik:** Anda **tidak perlu** membongkar kabel `OUT1`–`OUT4` di terminal L298N. Cukup jalankan `python3 tools/auto_calibrate.py` (Stage U0.5), jawab `n` ketika ditanya apakah roda kiri/kanan berputar maju, maka firmware akan otomatis membalik arah motor di EEPROM.

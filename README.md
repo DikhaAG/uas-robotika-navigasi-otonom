@@ -327,8 +327,8 @@ Agar Arduino tidak mengalami *brownout* (restart sendiri) dan sensor MPU6050 tid
 > **Catatan Modul Bluetooth HC-05 (Opsional):**
 > - Sambungan: `VCC` → `+5V`, `GND` → GND bersama, `TXD` → **`D0` (RX)**, `RXD` ← **`D1` (TX)** melalui pembagi tegangan (`D1` —$1\,\text{k}\Omega$— titik —$2\,\text{k}\Omega$— GND; titik → `RXD`). Pin `EN`/`STATE` tidak dipakai.
 > - Firmware memakai `SERIAL_BAUD` = **`9600`** ([`Config.h`](firmware/RobotNavigasiOtonom/Config.h)), sama dengan baud bawaan pabrik HC-05, sehingga **tidak perlu setting mode AT**. Jika HC-05 Anda pernah diubah (`AT+UART=...`), samakan `SERIAL_BAUD` dan jalankan wizard dengan `--baud <nilai>`.
-> - HC-05 berbagi jalur serial dengan USB: **cabut kabel `TXD` HC-05 dari `D0` saat upload** (jika tidak, upload gagal `stk500_recv(): programmer is not responding`), dan cabut `VCC` HC-05 saat kalibrasi lewat kabel USB agar perintah dari laptop sampai ke Arduino.
-> - Lewat Bluetooth (USB dicabut, robot dari baterai), pasangkan HC-05 di laptop (PIN bawaan `1234`), lalu gunakan port Bluetooth-nya (macOS: `/dev/cu.<nama-HC-05>`) untuk Serial Monitor, `auto_calibrate.py --port`, atau merekam telemetri.
+> - HC-05 berbagi jalur serial dengan USB: **lepas kabel `TXD` HC-05 dari `D0` setiap kali memakai kabel USB** — saat upload (jika tidak, upload gagal `stk500_recv(): programmer is not responding`), saat Serial Monitor, dan saat wizard lewat kabel. TXD HC-05 menahan `D0` di HIGH sehingga data dari chip USB (yang lewat resistor 1 kΩ di papan Uno) tidak pernah sampai; arah sebaliknya (`D1` ke laptop dan HC-05) tetap jalan, jadi banner tetap tampil walau perintah tidak diterima. HC-05 boleh tetap menyala. Gunakan kabel dupont yang mudah dilepas (atau saklar kecil) di jalur `TXD`→`D0`.
+> - Lewat Bluetooth (USB dicabut, robot dari baterai, `TXD` HC-05 **terpasang** di `D0`), pasangkan HC-05 di laptop (PIN bawaan `1234`), lalu gunakan port Bluetooth-nya (macOS: `/dev/cu.<nama-HC-05>`) untuk Serial Monitor, `auto_calibrate.py --port`, atau merekam telemetri.
 
 ##### 2. Target Alternatif: ESP32 DevKit v1
 
@@ -413,6 +413,16 @@ python3 tools/auto_calibrate.py --port /dev/ttyUSB0
 # Opsi 3: Jalankan dalam mode menu interaktif (bisa pilih U0, U1, U2, U3, U4, atau lihat/reset EEPROM)
 python3 tools/auto_calibrate.py --port /dev/ttyUSB0 --mode individual
 ```
+
+#### Opsi: Kalibrasi Penuh Lewat Bluetooth HC-05 (Tanpa Kabel USB)
+Seluruh wizard (U0–U4), Serial Monitor, pemilihan ruangan, dan telemetri dapat berjalan lewat Bluetooth karena HC-05 tersambung ke jalur `Serial` yang sama dengan USB pada `9600` baud. **Hanya upload firmware yang tetap wajib lewat kabel USB.** Cara ini berguna untuk U1/U3 karena robot bebas berjalan tanpa terseret kabel.
+1. Upload firmware lewat USB (`TXD` HC-05 dilepas), lalu **cabut kabel USB**, pasang kembali `TXD` HC-05 ke `D0`, dan nyalakan sakelar baterai. LED HC-05 berkedip cepat (belum terhubung).
+2. Pasangkan HC-05 di laptop sekali saja: macOS *System Settings → Bluetooth* (Windows: *Bluetooth & devices*), pilih `HC-05`, PIN `1234` (beberapa modul `0000`).
+3. Cari nama portnya: macOS `ls /dev/cu.*` (misal `/dev/cu.HC-05`), Windows: *COM* keluar (*outgoing*) di pengaturan Bluetooth, Linux: `rfcomm`.
+4. Uji koneksi: buka Serial Monitor Arduino IDE (atau `python3 -m serial.tools.miniterm /dev/cu.HC-05 9600`) pada port tersebut, `9600` baud, kirim `!PING` $\rightarrow$ `!PONG`. LED HC-05 berubah menjadi kedip ganda pelan saat terhubung. Tutup kembali Serial Monitor.
+5. Jalankan wizard dengan port Bluetooth: `python3 tools/auto_calibrate.py --port /dev/cu.HC-05`. Jika muncul `!PING timeout` pada percobaan pertama (tautan Bluetooth belum siap), jalankan ulang perintahnya.
+
+> Membuka port Bluetooth **tidak** me-reset Arduino (tidak ada sinyal DTR), sehingga pilihan ruangan dan status lainnya tetap tersimpan.
 
 #### Penjelasan Setiap Tahap di Dalam Wizard
 
