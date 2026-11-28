@@ -20,6 +20,7 @@ uint32_t NavigationFSM::lastTelemetryTimeMs = 0;
 uint32_t NavigationFSM::lastMotionTimestampMs = 0;
 float NavigationFSM::lastMotionDistanceCm = 0.0f;
 static long lastStallCheckPulses = 0;
+static bool finalTelemetrySent = false; // TIBA/GAGAL report their final pose once
 uint8_t NavigationFSM::escapeRetries = 0;
 float NavigationFSM::reverseStartDistCm = 0.0f;
 
@@ -40,6 +41,7 @@ const char* NavigationFSM::getStateName(NavState state) {
 void NavigationFSM::transitionTo(NavState newState) {
     currentState = newState;
     stateEnterTimeMs = Hal::millis();
+    finalTelemetrySent = false;
 
     char buf[40];
     snprintf(buf, sizeof(buf), "# STATE -> %s\r\n", getStateName(newState));
@@ -60,6 +62,7 @@ void NavigationFSM::init() {
     navStartTimeMs = 0;
     stateEnterTimeMs = Hal::millis();
     lastTelemetryTimeMs = 0;
+    finalTelemetrySent = false;
     lastMotionTimestampMs = Hal::millis();
     lastMotionDistanceCm = 0.0f;
 
@@ -97,6 +100,7 @@ FailsafeReason NavigationFSM::getLastFailsafe() {
 
 void NavigationFSM::setState(NavState state) {
     currentState = state;
+    finalTelemetrySent = false;
     stateEnterTimeMs = Hal::millis();
     lastMotionTimestampMs = Hal::millis();
     lastMotionDistanceCm = Odometry::getDistanceMoved();
@@ -166,7 +170,17 @@ bool NavigationFSM::checkFailsafes(const Pose& pose) {
     return false;
 }
 
+// Streams the CSV pose while a run is in progress. IDLE stays silent so the Serial
+// Monitor (and the !... protocol) stays readable; TIBA/GAGAL send a single row so the
+// final pose still ends the trajectory log, then go quiet until the next reset.
 void NavigationFSM::streamTelemetry(const Pose& pose) {
+    if (currentState == STATE_IDLE) {
+        return;
+    }
+    bool finalState = (currentState == STATE_TIBA || currentState == STATE_GAGAL);
+    if (finalState && finalTelemetrySent) {
+        return;
+    }
     uint32_t now = Hal::millis();
     if (now - lastTelemetryTimeMs >= PERIODE_TELEMETRI_MS) {
         lastTelemetryTimeMs = now;
@@ -184,6 +198,7 @@ void NavigationFSM::streamTelemetry(const Pose& pose) {
                  FloatText::format(distText, sizeof(distText), UltrasonicSonar::getDistance(), 2),
                  WaypointQueue::getCurrentIndex());
         Hal::serialPrint(line);
+        finalTelemetrySent = finalState;
     }
 }
 

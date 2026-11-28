@@ -466,7 +466,7 @@ Setelah kalibrasi selesai, cabut kabel USB (robot siap berjalan otonom dengan ba
    - **Jika Terjadi Kendala (`STATE_GAGAL`):** Motor berhenti seketika, **LED berkedip cepat** (100 ms on/off), dan **Buzzer berbunyi kontinu selama 2 detik**.
 
 #### Merekam & Memvisualisasikan Telemetri Robot Fisik
-Selama robot bergerak di state aktif, firmware mengirimkan data telemetri ke port Serial setiap `200 ms` dalam format CSV:
+Selama robot bergerak di state aktif (`KALIBRASI` s.d. `MUNDUR`), firmware mengirimkan data telemetri ke port Serial setiap `200 ms` dalam format CSV. Saat `IDLE` tidak ada telemetri (Serial Monitor tetap bersih untuk perintah `!...`), dan saat `TIBA`/`GAGAL` dikirim tepat satu baris pose akhir:
 ```text
 t_ms,state,x,y,theta,jarak,iWp
 ```

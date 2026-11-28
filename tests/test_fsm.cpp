@@ -1,7 +1,16 @@
 #include <cassert>
 #include <iostream>
 #include <cmath>
+#include <cstring>
 #include "test_common.h"
+
+static int countOccurrences(const char* text, const char* needle) {
+    int count = 0;
+    for (const char* p = strstr(text, needle); p != NULL; p = strstr(p + 1, needle)) {
+        ++count;
+    }
+    return count;
+}
 
 int main() {
     std::cout << "[TDD] Running test_fsm..." << std::endl;
@@ -116,6 +125,40 @@ int main() {
     assert(NavigationFSM::getState() == STATE_GAGAL);
     assert(NavigationFSM::getLastFailsafe() == FAILSAFE_ENTRAPMENT);
     std::cout << "  ✓ Test 10: Failsafe 4 (Entrapment > 3 escapes) triggered STATE_GAGAL." << std::endl;
+
+    // Test 11: Telemetry only while navigating, so the Serial Monitor stays readable in IDLE
+    resetAllMocks();
+    Hal::setMockPin(PIN_BUTTON_START, HIGH);        // INPUT_PULLUP, START wire not touching GND
+    Hal::clearMockSerialOutput();
+    for (int i = 0; i < 100; ++i) {                 // 2 s waiting in IDLE
+        Hal::advanceTimeMs(20);
+        NavigationFSM::update();
+    }
+    assert(countOccurrences(Hal::getMockSerialOutput(), ",IDLE,") == 0);
+
+    NavigationFSM::triggerStart();                  // 1 s of KALIBRASI streams every 200 ms
+    Hal::clearMockSerialOutput();
+    for (int i = 0; i < 50; ++i) {
+        Hal::advanceTimeMs(20);
+        NavigationFSM::update();
+    }
+    assert(countOccurrences(Hal::getMockSerialOutput(), ",KALIBRASI,") >= 4);
+
+    resetAllMocks();                                // arrival: exactly one final-pose row
+    WaypointQueue::loadRoom(1);
+    WaypointQueue::advance();
+    Odometry::resetPose(180.0f, 69.0f, 90.0f);
+    UltrasonicSonar::setMockDistance(15.0f);
+    Hal::advanceTimeMs(1000);
+    NavigationFSM::setState(STATE_MAJU);
+    Hal::clearMockSerialOutput();
+    for (int i = 0; i < 150; ++i) {                 // 3 s parked in TIBA
+        Hal::advanceTimeMs(20);
+        NavigationFSM::update();
+    }
+    assert(NavigationFSM::getState() == STATE_TIBA);
+    assert(countOccurrences(Hal::getMockSerialOutput(), ",TIBA,") == 1);
+    std::cout << "  ✓ Test 11: Telemetry silent in IDLE, streamed while active, one row on arrival." << std::endl;
 
     std::cout << "[TDD] ALL test_fsm passed successfully!" << std::endl;
     return 0;
