@@ -69,7 +69,35 @@ class FakeArduinoSerial:
         pass
 
 
+class WarmingLinkSerial(FakeArduinoSerial):
+    """Like a just-opened Bluetooth link: the first few !PING frames are lost."""
+    def __init__(self, replies: Dict[str, List[bytes]], lost_writes: int) -> None:
+        super().__init__(replies)
+        self.lost_writes: int = lost_writes
+        self.writes: int = 0
+
+    def write(self, data: bytes) -> None:
+        self.writes += 1
+        if self.writes > self.lost_writes:
+            super().write(data)
+
+
 class TestSerialTransportTiming(unittest.TestCase):
+    def test_handshake_retries_until_link_answers(self) -> None:
+        backend = WarmingLinkSerial({"!PING": [b"!PONG\r\n"]}, lost_writes=2)
+        client = RobotSerialClient(port=None, baud=9600, serial_backend=backend)
+        retries: List[int] = []
+        self.assertTrue(client.handshake(max_wait_s=2.0, per_try_timeout_s=0.05, on_retry=retries.append))
+        self.assertEqual(backend.writes, 3)
+        self.assertEqual(retries, [1, 2])
+
+    def test_handshake_gives_up_after_max_wait(self) -> None:
+        backend = WarmingLinkSerial({"!PING": [b"!PONG\r\n"]}, lost_writes=1000)
+        client = RobotSerialClient(port=None, baud=9600, serial_backend=backend)
+        start = time.monotonic()
+        self.assertFalse(client.handshake(max_wait_s=0.2, per_try_timeout_s=0.05))
+        self.assertLess(time.monotonic() - start, 1.0)
+
     def test_long_step_reply_survives_read_timeouts_and_log_lines(self) -> None:
         # !STEP:U1 drives 100 cm (several seconds): pyserial times out on the
         # first reads and the firmware may print a '#' log line before replying.
@@ -128,7 +156,42 @@ class FakeConsoleLink:
         self.closed = True
 
 
+class WarmingConsoleLink(FakeConsoleLink):
+    """Console link that drops the first few written lines, as a fresh Bluetooth link does."""
+    def __init__(self, replies: Dict[str, List[bytes]], lost_writes: int) -> None:
+        super().__init__(replies)
+        self.lost_writes: int = lost_writes
+
+    def write(self, data: bytes) -> None:
+        if len(self.written) < self.lost_writes:
+            self.written.append(data)
+            return
+        super().write(data)
+
+
 class TestSerialConsole(unittest.TestCase):
+    def _run_handshake(self, link: FakeConsoleLink, max_wait_s: float) -> bool:
+        import threading
+        from tools.serial_console import ConsoleSession
+        session = ConsoleSession(link, io.StringIO())
+        stop = threading.Event()
+        reader = threading.Thread(target=session.pump, args=(stop,), daemon=True)
+        reader.start()
+        try:
+            return session.wait_for_robot(max_wait_s=max_wait_s, interval_s=0.05)
+        finally:
+            stop.set()
+            reader.join(timeout=1.0)
+
+    def test_console_handshake_waits_for_bluetooth_link(self) -> None:
+        link = WarmingConsoleLink({"!PING": [b"!PONG\r\n"]}, lost_writes=2)
+        self.assertTrue(self._run_handshake(link, max_wait_s=2.0))
+        self.assertEqual(link.written, [b"!PING\n"] * 3)
+
+    def test_console_handshake_reports_silent_robot(self) -> None:
+        link = FakeConsoleLink({})
+        self.assertFalse(self._run_handshake(link, max_wait_s=0.2))
+
     def test_telemetry_row_detection(self) -> None:
         from tools.serial_console import is_telemetry_row
         self.assertTrue(is_telemetry_row("2200,MAJU,12.45,0.32,0.85,145.20,0"))
@@ -162,7 +225,7 @@ class TestSerialConsole(unittest.TestCase):
         try:
             with contextlib.redirect_stdout(buf):
                 code = serial_console.main(["--port", "FAKE", "--send", "!PING", "--send", "2",
-                                            "--wait", "0", "--duration", "0.2", "--csv", csv_path],
+                                            "--duration", "0.2", "--csv", csv_path],
                                            open_link=lambda port, baud: link)
             with open(csv_path, encoding="utf-8") as f:
                 rows = f.read().splitlines()

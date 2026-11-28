@@ -236,7 +236,7 @@ make check
 
 Perintah `make check` otomatis menjalankan 3 tahap:
 1. **`make lint`**: Memeriksa tidak ada `delay()` yang memblokir di algoritma firmware, validasi sintaks Python, dan pengecekan standar tipe Python.
-2. **`make test`**: Mengompilasi dan menjalankan seluruh **9 suite unit test C++** (`tests/test_*`) serta **58 unit test Python** (`tests/test_auto_calibrate.py`), ditambah tes model 3D (`tests/test_blender_*.py`: netlist 41 kabel dicocokkan dengan `Config.h` & `wiring-schematic.md`, tata letak sasis, rute kabel, dan manifest model). Semuanya berjalan **tanpa Blender dan tanpa internet**.
+2. **`make test`**: Mengompilasi dan menjalankan seluruh **9 suite unit test C++** (`tests/test_*`) serta **62 unit test Python** (`tests/test_auto_calibrate.py`), ditambah tes model 3D (`tests/test_blender_*.py`: netlist 41 kabel dicocokkan dengan `Config.h` & `wiring-schematic.md`, tata letak sasis, rute kabel, dan manifest model). Semuanya berjalan **tanpa Blender dan tanpa internet**.
 3. **`make run_simulation`**: Mengompilasi simulator native C++ (`tools/sim_navigation`), menjalankan skenario navigasi standar, dan merender `tools/trajectory_plot.svg`.
 
 Jika di akhir terminal muncul pesan:
@@ -430,10 +430,12 @@ python3 tools/auto_calibrate.py --port /dev/ttyUSB0 --mode individual
 #### Opsi: Kalibrasi Penuh Lewat Bluetooth HC-05 (Tanpa Kabel USB)
 Seluruh wizard (U0–U4), Serial Monitor, pemilihan ruangan, dan telemetri dapat berjalan lewat Bluetooth karena HC-05 tersambung ke jalur `Serial` yang sama dengan USB pada `9600` baud. **Hanya upload firmware yang tetap wajib lewat kabel USB.** Cara ini berguna untuk U1/U3 karena robot bebas berjalan tanpa terseret kabel.
 1. Upload firmware lewat USB (`TXD` HC-05 dilepas), lalu **cabut kabel USB**, pasang kembali `TXD` HC-05 ke `D0`, dan nyalakan sakelar baterai. LED HC-05 berkedip cepat (belum terhubung).
-2. Pasangkan HC-05 di laptop sekali saja: macOS *System Settings → Bluetooth* (Windows: *Bluetooth & devices*), pilih `HC-05`, PIN `1234` (beberapa modul `0000`).
+2. Pasangkan HC-05 di laptop **sekali saja**: macOS *System Settings → Bluetooth* (Windows: *Bluetooth & devices*) — biarkan halaman ini terbuka sampai `HC-05` muncul di *Nearby Devices* (macOS hanya memindai saat halaman terbuka) — klik **Connect**, PIN `1234` (beberapa modul `0000`).
+   - Status yang lalu kembali menjadi **"Not Connected" itu normal**: HC-05 (Bluetooth Classic SPP) baru benar-benar tersambung ketika sebuah program **membuka port**-nya. **Jangan** di-*Forget*/di-pair ulang — menghapus perangkat juga menghapus port `/dev/cu.HC-05`.
+   - HC-05 hanya menerima **satu** koneksi: matikan Bluetooth HP yang pernah tersambung ke HC-05. Jika `HC-05` tidak muncul dalam 30 detik, matikan-nyalakan Bluetooth laptop atau sakelar robot.
 3. Cari nama portnya: macOS `ls /dev/cu.*` (misal `/dev/cu.HC-05`), Windows: *COM* keluar (*outgoing*) di pengaturan Bluetooth, Linux: `rfcomm`.
-4. Aktifkan venv (`source .venv/bin/activate`), lalu uji koneksi dengan konsol proyek: `python3 tools/serial_console.py --port /dev/cu.HC-05`. Ketik `!PING` lalu Enter $\rightarrow$ `!PONG`. LED HC-05 berubah menjadi kedip ganda pelan saat terhubung. Keluar dengan mengetik `exit` (atau `Ctrl+C`) — port otomatis dilepas.
-5. Jalankan wizard dengan port Bluetooth: `python3 tools/auto_calibrate.py --port /dev/cu.HC-05`. Jika muncul `!PING timeout` pada percobaan pertama (tautan Bluetooth belum siap), jalankan ulang perintahnya.
+4. Aktifkan venv (`source .venv/bin/activate`), lalu uji koneksi dengan konsol proyek: `python3 tools/serial_console.py --port /dev/cu.HC-05`. Konsol otomatis mengirim `!PING` berulang (maks. 10 detik) sampai muncul `--- Robot terhubung ---`, karena di macOS port Bluetooth langsung terbuka tetapi tautan ke HC-05 baru siap beberapa detik kemudian; LED HC-05 berubah menjadi kedip ganda pelan saat terhubung. Keluar dengan mengetik `exit` (atau `Ctrl+C`) — port otomatis dilepas.
+5. Jalankan wizard dengan port Bluetooth: `python3 tools/auto_calibrate.py --port /dev/cu.HC-05`. Wizard juga mengulang `!PING` hingga 10 detik (`...belum ada jawaban (percobaan n), menunggu tautan siap`) sebelum menyerah. Setelah di-pair, sesi berikutnya cukup: sakelar robot ON lalu langsung jalankan konsol/wizard — tidak perlu membuka pengaturan Bluetooth lagi.
 
 > Membuka port Bluetooth **tidak** me-reset Arduino (tidak ada sinyal DTR), sehingga pilihan ruangan dan status lainnya tetap tersimpan.
 

@@ -5,7 +5,7 @@ Transport adapter seam and implementations for communicating with the robot MCU.
 import os
 import errno
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 try:
     from typing import Protocol
 except ImportError:
@@ -328,7 +328,7 @@ class SerialTransportAdapter(_AsciiProtocolTransportMixin):
                 hints = "".join(f"\n  - {h}" for h in port_problem_hints(self.port, e))
                 raise RuntimeError(f"Gagal membuka port serial '{self.port}': {e}{hints}")
 
-    def send_command(self, cmd: str) -> str:
+    def send_command(self, cmd: str, timeout_s: Optional[float] = None) -> str:
         if not self.ser:
             raise RuntimeError("Koneksi serial tidak aktif.")
 
@@ -340,12 +340,32 @@ class SerialTransportAdapter(_AsciiProtocolTransportMixin):
         # readline() returns b"" each time the per-read timeout expires; keep
         # reading until a protocol reply ('!...') arrives or the command's own
         # deadline passes. Non-protocol lines ('# STATE -> ...') are skipped.
-        deadline = time.monotonic() + response_timeout_s(cmd.strip())
+        wait_s = response_timeout_s(cmd.strip()) if timeout_s is None else timeout_s
+        deadline = time.monotonic() + wait_s
         while time.monotonic() < deadline:
             line = self.ser.readline().decode("ascii", errors="replace").strip()
             if line.startswith("!"):
                 return line
         return ""
+
+    def handshake(self, max_wait_s: float = 10.0, per_try_timeout_s: float = 1.0,
+                  on_retry: Optional[Callable[[int], None]] = None) -> bool:
+        """
+        Repeats !PING until the robot answers or max_wait_s passes. A Bluetooth
+        port on macOS opens instantly but the HC-05 link needs a few seconds, and
+        over USB the Uno's bootloader swallows bytes right after the auto-reset,
+        so a single !PING right after opening is often lost.
+        """
+        deadline = time.monotonic() + max_wait_s
+        attempt = 0
+        while True:
+            attempt += 1
+            if self.send_command("!PING", timeout_s=per_try_timeout_s) == "!PONG":
+                return True
+            if time.monotonic() >= deadline:
+                return False
+            if on_retry is not None:
+                on_retry(attempt)
 
     def wait_for_gyro_bias(self, duration_s: float = 2.0) -> None:
         if self.ser is not None and not isinstance(self.ser, MockRobotSerial):

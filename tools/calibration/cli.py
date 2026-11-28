@@ -128,8 +128,12 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(f"{Colors.RED}Error: {e}{Colors.RESET}")
             return 1
 
-    # Verify communication
-    if not transport.ping():
+    # Verify communication (retried: a Bluetooth link or a USB auto-reset needs a few seconds)
+    print(f"{Colors.CYAN}Menghubungi robot (!PING, maks. 10 detik)...{Colors.RESET}")
+    if not transport.handshake(
+        max_wait_s=10.0,
+        on_retry=lambda n: print(f"  ...belum ada jawaban (percobaan {n}), menunggu tautan siap"),
+    ):
         print(f"{Colors.RED}Gagal berkomunikasi dengan firmware robot (!PING timeout).{Colors.RESET}")
         print("  - Lewat kabel USB: lepas kabel TXD HC-05 dari D0, dan tutup Serial Monitor Arduino IDE.")
         print("  - Lewat Bluetooth: USB dicabut, TXD HC-05 terpasang di D0, sakelar ON, LED HC-05 kedip ganda pelan;"

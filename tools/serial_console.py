@@ -50,6 +50,7 @@ class ConsoleSession:
         self.log: Optional[TextIO] = log
         self.csv: Optional[TextIO] = csv
         self._lock: threading.Lock = threading.Lock()
+        self._pong: threading.Event = threading.Event()
         if self.csv is not None:
             self.csv.write(TELEMETRY_HEADER + "\n")
 
@@ -60,6 +61,8 @@ class ConsoleSession:
         line = raw.decode("ascii", errors="replace").strip()
         if not line:
             return
+        if line == "!PONG":
+            self._pong.set()
         with self._lock:
             self.screen.write(line + "\n")
             self.screen.flush()
@@ -69,6 +72,25 @@ class ConsoleSession:
             if self.csv is not None and is_telemetry_row(line):
                 self.csv.write(line + "\n")
                 self.csv.flush()
+
+    def wait_for_robot(self, max_wait_s: float = 10.0, interval_s: float = 1.0,
+                       on_retry: Optional[Callable[[int], None]] = None) -> bool:
+        """
+        Sends !PING every interval_s until a !PONG is read (pump() must be running).
+        Covers the few seconds a fresh Bluetooth link or a USB auto-reset needs.
+        """
+        deadline = time.monotonic() + max_wait_s
+        attempt = 0
+        while True:
+            attempt += 1
+            self._pong.clear()
+            self.send_line("!PING")
+            if self._pong.wait(interval_s):
+                return True
+            if time.monotonic() >= deadline:
+                return False
+            if on_retry is not None:
+                on_retry(attempt)
 
     def pump(self, stop: threading.Event) -> None:
         """Reads lines until stop is set; readline() returns b'' on each read timeout."""
@@ -107,8 +129,8 @@ def main(argv: Optional[List[str]] = None,
                         help="Kirim perintah lalu berjalan non-interaktif (boleh diulang), mis. --send '!PING'")
     parser.add_argument("--duration", type=float, default=None,
                         help="Mode non-interaktif: rekam selama N detik lalu keluar")
-    parser.add_argument("--wait", type=float, default=2.0,
-                        help="Mode non-interaktif: jeda sebelum --send (USB me-reset Uno saat port dibuka; default 2.0 s)")
+    parser.add_argument("--no-handshake", action="store_true",
+                        help="Jangan kirim !PING otomatis saat terhubung (default: ulangi !PING sampai robot menjawab, maks. 10 s)")
     args = parser.parse_args(argv)
 
     opener = open_link or open_serial_link
@@ -130,15 +152,21 @@ def main(argv: Optional[List[str]] = None,
     reader = threading.Thread(target=session.pump, args=(stop,), daemon=True)
     interactive = not args.send and args.duration is None
     try:
-        print(f"--- Tersambung ke {args.port} ({args.baud} baud) ---")
+        print(f"--- Port {args.port} dibuka ({args.baud} baud) ---")
+        reader.start()
+        if not args.no_handshake:
+            print("--- Menghubungi robot (!PING, maks. 10 detik)... ---")
+            answered = session.wait_for_robot(
+                on_retry=lambda n: print(f"--- ...belum ada jawaban (percobaan {n}), menunggu tautan siap ---"))
+            if answered:
+                print("--- Robot terhubung ---")
+            else:
+                print("--- Robot belum menjawab. Periksa: sakelar ON, LED HC-05 berkedip (Bluetooth: USB dicabut,")
+                print("    TXD HC-05 di D0; USB: TXD HC-05 dilepas dari D0), baud sama dengan SERIAL_BAUD. ---")
         if interactive:
             print("--- Ketik perintah lalu Enter (mis. !PING, !DIAG:ALL, 1-4). Keluar: exit atau Ctrl+C ---")
-            print("--- Lewat USB, Arduino reset saat port dibuka: tunggu ±2 detik sebelum mengetik ---")
-        reader.start()
-        if interactive:
             _interactive_loop(session, stop)
         else:
-            time.sleep(max(args.wait, 0.0))
             for cmd in args.send:
                 session.send_line(cmd)
                 time.sleep(0.15)
