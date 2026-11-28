@@ -3,6 +3,7 @@
 #include "UltrasonicSonar.h"
 #include "WallDetector.h"
 #include "FloatText.h"
+#include "TripRecorder.h"
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -374,6 +375,18 @@ bool CalibrationService::handleCalibReset(char* response, size_t responseSize) {
     return true;
 }
 
+bool CalibrationService::handleTripRead(char* response, size_t responseSize) {
+    long pulsesLeft = 0, pulsesRight = 0;
+    if (response != NULL && responseSize > 0) {
+        if (TripRecorder::readSaved(pulsesLeft, pulsesRight)) {
+            snprintf(response, responseSize, "!TRIP:%ld:%ld", pulsesLeft, pulsesRight);
+        } else {
+            snprintf(response, responseSize, "!TRIP:NONE");
+        }
+    }
+    return true;
+}
+
 bool CalibrationService::executeCommand(const char* cmd, char* response, size_t responseSize) {
     if (cmd == NULL || cmd[0] != '!') {
         if (response != NULL && responseSize > 0) {
@@ -414,6 +427,9 @@ bool CalibrationService::executeCommand(const char* cmd, char* response, size_t 
     }
     if (strcmp(cmd, "!CALIB:RESET") == 0) {
         return handleCalibReset(response, responseSize);
+    }
+    if (strcmp(cmd, "!TRIP:READ") == 0) {
+        return handleTripRead(response, responseSize);
     }
 
     if (response != NULL && responseSize > 0) {

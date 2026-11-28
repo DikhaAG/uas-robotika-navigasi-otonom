@@ -90,6 +90,7 @@ Robot bergerak secara otonom menggunakan sistem penggerak *differential drive* (
 │   │   ├── CalibrationProfile.h / .cpp # Struct EEPROM persisten (magic 0xCA1B + CRC-8)
 │   │   ├── CalibrationService.h / .cpp # Layanan diagnostik U0 & kalibrasi U1-U4 di firmware
 │   │   ├── AsciiProtocolDecoder.h/.cpp # Parser perintah serial ASCII ('!...') & ruang ('1'-'4')
+│   │   ├── TripRecorder.h / .cpp       # Simpan jarak dorong tangan ke EEPROM (kalibrasi diameter tanpa USB)
 │   │   ├── EncoderGlitchFilter.h       # Filter derau PWM motor pada pulsa encoder (level harus bertahan ≥1 ms)
 │   │   └── FloatText.h                 # Format/parse float tanpa "%f" (printf AVR Arduino tak mendukung float)
 │   ├── Uji_Encoder/                    # Sketch uji mandiri U1 (encoder & diameter roda)
@@ -528,6 +529,7 @@ Saat firmware utama `RobotNavigasiOtonom` berada di `STATE_IDLE`, komunikasi ser
 | `!CALIB:READ` | `!CALIB:DATA:<diam>:<tL>:<tR>:<bias>:<invL>:<invR>` | Membaca parameter kalibrasi aktif |
 | `!CALIB:WRITE:<diam>:<tL>:<tR>:<bias>:<invL>:<invR>` | `!OK` / `!ERR:INVALID` | Menyimpan parameter kalibrasi baru ke EEPROM |
 | `!CALIB:RESET` | `!RESET:OK` | Menghapus EEPROM & kembali ke nilai default `Config.h` |
+| `!TRIP:READ` | `!TRIP:<pL>:<pR>` / `!TRIP:NONE` | Pulsa trip terakhir yang tersimpan di EEPROM (robot didorong tangan tanpa USB, disimpan otomatis setelah roda diam 1 detik bila ≥20 pulsa; trip baru dimulai saat Arduino menyala/reset) |
 
 ---
 

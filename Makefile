@@ -12,7 +12,8 @@ SRCS = firmware/RobotNavigasiOtonom/Hal.cpp \
        firmware/RobotNavigasiOtonom/NavigationFSM.cpp \
        firmware/RobotNavigasiOtonom/CalibrationProfile.cpp \
        firmware/RobotNavigasiOtonom/AsciiProtocolDecoder.cpp \
-       firmware/RobotNavigasiOtonom/CalibrationService.cpp
+       firmware/RobotNavigasiOtonom/CalibrationService.cpp \
+       firmware/RobotNavigasiOtonom/TripRecorder.cpp
 
 TESTS = tests/test_motors \
         tests/test_sensors_peripherals \

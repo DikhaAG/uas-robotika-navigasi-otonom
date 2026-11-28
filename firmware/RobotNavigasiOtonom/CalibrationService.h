@@ -41,6 +41,7 @@ private:
     static bool handleCalibRead(char* response, size_t responseSize);
     static bool handleCalibWrite(const char* args, char* response, size_t responseSize);
     static bool handleCalibReset(char* response, size_t responseSize);
+    static bool handleTripRead(char* response, size_t responseSize);
 };
 
 #endif // CALIBRATION_SERVICE_H

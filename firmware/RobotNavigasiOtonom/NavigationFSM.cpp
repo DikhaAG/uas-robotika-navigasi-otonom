@@ -5,6 +5,7 @@
 #include "AsciiProtocolDecoder.h"
 #include "CalibrationService.h"
 #include "FloatText.h"
+#include "TripRecorder.h"
 #include <stdio.h>
 #include <math.h>
 
@@ -230,6 +231,9 @@ void NavigationFSM::update() {
 
             // Handle room selection ('1'-'4') and ASCII calibration protocol frames ('!...')
             CalibrationService::update();
+
+            // Remember hand-pushed distance in EEPROM for untethered calibration (!TRIP:READ)
+            TripRecorder::update(now);
 
             // Check hardware START button (active LOW)
             if (Hal::digitalRead(PIN_BUTTON_START) == LOW) {

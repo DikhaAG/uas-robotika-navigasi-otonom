@@ -12,6 +12,7 @@
 #include "AsciiProtocolDecoder.h"
 #include "CalibrationService.h"
 #include "NavigationFSM.h"
+#include "TripRecorder.h"
 
 static uint32_t lastLoopMs = 0;
 
@@ -24,6 +25,7 @@ void setup() {
     UltrasonicSonar::init();
     WallDetector::init();
     Odometry::init();
+    TripRecorder::init();
     WaypointQueue::init();
     AsciiProtocolDecoder::init();
     CalibrationService::init();

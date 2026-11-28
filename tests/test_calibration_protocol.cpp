@@ -6,6 +6,7 @@
 #include "../firmware/RobotNavigasiOtonom/AsciiProtocolDecoder.h"
 #include "../firmware/RobotNavigasiOtonom/CalibrationService.h"
 #include "../firmware/RobotNavigasiOtonom/FloatText.h"
+#include "../firmware/RobotNavigasiOtonom/TripRecorder.h"
 
 static bool approxEqual(float a, float b, float tol = 0.05f) {
     return std::fabs(a - b) <= tol;
@@ -247,6 +248,71 @@ int main() {
     assert(handled);
     assert(strcmp(response, "!ERR:PARAM") == 0);
     std::cout << "  ✓ Test 7: FloatText formatting/parsing and float protocol args passed." << std::endl;
+
+    // ----------------------------------------------------
+    // Test 8: TripRecorder keeps a hand-pushed distance across a reset
+    // ----------------------------------------------------
+    // Flow on the robot: battery ON (no USB) -> push 100 cm -> stop -> plug USB
+    // (opening the port resets the Uno) -> !TRIP:READ.
+    resetAllMocks();
+    TripRecorder::init();
+    handled = CalibrationService::executeCommand("!TRIP:READ", response, sizeof(response));
+    assert(handled);
+    assert(strcmp(response, "!TRIP:NONE") == 0);              // erased EEPROM
+
+    // Push in two legs with a short pause, plus a pulse-counter reset in between
+    for (int i = 0; i < 10; ++i) {                             // leg 1: 60 L / 58 R
+        Odometry::injectPulses(6, i < 8 ? 6 : 5);
+        Hal::advanceTimeMs(20);
+        TripRecorder::update(Hal::millis());
+    }
+    Hal::advanceTimeMs(400);                                   // pause < 1 s: not a stop
+    TripRecorder::update(Hal::millis());
+    Odometry::resetPulses();                                   // e.g. a !DIAG command ran
+    TripRecorder::update(Hal::millis());
+    for (int i = 0; i < 10; ++i) {                             // leg 2: 40 L / 40 R
+        Odometry::injectPulses(4, 4);
+        Hal::advanceTimeMs(20);
+        TripRecorder::update(Hal::millis());
+    }
+    handled = CalibrationService::executeCommand("!TRIP:READ", response, sizeof(response));
+    assert(strcmp(response, "!TRIP:NONE") == 0);              // still moving: nothing saved yet
+
+    for (int i = 0; i < 60; ++i) {                             // wheels still for 1.2 s
+        Hal::advanceTimeMs(20);
+        TripRecorder::update(Hal::millis());
+    }
+    handled = CalibrationService::executeCommand("!TRIP:READ", response, sizeof(response));
+    assert(strcmp(response, "!TRIP:100:98") == 0);
+
+    // USB plugged in -> Uno resets: RAM counters are gone, the saved trip is not
+    Odometry::init();
+    TripRecorder::init();
+    for (int i = 0; i < 100; ++i) {                            // idle after reboot: no overwrite
+        Hal::advanceTimeMs(20);
+        TripRecorder::update(Hal::millis());
+    }
+    handled = CalibrationService::executeCommand("!TRIP:READ", response, sizeof(response));
+    assert(strcmp(response, "!TRIP:100:98") == 0);
+
+    // Nudging the robot after a reboot (plugging the cable, tidying up) must not
+    // overwrite the measured push: trips shorter than TRIP_MIN_SAVE_PULSES are ignored
+    Odometry::init();
+    TripRecorder::init();
+    Odometry::injectPulses(16, 4);
+    TripRecorder::update(Hal::millis());
+    for (int i = 0; i < 60; ++i) {
+        Hal::advanceTimeMs(20);
+        TripRecorder::update(Hal::millis());
+    }
+    handled = CalibrationService::executeCommand("!TRIP:READ", response, sizeof(response));
+    assert(strcmp(response, "!TRIP:100:98") == 0);
+
+    // Corrupted record is reported as missing, not as a bogus distance
+    Hal::setMockEeprom(TRIP_EEPROM_START_ADDR + 2, (uint8_t)(Hal::getMockEeprom(TRIP_EEPROM_START_ADDR + 2) ^ 0x01));
+    handled = CalibrationService::executeCommand("!TRIP:READ", response, sizeof(response));
+    assert(strcmp(response, "!TRIP:NONE") == 0);
+    std::cout << "  ✓ Test 8: TripRecorder survives reset (!TRIP:READ) passed." << std::endl;
 
     std::cout << "[TDD] ALL test_calibration_protocol passed successfully!" << std::endl;
     return 0;
