@@ -88,7 +88,7 @@ Once pre-flight hardware integrity is verified, the wizard automates kinematic p
 - If the magic byte or checksum fails, the firmware ignores EEPROM and initializes with nominal constants from `Config.h`.
 
 ### 3. Bidirectional Serial ASCII Protocol Contract
-- The host wizard and MCU firmware communicate over 115200 baud serial using structured ASCII command frames prefixed with `!` and terminated with newline `\n`:
+- The host wizard and MCU firmware communicate over serial at `SERIAL_BAUD` (`Config.h`, default 9600 = HC-05 factory baud) using structured ASCII command frames prefixed with `!` and terminated with newline `\n`:
   - `!PING` $\rightarrow$ `!PONG` (Connection handshake)
   - `!DIAG:ALL` $\rightarrow$ Probes all peripherals and returns `!DIAG:RES:<mpu_ok>:<sonar_dist>:<ir_l>:<ir_r>`
   - `!DIAG:MOTOR:<pwmL>:<pwmR>:<duration_ms>` $\rightarrow$ Drives motors for specified duration and returns `!PULSES:<pulseL>:<pulseR>`

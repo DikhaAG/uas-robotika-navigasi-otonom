@@ -18,6 +18,7 @@ from tools.calibration.adapters.reporter import (
     _CompositeReporter,
 )
 from tools.calibration.adapters.transport import (
+    DEFAULT_BAUD,
     MockRobotSerial,
     SerialTransportAdapter,
     autodetect_serial_port,
@@ -82,7 +83,8 @@ def show_interactive_menu(engine: CalibrationEngine) -> None:
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Automated Calibration & Pre-Flight Diagnostic Wizard (U0-U4)")
     parser.add_argument("-p", "--port", type=str, default=None, help="Serial port perangkat (contoh: /dev/ttyUSB0)")
-    parser.add_argument("-b", "--baud", type=int, default=115200, help="Baud rate (default: 115200)")
+    parser.add_argument("-b", "--baud", type=int, default=DEFAULT_BAUD,
+                        help=f"Baud rate, sama dengan SERIAL_BAUD di Config.h (default: {DEFAULT_BAUD})")
     parser.add_argument("--mock", action="store_true", help="Gunakan mock robot untuk testing offline/CI")
     parser.add_argument("--headless", action="store_true", help="Jalankan dalam mode non-interaktif tanpa input pengguna")
     parser.add_argument("--test", type=str, default="ALL", choices=["U0", "U1", "U2", "U3", "U4", "ALL"],

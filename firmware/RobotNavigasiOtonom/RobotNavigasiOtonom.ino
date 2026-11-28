@@ -17,7 +17,7 @@ static uint32_t lastLoopMs = 0;
 
 void setup() {
     Hal::init();
-    Hal::serialBegin(115200);
+    Hal::serialBegin(SERIAL_BAUD);
 
     Motors::init();
     Gyroscope::init();

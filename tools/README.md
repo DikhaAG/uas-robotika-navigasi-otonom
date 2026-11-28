@@ -85,7 +85,7 @@ Utilitas interaktif berbasis terminal (CLI) untuk mengeksekusi pengujian perangk
 python3 tools/auto_calibrate.py
 
 # 2. Tentukan port serial dan jalankan menu mode individual:
-python3 tools/auto_calibrate.py --port /dev/ttyUSB0 --baud 115200 --mode individual
+python3 tools/auto_calibrate.py --port /dev/ttyUSB0 --baud 9600 --mode individual
 
 # 3. Jalankan pengujian offline/CI dengan mock robot firmware:
 python3 tools/auto_calibrate.py --mock --headless

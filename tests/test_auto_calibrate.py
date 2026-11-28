@@ -91,6 +91,18 @@ class TestSerialTransportTiming(unittest.TestCase):
         self.assertGreater(response_timeout_s("!DIAG:BEEP:3000"), 3.0)
         self.assertGreaterEqual(response_timeout_s("!PING"), 1.5)
 
+    def test_wizard_default_baud_matches_firmware_serial_baud(self) -> None:
+        # The wizard must open the port at the firmware's Config.h SERIAL_BAUD,
+        # which follows the HC-05 factory baud so Bluetooth works without AT setup.
+        import re
+        from tools.calibration.adapters.transport import DEFAULT_BAUD
+        config_path = os.path.join(os.path.dirname(__file__), "..", "firmware", "RobotNavigasiOtonom", "Config.h")
+        with open(config_path, encoding="utf-8") as f:
+            match = re.search(r"#define\s+SERIAL_BAUD\s+(\d+)UL", f.read())
+        self.assertIsNotNone(match)
+        self.assertEqual(DEFAULT_BAUD, int(match.group(1)))
+        self.assertEqual(DEFAULT_BAUD, 9600)
+
 
 class TestSerialProtocolClient(unittest.TestCase):
     def setUp(self) -> None:

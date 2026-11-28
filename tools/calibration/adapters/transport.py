@@ -275,9 +275,13 @@ class MockRobotSerial(_AsciiProtocolTransportMixin):
         self.is_open = False
 
 
+# Must equal SERIAL_BAUD in firmware/RobotNavigasiOtonom/Config.h (HC-05 factory baud).
+DEFAULT_BAUD: int = 9600
+
+
 class SerialTransportAdapter(_AsciiProtocolTransportMixin):
     """Transport adapter communicating with physical hardware or mock backends over serial."""
-    def __init__(self, port: Optional[str] = None, baud: int = 115200,
+    def __init__(self, port: Optional[str] = None, baud: int = DEFAULT_BAUD,
                  timeout: float = 1.5, serial_backend: Any = None) -> None:
         self.port: Optional[str] = port
         self.baud: int = baud

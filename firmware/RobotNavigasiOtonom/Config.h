@@ -42,7 +42,7 @@
   #define PIN_IR_KIRI  17  // Analog A3
   #define PIN_IR_KANAN 11  // Digital D11
 
-  // Optional Bluetooth Telemetry (HC-05 via SoftwareSerial, if D11 free or using Alt pins)
+  // Reserved Bluetooth pins (unused: the HC-05 shares hardware Serial on D0/D1, see SERIAL_BAUD)
   #define PIN_BT_RX 10
   #define PIN_BT_TX 12     // Shared/Alt pin (D10 RX, D12 / SoftwareSerial)
 
@@ -78,6 +78,12 @@
   #define PIN_SDA 21
   #define PIN_SCL 22
 #endif
+
+// Serial link (USB and HC-05 Bluetooth share hardware Serial: HC-05 TXD -> D0, RXD <- D1).
+// 9600 is the HC-05 factory data-mode baud, so the module works without AT setup.
+// If you reconfigure the HC-05 (AT+UART=...), change this to match and pass the
+// same value to tools/auto_calibrate.py with --baud.
+#define SERIAL_BAUD 9600UL
 
 // ==========================================
 // 3. Physical Chassis Geometry & Constants
@@ -148,10 +154,11 @@
 // ==========================================
 // 7. Room Coordinate Waypoints (Arena Reference)
 // ==========================================
-// Room 1 (Right): Doorway (180, 0), Center (180, 70)
-// Room 2 (Right): Doorway (295, 0), Center (295, 70)
-// Room 3 (Left):  Doorway (235, 0), Center (235, -70)
-// Room 4 (Left):  Doorway (355, 0), Center (355, -70)
+// Frame (per course brief): x forward along the corridor, +y to the robot's LEFT.
+// Room 1 (Left):  Doorway (180, 0), Center (180, 70)
+// Room 2 (Left):  Doorway (295, 0), Center (295, 70)
+// Room 3 (Right): Doorway (235, 0), Center (235, -70)
+// Room 4 (Right): Doorway (355, 0), Center (355, -70)
 static const float ROOM_WP1[4][2] = {
     {180.0f, 0.0f},
     {295.0f, 0.0f},

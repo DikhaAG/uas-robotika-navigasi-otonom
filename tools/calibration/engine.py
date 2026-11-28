@@ -81,7 +81,7 @@ class CalibrationEngine:
             diag: DiagnosticResult = self.transport.probe_diagnostics()
         except Exception as e:
             st = U0SubtestReport("Koneksi & Sensor Bus", False, f"Gagal membaca diagnostik sensor: {e}",
-                                 ["Cek kabel USB, baudrate 115200, dan daya baterai robot."])
+                                 ["Cek kabel USB, baudrate (--baud = SERIAL_BAUD di Config.h), dan daya baterai robot."])
             report.add_subtest(st)
             self.safety_gate.update_report(report)
             self.last_u0_report = report

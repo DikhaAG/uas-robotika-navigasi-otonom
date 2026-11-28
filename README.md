@@ -56,10 +56,12 @@ Robot bergerak secara otonom menggunakan sistem penggerak *differential drive* (
 
 | Ruangan | Sisi Koridor | Waypoint Pintu Masuk (`WP1`) | Waypoint Pusat Ruangan (`WP2`) |
 | :--- | :---: | :---: | :---: |
-| **Room 1** | Kanan (`+Y`) | `(180, 0) cm` | `(180, +70) cm` |
-| **Room 2** | Kanan (`+Y`) | `(295, 0) cm` | `(295, +70) cm` |
-| **Room 3** | Kiri (`-Y`) | `(235, 0) cm` | `(235, -70) cm` |
-| **Room 4** | Kiri (`-Y`) | `(355, 0) cm` | `(355, -70) cm` |
+| **Room 1** | Kiri (`+Y`) | `(180, 0) cm` | `(180, +70) cm` |
+| **Room 2** | Kiri (`+Y`) | `(295, 0) cm` | `(295, +70) cm` |
+| **Room 3** | Kanan (`-Y`) | `(235, 0) cm` | `(235, -70) cm` |
+| **Room 4** | Kanan (`-Y`) | `(355, 0) cm` | `(355, -70) cm` |
+
+> **Sistem koordinat (sesuai brief):** `START = (0, 0)`, sumbu `+X` ke depan sepanjang koridor, sumbu **`+Y` ke kiri** robot, dan sudut positif = belok kiri (berlawanan jarum jam). Jadi saat robot berdiri di START menghadap ke dalam koridor, **Room 1 & 2 ada di sisi kiri**, **Room 3 & 4 di sisi kanan**.
 
 ---
 
@@ -174,7 +176,7 @@ Pastikan seluruh kebutuhan perangkat lunak dan perangkat keras berikut telah sia
 - **2x Sensor IR Proximity FC-51** (sensor dinding koridor kiri & kanan, *active-LOW*)
 - **1x Push Button Tactile** (tombol `START`)
 - **1x Buzzer Aktif 5V** (indikator suara tiba & failsafe)
-- **1x Modul Bluetooth HC-05** *(opsional / cadangan perangkat keras; firmware aktif saat ini memakai `Serial` UART0)*
+- **1x Modul Bluetooth HC-05** *(opsional; berbagi `Serial` UART0 di pin `D0`/`D1` dengan USB, pada `SERIAL_BAUD` = `9600` baud bawaan pabrik HC-05 — lihat catatan HC-05 di Langkah 3)*
 
 ##### Panduan Pemilihan & Pemahaman Modul MPU6050 (GY-521)
 Agar tidak salah memilih modul saat membeli maupun saat merangkai:
@@ -220,7 +222,7 @@ make check
 
 Perintah `make check` otomatis menjalankan 3 tahap:
 1. **`make lint`**: Memeriksa tidak ada `delay()` yang memblokir di algoritma firmware, validasi sintaks Python, dan pengecekan standar tipe Python.
-2. **`make test`**: Mengompilasi dan menjalankan seluruh **9 suite unit test C++** (`tests/test_*`) serta **45 unit test Python** (`tests/test_auto_calibrate.py`), ditambah tes model 3D (`tests/test_blender_*.py`: netlist 41 kabel dicocokkan dengan `Config.h` & `wiring-schematic.md`, tata letak sasis, rute kabel, dan manifest model). Semuanya berjalan **tanpa Blender dan tanpa internet**.
+2. **`make test`**: Mengompilasi dan menjalankan seluruh **9 suite unit test C++** (`tests/test_*`) serta **46 unit test Python** (`tests/test_auto_calibrate.py`), ditambah tes model 3D (`tests/test_blender_*.py`: netlist 41 kabel dicocokkan dengan `Config.h` & `wiring-schematic.md`, tata letak sasis, rute kabel, dan manifest model). Semuanya berjalan **tanpa Blender dan tanpa internet**.
 3. **`make run_simulation`**: Mengompilasi simulator native C++ (`tools/sim_navigation`), menjalankan skenario navigasi standar, dan merender `tools/trajectory_plot.svg`.
 
 Jika di akhir terminal muncul pesan:
@@ -311,13 +313,20 @@ Agar Arduino tidak mengalami *brownout* (restart sendiri) dan sensor MPU6050 tid
 | **D13** | Built-in LED | — | Indikator State | Kedip lambat (`IDLE`), solid (`MAJU`/`TIBA`), kedip cepat (`GAGAL`) |
 | **A3 (D17)** | FC-51 Kiri (`OUT`) | — | Sensor Dinding Kiri | *Active-LOW* |
 | **D11** | FC-51 Kanan (`OUT`) | — | Sensor Dinding Kanan | *Active-LOW* |
-| **D10** *(Cadangan)* | HC-05 `TXD` | — | Bluetooth RX *(cadangan)* | Didefinisikan di `Config.h`; firmware aktif memakai `Serial` UART0 |
+| **D0 (RX)** | HC-05 `TXD` | — | Bluetooth → Arduino | Berbagi `Serial` UART0 dengan USB (`SERIAL_BAUD` = `9600`) |
+| **D1 (TX)** | HC-05 `RXD` | — | Arduino → Bluetooth | Lewat pembagi tegangan $1\,\text{k}\Omega$ / $2\,\text{k}\Omega$ (RXD HC-05 = 3.3V) |
 
 > **Catatan Tambahan Jika Menggunakan Modul L298N:**
 > - **Lepas jumper `ENA` dan `ENB`** pada modul L298N agar kecepatan motor bisa dikontrol oleh sinyal PWM (`D9` dan `D6`).
 > - Hubungkan terminal **`+12V` (VCC)** L298N ke kutub positif baterai `7.4V` (via sakelar utama), terminal **`GND`** ke *Star Ground* bersama GND Arduino, dan terminal **`OUT1/OUT2`** ke Motor Kiri serta **`OUT3/OUT4`** ke Motor Kanan.
 > - Jika **jumper regulator `5V-EN`** pada modul L298N terpasang, pin `5V` L298N berfungsi sebagai **output 5V** (jangan dihubungkan ke pin `5V` Arduino jika Arduino sudah mendapat daya dari regulator sendiri/USB; cukup satukan `GND`-nya saja). Jika jumper `5V-EN` dilepas, beri suplai logika `5V` ke pin `5V` L298N.
 > - Pada modul L298N siap pakai (*breakout board*), resistor seri $220\,\Omega$ pada pin `IN1`–`IN4` tidak wajib karena sudah ada komponen pembatas/isolasi di PCB modul.
+
+> **Catatan Modul Bluetooth HC-05 (Opsional):**
+> - Sambungan: `VCC` → `+5V`, `GND` → GND bersama, `TXD` → **`D0` (RX)**, `RXD` ← **`D1` (TX)** melalui pembagi tegangan (`D1` —$1\,\text{k}\Omega$— titik —$2\,\text{k}\Omega$— GND; titik → `RXD`). Pin `EN`/`STATE` tidak dipakai.
+> - Firmware memakai `SERIAL_BAUD` = **`9600`** ([`Config.h`](firmware/RobotNavigasiOtonom/Config.h)), sama dengan baud bawaan pabrik HC-05, sehingga **tidak perlu setting mode AT**. Jika HC-05 Anda pernah diubah (`AT+UART=...`), samakan `SERIAL_BAUD` dan jalankan wizard dengan `--baud <nilai>`.
+> - HC-05 berbagi jalur serial dengan USB: **cabut kabel `TXD` HC-05 dari `D0` saat upload** (jika tidak, upload gagal `stk500_recv(): programmer is not responding`), dan cabut `VCC` HC-05 saat kalibrasi lewat kabel USB agar perintah dari laptop sampai ke Arduino.
+> - Lewat Bluetooth (USB dicabut, robot dari baterai), pasangkan HC-05 di laptop (PIN bawaan `1234`), lalu gunakan port Bluetooth-nya (macOS: `/dev/cu.<nama-HC-05>`) untuk Serial Monitor, `auto_calibrate.py --port`, atau merekam telemetri.
 
 ##### 2. Target Alternatif: ESP32 DevKit v1
 
@@ -369,7 +378,7 @@ Baris terakhir yang menandakan sukses adalah `ROBOT MODEL OK: 41 wires, 25 parts
    *(Catatan: `DIAMETER_RODA_MM`, trim motor, bias gyro, dan inversi motor dapat dikalibrasi otomatis nanti lewat `auto_calibrate.py` tanpa perlu mengedit `Config.h` lagi!)*
 4. Di Arduino IDE, pilih **Tools → Board** sesuai papan Anda (`Arduino Uno` atau `ESP32 Dev Module`) dan pilih **Tools → Port** yang sesuai.
 5. Klik tombol **Upload** ($\rightarrow$). Pastikan proses kompilasi dan upload selesai tanpa error.
-6. *(Verifikasi cepat)* Buka **Serial Monitor** di Arduino IDE pada baud rate **`115200`**. Anda akan melihat pesan sambutan:
+6. *(Verifikasi cepat)* Buka **Serial Monitor** di Arduino IDE pada baud rate **`9600`** (`SERIAL_BAUD` di `Config.h`). Anda akan melihat pesan sambutan:
    ```text
    === ROBOT NAVIGASI OTONOM (POLSRI TC253421) ===
    Pilih Ruangan ('1'-'4'), lalu tekan START (D12).
@@ -444,7 +453,7 @@ Setelah kalibrasi selesai, cabut kabel USB (robot siap berjalan otonom dengan ba
 
 1. **Letakkan Robot di Titik Start:** Posisikan robot pada koordinat `(0, 0)` di tengah koridor menghadap lurus ke arah sumbu `+X` (sejajar garis tengah koridor). Pastikan robot dalam `STATE_IDLE` (**LED status berkedip lambat setiap 1 detik**).
 2. **Pilih Ruangan Tujuan (`1`–`4`):**
-   - Kirim karakter angka **`1`**, **`2`**, **`3`**, atau **`4`** (tanpa perlu tanda `!`) melalui **Serial Monitor (115200 baud)** (atau modul Bluetooth yang terhubung ke jalur UART0 `RX/TX` setelah upload) sebelum melepas kabel/memulai.
+   - Kirim karakter angka **`1`**, **`2`**, **`3`**, atau **`4`** (tanpa perlu tanda `!`) melalui **Serial Monitor (9600 baud)** (atau modul Bluetooth HC-05 yang terhubung ke `D0`/`D1`) sebelum melepas kabel/memulai.
    - *(Jika tidak memilih, target default adalah **Room 1**).*
 3. **Mulai Navigasi:** Tekan tombol fisik **START** (`D12` pada Arduino Uno / `GPIO 15` pada ESP32).
 4. **Amati Urutan Eksekusi:**
@@ -499,7 +508,7 @@ Jika Anda ingin menguji komponen secara terpisah tanpa Python CLI, repositori ju
 
 ## 6. Referensi Protokol Serial ASCII
 
-Saat firmware utama `RobotNavigasiOtonom` berada di `STATE_IDLE`, komunikasi serial (`115200 baud`, diakhiri newline `\n`) mendukung perintah berikut:
+Saat firmware utama `RobotNavigasiOtonom` berada di `STATE_IDLE`, komunikasi serial (`SERIAL_BAUD` = `9600` baud, diakhiri newline `\n`) mendukung perintah berikut:
 
 | Perintah Dikirim | Respon Firmware | Keterangan |
 | :--- | :--- | :--- |

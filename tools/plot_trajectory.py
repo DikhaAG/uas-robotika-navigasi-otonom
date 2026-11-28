@@ -110,7 +110,7 @@ def render_svg(
     # Rooms 1-4
     for r_num, r in ROOMS.items():
         dx = r["door_x"]
-        if r["side"] > 0: # Right side (y: 40 to 95, x: dx-25 to dx+25)
+        if r["side"] > 0: # Left side, +y (y: 40 to 95, x: dx-25 to dx+25)
             rx = to_svg_x(dx - 25)
             ry = to_svg_y(95)
             rw = 50 * scale_x
@@ -118,7 +118,7 @@ def render_svg(
             svg.append(f'<rect x="{rx}" y="{ry}" width="{rw}" height="{rh}" class="room" />')
             # Door opening (cut wall)
             svg.append(f'<line x1="{to_svg_x(dx-15)}" y1="{to_svg_y(40)}" x2="{to_svg_x(dx+15)}" y2="{to_svg_y(40)}" stroke="#ffffff" stroke-width="4" />')
-        else: # Left side (y: -40 to -95, x: dx-25 to dx+25)
+        else: # Right side, -y (y: -40 to -95, x: dx-25 to dx+25)
             rx = to_svg_x(dx - 25)
             ry = to_svg_y(-40)
             rw = 50 * scale_x
