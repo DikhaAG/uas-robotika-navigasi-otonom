@@ -228,7 +228,9 @@ int main(int argc, char** argv) {
     }
 
     const float dt = 0.02f; // 20 ms deterministic step
-    const float KV = 0.165f; // cm/s per PWM
+    // 0.165 cm/s per PWM on the 2S design pack; a bigger pack spins the wheels faster
+    // by exactly the inverse of the firmware's battery compensation scale.
+    const float KV = 0.165f / Motors::pwmScaleForBattery(TEGANGAN_BATERAI_V);
     uint32_t simTimeMs = 0;
     int steps = 0;
 

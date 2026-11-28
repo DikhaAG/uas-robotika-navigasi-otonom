@@ -7,6 +7,7 @@ int8_t Motors::invertLeft = 1;
 int8_t Motors::invertRight = 1;
 float Motors::trimLeft = TRIM_MOTOR_KIRI;
 float Motors::trimRight = TRIM_MOTOR_KANAN;
+float Motors::batteryPwmScale = 1.0f;
 
 int Motors::clampPwm(int pwm) {
     if (pwm > 255) return 255;
@@ -25,6 +26,7 @@ void Motors::init() {
     invertRight = 1;
     trimLeft = TRIM_MOTOR_KIRI;
     trimRight = TRIM_MOTOR_KANAN;
+    setBatteryVoltage(TEGANGAN_BATERAI_V);
     stopMotors();
 }
 
@@ -54,12 +56,30 @@ float Motors::getTrimRight() {
     return trimRight;
 }
 
+// Ratio of the motor voltage the PWM constants were tuned for to the motor
+// voltage this pack delivers; below 1 on a bigger pack, above 1 on a weaker one.
+float Motors::pwmScaleForBattery(float batteryVolts) {
+    float motorVoltsNow = batteryVolts - DROP_DRIVER_V;
+    if (motorVoltsNow <= 0.5f) {
+        return 1.0f; // not a usable pack voltage: leave PWM uncompensated
+    }
+    return (TEGANGAN_DESAIN_V - DROP_DRIVER_V) / motorVoltsNow;
+}
+
+void Motors::setBatteryVoltage(float batteryVolts) {
+    batteryPwmScale = pwmScaleForBattery(batteryVolts);
+}
+
+float Motors::getBatteryPwmScale() {
+    return batteryPwmScale;
+}
+
 void Motors::setMotor(int pwmLeft, int pwmRight) {
     if (pwmLeft != 0) {
-        pwmLeft = (int)((float)pwmLeft * trimLeft);
+        pwmLeft = (int)((float)pwmLeft * (trimLeft * batteryPwmScale));
     }
     if (pwmRight != 0) {
-        pwmRight = (int)((float)pwmRight * trimRight);
+        pwmRight = (int)((float)pwmRight * (trimRight * batteryPwmScale));
     }
 
     pwmLeft = clampPwm(pwmLeft);

@@ -26,6 +26,12 @@ public:
     static float getTrimLeft();
     static float getTrimRight();
 
+    // Battery voltage compensation: every command is multiplied by
+    // pwmScaleForBattery(volts) so wheel speed does not depend on the pack fitted.
+    static float pwmScaleForBattery(float batteryVolts);
+    static void setBatteryVoltage(float batteryVolts);
+    static float getBatteryPwmScale();
+
 private:
     static int arahKiri;
     static int arahKanan;
@@ -33,6 +39,7 @@ private:
     static int8_t invertRight;
     static float trimLeft;
     static float trimRight;
+    static float batteryPwmScale;
     static int clampPwm(int pwm);
 };
 

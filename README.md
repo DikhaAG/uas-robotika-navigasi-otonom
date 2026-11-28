@@ -190,6 +190,7 @@ Agar tidak salah memilih modul saat membeli maupun saat merangkai:
 
 #### 3. Catu Daya & Komponen Proteksi Derau (Wajib)
 - **Baterai 2S Li-Ion 18650** (tegangan nominal `7.4 V`, penuh `8.4 V`, kapasitas $\ge 2200\text{ mAh}$) + **Holder Baterai** + **Switch ON/OFF Utama**
+  - *Alternatif 3S (`11.1 V`, penuh `12.6 V`):* boleh dipakai — set `TEGANGAN_BATERAI_V` di `Config.h` agar PWM motor dikompensasi otomatis (lihat Langkah 4). Regulator onboard Arduino akan panas jika `VIN` langsung diberi `12.6 V` dengan beban semua sensor; disarankan memakai *buck converter* yang diset `7.5 V` ke `VIN`.
 - **Regulator 5V eksternal (LM7805 / Buck Converter)** atau suplai melalui pin `Vin` Arduino Uno
 - **4x Resistor $220\,\Omega$** (jalur sinyal arah `IN1`–`IN4` ke L293D)
 - **1x Kapasitor Elektrolit $100\,\mu\text{F} - 220\,\mu\text{F}$ (16V/25V)** (dipasang pada pin 8 `VCC2` L293D ke GND)
@@ -375,6 +376,7 @@ Baris terakhir yang menandakan sukses adalah `ROBOT MODEL OK: 41 wires, 25 parts
    - `DIAMETER_RODA_MM` (default `65.0f` mm)
    - `JUMLAH_SLOT_ENCODER` (default `20` slot)
    - `JARAK_RODA_MM` / *track width* jarak antar roda kiri-kanan (default `135.0f` mm)
+   - `TEGANGAN_BATERAI_V` — tegangan nominal baterai yang terpasang (default `11.1f` untuk 3S 18650; ubah ke `7.4f` untuk 2S). Konstanta PWM disetel pada baterai 2S (`TEGANGAN_DESAIN_V`), sehingga `Motors::setMotor()` mengalikan setiap perintah PWM dengan $\frac{7.4 - 1.8}{V_{\text{baterai}} - 1.8}$ (`DROP_DRIVER_V` = `1.8 V` rugi tegangan H-bridge) agar kecepatan roda sama di baterai mana pun. Pada 3S, PWM `170` menjadi `102`.
    *(Catatan: `DIAMETER_RODA_MM`, trim motor, bias gyro, dan inversi motor dapat dikalibrasi otomatis nanti lewat `auto_calibrate.py` tanpa perlu mengedit `Config.h` lagi!)*
 4. Di Arduino IDE, pilih **Tools → Board** sesuai papan Anda (`Arduino Uno` atau `ESP32 Dev Module`) dan pilih **Tools → Port** yang sesuai.
 5. Klik tombol **Upload** ($\rightarrow$). Pastikan proses kompilasi dan upload selesai tanpa error.
@@ -503,6 +505,8 @@ Jika Anda ingin menguji komponen secara terpisah tanpa Python CLI, repositori ju
      - `'s'` : Berhenti darurat.
 
 > **Catatan:** Jika Anda menyetel parameter secara manual dari `Uji_Encoder` / `Uji_MPU6050`, nilai konstanta harus diperbarui di `firmware/RobotNavigasiOtonom/Config.h` lalu di-upload ulang—atau pastikan EEPROM telah di-reset (`!CALIB:RESET`) agar profil EEPROM lama tidak menimpa nilai `Config.h`. Untuk alur kerja termudah, gunakan `tools/auto_calibrate.py`.
+>
+> Sketch `Uji_Encoder` / `Uji_MPU6050` **tidak** memakai kompensasi tegangan baterai (`TEGANGAN_BATERAI_V`); pada baterai 3S roda akan berputar lebih cepat daripada firmware utama.
 
 ---
 

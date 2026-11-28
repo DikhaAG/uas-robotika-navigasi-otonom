@@ -123,6 +123,14 @@
 #define TRIM_MOTOR_KIRI      1.0f  // Kalibrasi pengali motor kiri (contoh: 0.95 atau 1.05)
 #define TRIM_MOTOR_KANAN     1.0f  // Kalibrasi pengali motor kanan (contoh: 0.95 atau 1.05)
 
+// Battery voltage compensation. The PWM values in this file (and the fixed PWM of
+// the U1 calibration run) were tuned on a 2S pack. Motors::setMotor() scales every
+// command by (TEGANGAN_DESAIN_V - DROP_DRIVER_V) / (TEGANGAN_BATERAI_V - DROP_DRIVER_V)
+// so the wheels see the same motor voltage on any pack. 3S 18650 = 11.1f, 2S = 7.4f.
+#define TEGANGAN_DESAIN_V    7.4f   // pack the PWM constants were tuned on (2S Li-ion)
+#define TEGANGAN_BATERAI_V   11.1f  // nominal voltage of the pack actually fitted
+#define DROP_DRIVER_V        1.8f   // voltage lost in the L298N/L293D bipolar H-bridge
+
 #define JARAK_DECEL_CM       30.0f
 #define TOL_WP_CM            5.0f
 #define TOL_AKHIR_CM         2.0f
