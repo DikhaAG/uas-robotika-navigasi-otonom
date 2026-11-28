@@ -446,7 +446,7 @@ python3 tools/auto_calibrate.py --port /dev/ttyUSB0 --mode individual
 
 Setelah seluruh tahap selesai:
 - Parameter terkalibrasi tersimpan permanen di **EEPROM** (dilindungi signature `0xCA1B` dan *checksum* CRC-8) dan otomatis dimuat setiap kali robot dinyalakan.
-- Seluruh riwayat pengujian tercatat otomatis ke file [`tools/calibration_log.csv`](tools/calibration_log.csv) untuk lampiran laporan praktikum Anda.
+- Seluruh riwayat pengujian tercatat otomatis ke file `tools/calibration_log.csv` (dibuat otomatis oleh wizard saat pertama kali dijalankan; tidak disimpan di git) untuk lampiran laporan praktikum Anda.
 
 ---
 
