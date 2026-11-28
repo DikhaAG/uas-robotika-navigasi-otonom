@@ -17,7 +17,7 @@
 <text x="40" y="36" class="title">Skematik Perkabelan Robot Navigasi Otonom — Arduino Uno R3 + Modul L298N</text>
 <text x="40" y="57" class="subtitle">Referensi Pinout Resmi Config.h (Praktikum Robotika TC253421, D3 Teknik Komputer Polsri) | Ikuti warna kabel &amp; Star Ground agar bebas reset/error</text>
 <line x1="40" y1="80" x2="64" y2="80" stroke="#dc2626" stroke-width="4" stroke-linecap="round" />
-<text x="70" y="84" class="legend-txt">+7.4V Baterai (Motor &amp; VIN)</text>
+<text x="70" y="84" class="legend-txt">+VBAT Baterai (Motor &amp; VIN)</text>
 <line x1="263.5" y1="80" x2="287.5" y2="80" stroke="#ea580c" stroke-width="4" stroke-linecap="round" />
 <text x="293.5" y="84" class="legend-txt">+5V Bus Logika Sensor</text>
 <line x1="448.0" y1="80" x2="472.0" y2="80" stroke="#1e293b" stroke-width="4" stroke-linecap="round" />
@@ -38,10 +38,10 @@
 <text x="805" y="989" class="box-title">STAR GROUND HUB (Titik Pertemuan Semua GND)</text>
 <rect x="40" y="165" width="185" height="105" rx="8" ry="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2" />
 <path d="M48,165 h169 a8,8 0 0 1 8,8 v30 h-185 v-30 a8,8 0 0 1 8,-8 z" fill="#b91c1c" />
-<text x="132.5" y="183" class="box-title">Baterai 2S Li-Ion</text>
-<text x="132.5" y="197" class="box-sub">7.4V Nom / 8.4V Penuh</text>
+<text x="132.5" y="183" class="box-title">Baterai 2S/3S Li-Ion</text>
+<text x="132.5" y="197" class="box-sub">7.4V (2S) / 11.1V (3S)</text>
 <circle cx="225" cy="215" r="4.5" fill="#dc2626" stroke="#ffffff" stroke-width="1.2" />
-<text x="216" y="219" class="pin-r">+ (7.4V)</text>
+<text x="216" y="219" class="pin-r">+ (VBAT)</text>
 <circle cx="225" cy="245" r="4.5" fill="#1e293b" stroke="#ffffff" stroke-width="1.2" />
 <text x="216" y="249" class="pin-r">- (GND)</text>
 <rect x="265" y="165" width="125" height="78" rx="8" ry="8" fill="#fff7ed" stroke="#ea580c" stroke-width="2" />
@@ -57,7 +57,7 @@
 <circle cx="245" cy="985" r="4.5" fill="#1e293b" />
 <path d="M 390,215 L 420,215 L 420,112 L 1150,112" fill="none" stroke="#dc2626" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
 <rect x="738" y="96" width="107.2" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" />
-<text x="742" y="107" class="wire-lbl" fill="#dc2626">+7.4V DAYA UTAMA</text>
+<text x="742" y="107" class="wire-lbl" fill="#dc2626">+VBAT DAYA UTAMA</text>
 <circle cx="420" cy="215" r="4.5" fill="#dc2626" />
 <rect x="585" y="210" width="385" height="565" rx="8" ry="8" fill="#eff6ff" stroke="#1d4ed8" stroke-width="2" />
 <path d="M593,210 h369 a8,8 0 0 1 8,8 v30 h-385 v-30 a8,8 0 0 1 8,-8 z" fill="#1e40af" />
@@ -107,12 +107,12 @@
 <text x="961" y="749" class="pin-r">GND</text>
 <rect x="680" y="420" width="165" height="92" rx="6" fill="#dbeafe" stroke="#93c5fd" />
 <text x="762" y="443" class="pin-c">D13: LED Onboard</text>
-<text x="762" y="463" class="note" text-anchor="middle">Baud: 115200 bps</text>
+<text x="762" y="463" class="note" text-anchor="middle">Baud: 9600 bps</text>
 <text x="762" y="481" class="note" text-anchor="middle">Bluetooth HC-05:</text>
-<text x="762" y="497" class="note" text-anchor="middle">D10 (Opsional)</text>
+<text x="762" y="497" class="note" text-anchor="middle">D0/D1 (Opsional)</text>
 <path d="M 420,215 L 420,275 L 585,275" fill="none" stroke="#dc2626" stroke-width="3.0" stroke-linecap="round" stroke-linejoin="round" />
 <rect x="463" y="259" width="76.2" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" />
-<text x="467" y="270" class="wire-lbl" fill="#dc2626">VIN (+7.4V)</text>
+<text x="467" y="270" class="wire-lbl" fill="#dc2626">VIN (+VBAT)</text>
 <path d="M 585,310 L 545,310 L 545,134" fill="none" stroke="#ea580c" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
 <circle cx="545" cy="134" r="4.5" fill="#ea580c" />
 <path d="M 585,345 L 520,345 L 520,985" fill="none" stroke="#1e293b" stroke-width="3.0" stroke-linecap="round" stroke-linejoin="round" />

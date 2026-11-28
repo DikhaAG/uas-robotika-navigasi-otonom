@@ -169,13 +169,13 @@ Pastikan seluruh kebutuhan perangkat lunak dan perangkat keras berikut telah sia
 - **ESP32 DevKit v1** — *Target alternatif* (memerlukan pengubahan `BOARD_TYPE` di `Config.h` serta *voltage divider* 5V ke 3.3V pada pin Echo HC-SR04).
 
 #### 2. Komponen Elektronik, Sensor, & Aktuator
-- **1x Driver Motor L293D Dual H-Bridge**
+- **1x Driver Motor:** **modul L298N** (dipakai pada panduan kabel & model 3D) **atau** IC L293D Dual H-Bridge
 - **2x Motor DC Gearbox TT Kuning (rasio 1:48)** + **2x Roda Karet** ($\varnothing \approx 65\text{ mm}$) + **1x Caster Wheel**
 - **2x Sensor Optical Speed Encoder LM393 (FC-03)** + **2x Cakram Encoder 20 Slot**
 - **1x Sensor IMU MPU6050** (modul **GY-521**, Gyroscope + Accelerometer I2C, alamat `0x68`)
 - **1x Sensor Ultrasonik HC-SR04** (pendeteksi rintangan depan)
 - **2x Sensor IR Proximity FC-51** (sensor dinding koridor kiri & kanan, *active-LOW*)
-- **1x Push Button Tactile** (tombol `START`)
+- **1x Push Button Tactile** (tombol `START`) — atau cukup satu kabel jumper dari `D12` yang disentuhkan ke GND
 - **1x Buzzer Aktif 5V** (indikator suara tiba & failsafe)
 - **1x Modul Bluetooth HC-05** *(opsional; berbagi `Serial` UART0 di pin `D0`/`D1` dengan USB, pada `SERIAL_BAUD` = `9600` baud bawaan pabrik HC-05 — lihat catatan HC-05 di Langkah 3)*
 
@@ -189,14 +189,14 @@ Agar tidak salah memilih modul saat membeli maupun saat merangkai:
   - Selain sebagai alamat bus, chip MPU6050 yang sehat juga mengembalikan nilai **`0x68`** saat firmware membaca register identitas **`WHO_AM_I` (`0x75`)** pada [`Gyroscope.cpp`](firmware/RobotNavigasiOtonom/Gyroscope.cpp).
 - **Pemasangan fisik:** Tempel modul **datar dan sejajar** dengan sasis robot (tidak miring) agar gyroscope sumbu-Z mengukur sudut belok (*yaw*) secara akurat.
 
-#### 3. Catu Daya & Komponen Proteksi Derau (Wajib)
-- **Baterai 2S Li-Ion 18650** (tegangan nominal `7.4 V`, penuh `8.4 V`, kapasitas $\ge 2200\text{ mAh}$) + **Holder Baterai** + **Switch ON/OFF Utama**
-  - *Alternatif 3S (`11.1 V`, penuh `12.6 V`):* boleh dipakai — set `TEGANGAN_BATERAI_V` di `Config.h` agar PWM motor dikompensasi otomatis (lihat Langkah 4). Regulator onboard Arduino akan panas jika `VIN` langsung diberi `12.6 V` dengan beban semua sensor; disarankan memakai *buck converter* yang diset `7.5 V` ke `VIN`.
-- **Regulator 5V eksternal (LM7805 / Buck Converter)** atau suplai melalui pin `Vin` Arduino Uno
-- **4x Resistor $220\,\Omega$** (jalur sinyal arah `IN1`–`IN4` ke L293D)
-- **1x Kapasitor Elektrolit $100\,\mu\text{F} - 220\,\mu\text{F}$ (16V/25V)** (dipasang pada pin 8 `VCC2` L293D ke GND)
-- **3x Kapasitor Keramik $100\text{ nF}$ ($0.1\,\mu\text{F}$)** (1 buah pada pin 16 `VCC1` L293D ke GND; 2 buah disolder langsung pada terminal masing-masing motor DC untuk meredam percikan EMI)
-- **Resistor Voltage Divider ($1\,\text{k}\Omega$ & $2\,\text{k}\Omega$)** (wajib jika menggunakan ESP32 pada pin `Echo` HC-SR04 atau pin `RX` Bluetooth HC-05 agar tegangan 5V turun ke 3.3V)
+#### 3. Catu Daya & Komponen Proteksi Derau
+- **Baterai Li-Ion 18650 2S** (nominal `7.4 V`, penuh `8.4 V`) **atau 3S** (nominal `11.1 V`, penuh `12.6 V`), kapasitas $\ge 2200\text{ mAh}$ + **Holder Baterai** + **Switch ON/OFF Utama**
+  - Samakan `TEGANGAN_BATERAI_V` di `Config.h` (default `11.1f` = 3S) agar PWM motor dikompensasi otomatis (lihat Langkah 4).
+- **Suplai Arduino lewat pin `VIN`:** langsung dari sakelar pada baterai 2S; pada baterai 3S **disarankan buck converter** (LM2596 / mini-360) yang diset `7.5 V` ke `VIN`, karena regulator onboard Arduino akan panas bila harus menurunkan `12.6 V` ke `5 V` untuk seluruh sensor
+- **4x Resistor $220\,\Omega$** (jalur sinyal arah `IN1`–`IN4`; **hanya untuk IC L293D**, tidak perlu pada modul L298N)
+- **1x Kapasitor Elektrolit $100\,\mu\text{F} - 220\,\mu\text{F}$ (25V)** (pin 8 `VCC2` L293D ke GND; **wajib untuk IC L293D**, sudah tersedia di PCB modul L298N)
+- **Kapasitor Keramik $100\text{ nF}$ ($0.1\,\mu\text{F}$, kode `104`)** (1 buah pada pin 16 `VCC1` L293D ke GND khusus IC L293D; 2 buah disolder langsung pada terminal masing-masing motor DC untuk meredam percikan EMI — sangat disarankan, tetapi robot dengan modul L298N tetap bisa berjalan tanpanya)
+- **Resistor Voltage Divider ($1\,\text{k}\Omega$ & $2\,\text{k}\Omega$)** (wajib jika menggunakan ESP32 pada pin `Echo` HC-SR04; disarankan juga pada Arduino Uno untuk pin `RXD` Bluetooth HC-05 agar tegangan 5V turun ke 3.3V)
 - **Kabel USB Data** (USB-B untuk Arduino Uno atau Micro-USB/USB-C untuk ESP32)
 
 ---
@@ -286,9 +286,9 @@ python3 tools/auto_calibrate.py --mock --reverse-left
 
 #### A. Aturan Kelistrikan Wajib (*Dual Power Rail* & *Star Ground*)
 Agar Arduino tidak mengalami *brownout* (restart sendiri) dan sensor MPU6050 tidak macet karena derau motor:
-1. Pisahkan jalur daya motor (`VCC2` L293D langsung dari baterai 7.4V melalui sakelar utama) dengan jalur daya logika 5V (dari regulator 5V Arduino/Buck ke `VCC1` L293D, MPU6050, HC-SR04, LM393, FC-51).
+1. Pisahkan jalur daya motor (`+12V` L298N / `VCC2` L293D langsung dari baterai melalui sakelar utama) dengan jalur daya logika 5V (dari regulator 5V Arduino/Buck ke `VCC1` L293D, MPU6050, HC-SR04, LM393, FC-51).
 2. Satukan seluruh kabel **Ground (GND)** pada **satu titik bersama (*Single-Point Star Ground*)** di dekat kutub negatif baterai. Hindari penyambungan GND secara berantai (*daisy-chain*) dari motor ke sensor.
-3. Pasang kapasitor elektrolit $220\,\mu\text{F}$ pada pin `VCC2`–GND L293D, serta kapasitor keramik $100\text{ nF}$ pada `VCC1`–GND dan kedua kutub motor DC.
+3. Untuk **IC L293D**: pasang kapasitor elektrolit $220\,\mu\text{F}$ pada pin `VCC2`–GND serta kapasitor keramik $100\text{ nF}$ pada `VCC1`–GND. Untuk **modul L298N** kapasitor elektrolit sudah ada di PCB. Pada keduanya, kapasitor keramik $100\text{ nF}$ di kedua kutub motor DC sangat disarankan.
 
 *(Detail kalkulasi arus dan daya tahan baterai dapat dilihat pada [docs/hardware/power-budget.md](docs/hardware/power-budget.md).)*
 
@@ -320,8 +320,8 @@ Agar Arduino tidak mengalami *brownout* (restart sendiri) dan sensor MPU6050 tid
 
 > **Catatan Tambahan Jika Menggunakan Modul L298N:**
 > - **Lepas jumper `ENA` dan `ENB`** pada modul L298N agar kecepatan motor bisa dikontrol oleh sinyal PWM (`D9` dan `D6`).
-> - Hubungkan terminal **`+12V` (VCC)** L298N ke kutub positif baterai `7.4V` (via sakelar utama), terminal **`GND`** ke *Star Ground* bersama GND Arduino, dan terminal **`OUT1/OUT2`** ke Motor Kiri serta **`OUT3/OUT4`** ke Motor Kanan.
-> - Jika **jumper regulator `5V-EN`** pada modul L298N terpasang, pin `5V` L298N berfungsi sebagai **output 5V** (jangan dihubungkan ke pin `5V` Arduino jika Arduino sudah mendapat daya dari regulator sendiri/USB; cukup satukan `GND`-nya saja). Jika jumper `5V-EN` dilepas, beri suplai logika `5V` ke pin `5V` L298N.
+> - Hubungkan terminal **`+12V` (VCC)** L298N ke kutub positif baterai (2S `7.4V` / 3S `11.1V`, via sakelar utama), terminal **`GND`** ke *Star Ground* bersama GND Arduino, dan terminal **`OUT1/OUT2`** ke Motor Kiri serta **`OUT3/OUT4`** ke Motor Kanan.
+> - **Jumper regulator `5V-EN`** (2 pin + tutup plastik tepat di belakang terminal sekrup `12V | GND | 5V`, dekat regulator `78M05`) **biarkan terpasang** — aman untuk 2S maupun 3S. Dengan jumper terpasang, pin `5V` L298N berfungsi sebagai **output 5V**: **biarkan kosong**, jangan dihubungkan ke pin `5V` Arduino (cukup satukan `GND`-nya). Jika jumper `5V-EN` dilepas, logika L298N harus diberi suplai `5V` dari luar; tanpa itu motor tidak berputar.
 > - Pada modul L298N siap pakai (*breakout board*), resistor seri $220\,\Omega$ pada pin `IN1`–`IN4` tidak wajib karena sudah ada komponen pembatas/isolasi di PCB modul.
 
 > **Catatan Modul Bluetooth HC-05 (Opsional):**
@@ -358,7 +358,7 @@ make blender_model   # konversi STEP, rakit robot, periksa kabel, simpan build/r
 ```
 Baris terakhir yang menandakan sukses adalah `ROBOT MODEL OK: 41 wires, 25 parts`. Build **gagal** jika ada kabel yang ujungnya meleset lebih dari 0.5 mm dari pinnya, kabel yang menembus komponen atau kabel lain, housing dupont yang masuk ke komponen, atau ukuran model komponen yang meleset lebih dari 1 mm.
 
-**Membuka model:** buka `build/robot_3d.blend` di Blender. Di Outliner, kabel dikelompokkan per tahap perakitan (*Wires → Tahap 1 – Daya … Tahap 5 – START & Buzzer*). Klik ikon mata untuk menampilkan atau menyembunyikan kabel per tahap, mengikuti urutan perakitan 5 tahap. Warna kabel mengikuti skematik: merah 7.4V, oranye 5V, hitam GND, biru sinyal motor, cokelat keluaran motor, hijau sensor, ungu I2C, dan biru muda START/buzzer.
+**Membuka model:** buka `build/robot_3d.blend` di Blender. Di Outliner, kabel dikelompokkan per tahap perakitan (*Wires → Tahap 1 – Daya … Tahap 5 – START & Buzzer*). Klik ikon mata untuk menampilkan atau menyembunyikan kabel per tahap, mengikuti urutan perakitan 5 tahap. Warna kabel mengikuti skematik: merah tegangan baterai, oranye 5V, hitam GND, biru sinyal motor, cokelat keluaran motor, hijau sensor, ungu I2C, dan biru muda START/buzzer.
 
 > **Catatan saat merakit mengikuti model:**
 > - Modul **MPU6050 (GY-521)** dan **HC-SR04** dipasang **terbalik** di model supaya pin header menghadap ke atas. Jika Anda merakit dengan cara yang sama, arah sumbu-Z gyroscope ikut terbalik; periksa hasil uji **U2** dan sesuaikan `GYRO_SIGN` di `Config.h` bila perlu.
@@ -395,7 +395,7 @@ Baris terakhir yang menandakan sukses adalah `ROBOT MODEL OK: 41 wires, 25 parts
 Wizard `tools/auto_calibrate.py` menguji seluruh kabel sensor/aktuator (**Stage U0**) lalu mengkalibrasi kinematika robot (**Stage U1–U4**) dan menyimpannya secara permanen ke **EEPROM**.
 
 #### Persiapan Sebelum Menjalankan Wizard
-- Pastikan baterai robot terisi penuh (`~7.4V - 8.4V`) dan sakelar daya robot dalam posisi **ON**.
+- Pastikan baterai robot terisi penuh (2S: `7.4–8.4 V`; 3S: `11.1–12.6 V`) dan sakelar daya robot dalam posisi **ON**.
 - Hubungkan Arduino Uno/ESP32 ke laptop menggunakan kabel USB data.
 - Untuk tahap **U0** awal, **ganjal bagian bawah robot** agar roda bebas berputar di udara saat motor diuji.
 
@@ -547,7 +547,7 @@ Saat firmware utama `RobotNavigasiOtonom` berada di `STATE_IDLE`, komunikasi ser
 - **Stage U0.1 MPU6050 gagal (`WHO_AM_I` error) atau Arduino tiba-tiba restart saat motor berjalan:**
   1. Periksa kabel I2C (`SDA` ke `A4`, `SCL` ke `A5` pada Arduino Uno; `GPIO 21/22` pada ESP32), pastikan pin header GY-521 tersolder rapat, dan pastikan pin `AD0` **tidak** terhubung ke `VCC` (biarkan kosong atau ke `GND` agar alamat tetap `0x68`).
   2. Pastikan daya motor `VCC2` dipisah dari rail 5V logika dan **Star Ground** terpasang benar.
-  3. Pastikan kapasitor decoupling ($220\,\mu\text{F}$ pada `VCC2` dan $100\text{ nF}$ pada `VCC1` & motor) sudah terpasang, dan baterai tidak lemah ($< 6.8\text{ V}$).
+  3. Pastikan kapasitor decoupling ($220\,\mu\text{F}$ pada `VCC2` dan $100\text{ nF}$ pada `VCC1` & motor) sudah terpasang, dan baterai tidak lemah (2S $< 6.8\text{ V}$, 3S $< 10.2\text{ V}$).
 - **Robot berputar di tempat terus-menerus atau melenceng jauh saat belok:**
   - Cek hasil uji U2: pastikan `GYRO_SIGN` (`+1.0f` / `-1.0f` di `Config.h`) sesuai arah pemasangan fisik modul MPU6050, dan jangan menyentuh robot selama `2 detik` pertama setelah tombol `START` ditekan (`STATE_KALIBRASI`).
 - **Robot langsung masuk `STATE_GAGAL` (LED kedip cepat, buzzer 2 detik):**

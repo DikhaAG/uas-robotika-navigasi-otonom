@@ -9,14 +9,14 @@ Dokumentasi kelistrikan, kalkulasi arus beban, dan mitigasi derau kelistrikan un
 Untuk mencegah reset mikrokontroler (*brownout*) dan derau switching motor merusak komunikasi I2C sensor MPU6050, robot menerapkan pemisahan jalur daya:
 
 ```
-[ Baterai 2S Li-Ion 7.4V (Nominal 7.4V, Penuh 8.4V) ]
+[ Baterai Li-Ion 2S 7.4V (Penuh 8.4V) atau 3S 11.1V (Penuh 12.6V) ]
          │
          ├─── Switch ON/OFF Utama
          │         │
-         │         ├───► Masuk ke L293D Pin 8 (VCC2 / Motor Power)
-         │         │     (Dilengkapi Kapasitor Elektrolit 220 µF)
+         │         ├───► Masuk ke +12V L298N / L293D Pin 8 (VCC2 / Motor Power)
+         │         │     (Kapasitor Elektrolit 220 µF: onboard L298N, wajib dipasang untuk L293D)
          │         │
-         │         └───► Masuk ke Vin Arduino Uno / Regulator 5V (LM7805/Buck)
+         │         └───► Masuk ke Vin Arduino Uno (2S langsung; 3S lewat Buck 7.5V)
          │                     │
          │                     └───► Bus Logika 5.0V (VCC1 L293D, MPU6050, Sonar, Encoder)
          │                           (Dilengkapi Kapasitor Keramik 100 nF)
@@ -44,7 +44,7 @@ Untuk mencegah reset mikrokontroler (*brownout*) dan derau switching motor merus
 | **L293D VCC1 (Logic)** | 35 | 60 | Sirkuit gerbang logika internal L293D |
 | **TOTAL BEBAN LOGIKA (5V)** | **~203.5 mA** | **~279 mA** | Dipasok regulator 5V Arduino |
 
-### B. Beban Aktuator Motor DC (Rel 7.4V)
+### B. Beban Aktuator Motor DC (Rel Baterai)
 
 Robot menggunakan 2 unit motor DC TT Kuning (gear ratio 1:48):
 
@@ -67,13 +67,20 @@ $$V_{\text{drop}} = V_{CE(\text{sat})} \approx 1.5\text{ V} – 2.0\text{ V}$$
 Jika menggunakan baterai 2S Li-ion $7.4\text{ V}$ nominal:
 $$V_{\text{motor\_efektif}} = V_{\text{baterai}} - V_{\text{drop}} = 7.4\text{ V} - 1.8\text{ V} = 5.6\text{ V}$$
 
-Tegangan efektif $5.6\text{ V}$ ini sangat ideal untuk motor DC TT (yang dirancang untuk rentang $3\text{ V} – 6\text{ V}$), menghasilkan torsi yang memadai tanpa membuat motor mengalami *overheat*.
+Tegangan efektif $5.6\text{ V}$ ini sangat ideal untuk motor DC TT (yang dirancang untuk rentang $3\text{ V} – 6\text{ V}$), menghasilkan torsi yang memadai tanpa membuat motor mengalami *overheat*. Modul L298N juga berbasis transistor bipolar dengan rugi tegangan serupa (`DROP_DRIVER_V` = `1.8 V` di `Config.h`).
+
+Jika menggunakan baterai 3S Li-ion $11.1\text{ V}$ nominal:
+$$V_{\text{motor\_efektif}} = 11.1\text{ V} - 1.8\text{ V} = 9.3\text{ V}$$
+
+Dengan PWM yang sama, motor akan berputar sekitar $9.3 / 5.6 \approx 1.7\times$ lebih cepat. Karena itu `Motors::setMotor()` mengalikan setiap perintah PWM dengan $\frac{5.6}{9.3} \approx 0.60$ bila `TEGANGAN_BATERAI_V` = `11.1f` (misalnya PWM `170` menjadi `102`), sehingga tegangan rata-rata motor tetap $\approx 3.7\text{ V}$ seperti pada desain 2S.
+
+**Regulator Arduino pada 3S:** regulator onboard Uno harus menurunkan hingga $12.6\text{ V}$ ke $5\text{ V}$ untuk beban logika $\approx 200\text{ mA}$, yaitu $(12.6 - 5) \times 0.2 \approx 1.5\text{ W}$ — cukup untuk memicu *thermal shutdown*. Gunakan *buck converter* yang diset $7.5\text{ V}$ ke `VIN` (disipasi regulator turun menjadi $\approx 0.5\text{ W}$).
 
 ---
 
 ## 4. Estimasi Daya Tahan Baterai (*Battery Lifetime*)
 
-Menggunakan baterai 2S 18650 dengan kapasitas rata-rata $2200\text{ mAh}$:
+Menggunakan baterai 2S 18650 dengan kapasitas rata-rata $2200\text{ mAh}$ (baterai 3S memiliki kapasitas mAh yang sama, sehingga estimasinya serupa):
 - Rata-rata konsumsi arus saat navigasi bergerak: $I_{\text{total}} \approx 200\text{ mA (logika)} + 500\text{ mA (motor)} = 700\text{ mA}$.
 - Estimasi durasi operasional:
   $$\text{Waktu Tempuh} = \frac{2200\text{ mAh}}{700\text{ mA}} \times 0.8 \approx 2.5\text{ Jam}$$
