@@ -80,6 +80,8 @@ Utilitas interaktif berbasis terminal (CLI) untuk mengeksekusi pengujian perangk
 
 ### Cara Menjalankan:
 
+> Mode robot fisik membutuhkan `pyserial` dari *virtual environment* proyek: aktifkan dulu dengan `source .venv/bin/activate` (cara membuatnya ada di [README utama](../README.md#cara-instalasi-prasyarat-software)). Mode `--mock` tidak membutuhkan pyserial.
+
 ```bash
 # 1. Jalankan pengujian interaktif terhadap robot fisik (autodetect port serial):
 python3 tools/auto_calibrate.py

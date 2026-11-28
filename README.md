@@ -127,7 +127,7 @@ Pastikan seluruh kebutuhan perangkat lunak dan perangkat keras berikut telah sia
 | **Arduino IDE** | v1.8.19+ atau v2.x (atau `arduino-cli`) | Kompilasi & upload firmware ke MCU | Pengguna robot fisik |
 | **Board Package ESP32** *(Opsional)* | `esp32` by Espressif via Boards Manager | Hanya jika memakai papan **ESP32 DevKit v1** | Pengguna ESP32 |
 | **Python** | **Python 3.8+** | Menjalankan simulator, plotter SVG, & wizard kalibrasi | Semua pengguna |
-| **Pustaka Python `pyserial`** | `pip install pyserial` | Komunikasi serial USB dengan robot pada `auto_calibrate.py` | Kalibrasi robot fisik |
+| **Pustaka Python `pyserial`** | Dipasang di *virtual environment* proyek `.venv` (`.venv/bin/pip install pyserial`) | Komunikasi serial USB/Bluetooth dengan robot pada `auto_calibrate.py` dan `serial.tools.miniterm` | Kalibrasi robot fisik |
 | **Compiler C++ & Make** | `clang++` (C++11) dan `make` | Kompilasi `sim_navigation` dan menjalankan `make check` / unit test C++ | Simulasi & pengujian |
 | **`timeout` / `gtimeout`** *(Opsional)* | GNU coreutils | Batas waktu eksekusi test otomatis di `Makefile` | Menjalankan `make test` |
 | **Blender** *(Opsional)* | **5.3** (`/Applications/Blender.app` atau set `BLENDER=...`) | Membangun & merender model 3D rangkaian (`make blender_model`) | Model 3D |
@@ -142,23 +142,34 @@ Pastikan seluruh kebutuhan perangkat lunak dan perangkat keras berikut telah sia
   # 1. Install Xcode Command Line Tools (menyediakan clang++, make, dan git)
   xcode-select --install
 
-  # 2. Pastikan Python 3 tersedia, lalu install pyserial (untuk koneksi robot fisik)
+  # 2. Pastikan Python 3 tersedia, lalu buat virtual environment proyek berisi pyserial
+  #    (lewati 'python3 -m venv .venv' jika folder .venv sudah ada)
   python3 --version
-  pip3 install pyserial
+  python3 -m venv .venv
+  .venv/bin/pip install pyserial
   ```
 - **Linux (Ubuntu / Debian):**
   ```bash
   sudo apt update
-  sudo apt install -y clang make python3 python3-pip
-  pip3 install pyserial
+  sudo apt install -y clang make python3 python3-venv
+  python3 -m venv .venv
+  .venv/bin/pip install pyserial
   # Tambahkan user ke grup dialout agar port /dev/ttyUSB0 atau /dev/ttyACM0 bisa diakses tanpa sudo
   sudo usermod -aG dialout $USER
   ```
   *(Logout dan login kembali setelah menjalankan perintah `usermod`.)*
 - **Windows:**
   - Install **Arduino IDE** dari situs resmi Arduino.
-  - Install **Python 3** (centang *"Add Python to PATH"* saat instalasi), lalu jalankan `pip install pyserial` di Command Prompt / PowerShell.
+  - Install **Python 3** (centang *"Add Python to PATH"* saat instalasi), lalu di folder proyek jalankan `py -m venv .venv` dan `.venv\Scripts\pip install pyserial` di Command Prompt / PowerShell.
   - Untuk menjalankan simulasi C++ dan `Makefile` di Windows, gunakan **WSL (Ubuntu)** atau **MSYS2/Git Bash** dengan paket `clang` dan `make` terpasang.
+
+> **Mengapa *virtual environment*?** Python dari Homebrew (macOS) dan Ubuntu/Debian terbaru ditandai *externally managed* (PEP 668), sehingga `pip install pyserial` global ditolak dengan error `externally-managed-environment`. Pasang pyserial di `.venv` proyek, lalu **aktifkan venv di setiap terminal baru sebelum memakai robot fisik** — setelah itu semua perintah `python3 ...` di README ini otomatis memakai pyserial dari venv:
+> ```bash
+> source .venv/bin/activate        # Windows: .venv\Scripts\activate — prompt berubah menjadi (.venv)
+> python3 tools/auto_calibrate.py --port <port>
+> deactivate                       # setelah selesai
+> ```
+> Tanpa mengaktifkan venv, panggil langsung `.venv/bin/python tools/auto_calibrate.py ...`. Perintah `make check`, simulator, dan plotter tidak membutuhkan pyserial. Jika Anda juga akan membangun model 3D (`make blender_model`), buat venv dengan `python3.12 -m venv .venv` karena konverter CAD (`cadquery-ocp`) membutuhkan Python 3.12; `make` memakai ulang folder `.venv` yang sama.
 
 ---
 
@@ -395,6 +406,7 @@ Baris terakhir yang menandakan sukses adalah `ROBOT MODEL OK: 41 wires, 25 parts
 Wizard `tools/auto_calibrate.py` menguji seluruh kabel sensor/aktuator (**Stage U0**) lalu mengkalibrasi kinematika robot (**Stage U1–U4**) dan menyimpannya secara permanen ke **EEPROM**.
 
 #### Persiapan Sebelum Menjalankan Wizard
+- Aktifkan *virtual environment* berisi pyserial: `source .venv/bin/activate` (lihat [Cara Instalasi Prasyarat Software](#cara-instalasi-prasyarat-software)).
 - Pastikan baterai robot terisi penuh (2S: `7.4–8.4 V`; 3S: `11.1–12.6 V`) dan sakelar daya robot dalam posisi **ON**.
 - Hubungkan Arduino Uno/ESP32 ke laptop menggunakan kabel USB data.
 - Untuk tahap **U0** awal, **ganjal bagian bawah robot** agar roda bebas berputar di udara saat motor diuji.
@@ -545,8 +557,8 @@ Saat firmware utama `RobotNavigasiOtonom` berada di `STATE_IDLE`, komunikasi ser
 
 ## 7. Pemecahan Masalah (Troubleshooting)
 
-- **Error `Modul 'pyserial' belum terinstall` saat menjalankan `auto_calibrate.py`:**
-  Jalankan `pip3 install pyserial` (atau gunakan `--mock` jika hanya ingin simulasi tanpa robot fisik).
+- **Error `Modul 'pyserial' belum terinstall`, `No module named 'serial'`, atau `externally-managed-environment`:**
+  pyserial belum terpasang untuk Python yang sedang dipakai. Aktifkan venv proyek (`source .venv/bin/activate`) lalu jalankan ulang perintahnya; jika `.venv` belum ada, buat dulu dengan `python3 -m venv .venv && .venv/bin/pip install pyserial`. Gunakan `--mock` jika hanya ingin simulasi tanpa robot fisik.
 - **Port serial tidak ditemukan / `Permission denied` di Linux:**
   1. Pastikan kabel USB adalah **kabel data** (bukan kabel daya saja).
   2. Cek nama port dengan `ls /dev/ttyUSB* /dev/ttyACM*` (Linux) atau `ls /dev/cu.*` (macOS).
