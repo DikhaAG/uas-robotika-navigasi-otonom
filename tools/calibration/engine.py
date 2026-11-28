@@ -8,6 +8,7 @@ from tools.calibration.models import (
     CalibrationProfileData,
     CalibrationReport,
     DiagnosticResult,
+    MpuMounting,
     SafetyGate,
     SafetyGateError,
     TrialRecord,
@@ -68,6 +69,27 @@ class CalibrationEngine:
         """Resets EEPROM profile to factory compile-time defaults."""
         return self.transport.reset_profile()
 
+    def configure_mpu_mounting(self, mounting: MpuMounting) -> bool:
+        """
+        Stores the MPU6050 mounting sign in EEPROM, keeping every other profile field.
+        Returns False for an upright board (yaw cannot be measured) or a failed write.
+        """
+        sign = mounting.gyro_sign
+        if sign is None:
+            self.reporter.on_warning("MPU6050 tegak/miring tidak didukung: pasang modul DATAR sejajar sasis.")
+            return False
+        prof = self.transport.read_profile()
+        if prof.gyro_sign != sign:
+            prof.gyro_sign = sign
+            if not self.transport.write_profile(prof):
+                self.reporter.on_warning("Gagal menyimpan orientasi MPU6050 ke EEPROM.")
+                return False
+        self.reporter.on_success(
+            f"Orientasi MPU6050 ({mounting.describe()}) -> gyroSign={sign:+d} tersimpan di EEPROM. "
+            "Arah panah X tidak berpengaruh karena firmware hanya memakai gyro sumbu Z."
+        )
+        return True
+
     def run_preflight(self) -> U0Report:
         """
         Executes Stage U0: Pre-Flight Hardware & Wiring Diagnostics.
@@ -91,8 +113,20 @@ class CalibrationEngine:
 
         # U0.1: I2C & MPU6050 WHO_AM_I
         if diag.mpu_ok:
-            st_mpu = U0SubtestReport("U0.1 MPU6050", True, "I2C 0x68 responsif (WHO_AM_I valid)")
-            report.u01_mpu_passed = True
+            mounting = self.observation.ask_mpu_mounting()
+            if mounting is None:
+                st_mpu = U0SubtestReport("U0.1 MPU6050", True, "I2C 0x68 responsif (WHO_AM_I valid)")
+                report.u01_mpu_passed = True
+            elif self.configure_mpu_mounting(mounting):
+                st_mpu = U0SubtestReport("U0.1 MPU6050", True,
+                                         f"I2C 0x68 responsif, {mounting.describe()} (gyroSign={mounting.gyro_sign:+d})")
+                report.u01_mpu_passed = True
+            else:
+                st_mpu = U0SubtestReport("U0.1 MPU6050", False, f"Orientasi tidak didukung ({mounting.describe()})", [
+                    "Pasang MPU6050 datar sejajar sasis (chip menghadap atas atau bawah), jangan tegak/miring.",
+                    "Firmware hanya membaca gyro sumbu Z; modul tegak membuat sudut belok (yaw) tidak terukur.",
+                ])
+                report.u01_mpu_passed = False
         else:
             st_mpu = U0SubtestReport("U0.1 MPU6050", False, "WHO_AM_I gagal / I2C bus error", [
                 "Periksa kabel jumper MPU6050: VCC->5V, GND->GND.",
@@ -309,7 +343,9 @@ class CalibrationEngine:
 
         actual_angle, polarity_ok = self.observation.measure_u2_rotation(target_angle, reported_theta)
         if not polarity_ok:
-            self.reporter.on_warning("Arah rotasi terbalik! Periksa orientasi pin MPU6050 atau GYRO_SIGN.")
+            self.reporter.on_warning(
+                "Arah rotasi terbalik! Periksa orientasi MPU6050 (atur ulang lewat U0.1 atau menu [8] Orientasi MPU6050)."
+            )
 
         tol = check_u2_tolerances(actual_angle, target_angle)
         passed = tol.passed and polarity_ok

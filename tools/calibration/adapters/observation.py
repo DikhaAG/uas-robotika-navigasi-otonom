@@ -8,10 +8,13 @@ try:
 except ImportError:
     from typing_extensions import Protocol
 
+from tools.calibration.models import MpuMounting
+
 
 class ObservationAdapter(Protocol):
     """Interface for obtaining ground-truth physical observations from a human or test script."""
     def verify_ir_sensors(self, initial_left: bool, initial_right: bool) -> bool: ...
+    def ask_mpu_mounting(self) -> Optional[MpuMounting]: ...
     def verify_indicators(self) -> bool: ...
     def verify_motor_directions(self) -> Tuple[bool, bool]: ...
     def measure_u1_distance(self, firmware_dist_cm: float, iteration: int) -> float: ...
@@ -44,6 +47,23 @@ class ConsoleObservationAdapter:
             return ans != "n"
         except EOFError:
             return True
+
+    def ask_mpu_mounting(self) -> Optional[MpuMounting]:
+        """Asks how the GY-521 is mounted; None (keep stored sign) when not interactive."""
+        if not self.interactive:
+            return None
+        print("  Bagaimana posisi modul MPU6050 (GY-521) di sasis?")
+        print("    [1] Datar, chip/komponen menghadap ATAS")
+        print("    [2] Datar, chip/komponen menghadap BAWAH (terbalik, pin header di atas)")
+        print("    [3] Tegak / berdiri / miring (tidak datar)")
+        print("  Ke mana panah sumbu X (tercetak di PCB, label 'X') menghadap?")
+        print("    [1] Depan  [2] Belakang  [3] Kiri  [4] Kanan")
+        try:
+            facing = _pick(input("  Posisi chip [1-3] (default 1): "), MpuMounting.CHIP_FACING_CHOICES)
+            x_axis = _pick(input("  Arah panah X [1-4] (default 1): "), MpuMounting.X_AXIS_CHOICES)
+        except (EOFError, KeyboardInterrupt):
+            return None
+        return MpuMounting(facing, x_axis)
 
     def verify_motor_directions(self) -> Tuple[bool, bool]:
         if not self.interactive:
@@ -121,6 +141,14 @@ class ConsoleObservationAdapter:
             pass
 
 
+def _pick(answer: str, choices: Tuple[str, ...]) -> str:
+    """Maps a 1-based menu answer to its choice; blank or invalid picks the first one."""
+    answer = answer.strip()
+    if answer.isdigit() and 1 <= int(answer) <= len(choices):
+        return choices[int(answer) - 1]
+    return choices[0]
+
+
 def _split_sequence_or_single(
     val: Optional[Union[float, List[float]]]
 ) -> Tuple[Optional[List[float]], Optional[float]]:
@@ -140,7 +168,8 @@ class ScriptedObservationAdapter:
                  u3_lateral_dev: Optional[Union[float, List[float]]] = None,
                  motor_directions: Tuple[bool, bool] = (True, True),
                  ir_verified: bool = True,
-                 indicators_verified: bool = True) -> None:
+                 indicators_verified: bool = True,
+                 mpu_mounting: Optional[MpuMounting] = None) -> None:
         self.u1_sequence, self.u1_single = _split_sequence_or_single(u1_ground_truth)
         self.u2_sequence, self.u2_single = _split_sequence_or_single(u2_actual_angle)
         self.u3_sequence, self.u3_single = _split_sequence_or_single(u3_lateral_dev)
@@ -148,6 +177,7 @@ class ScriptedObservationAdapter:
         self.motor_directions: Tuple[bool, bool] = motor_directions
         self.ir_verified: bool = bool(ir_verified)
         self.indicators_verified: bool = bool(indicators_verified)
+        self.mpu_mounting: Optional[MpuMounting] = mpu_mounting
 
     def set_u1_ground_truth(self, val: Union[float, List[float]]) -> None:
         self.u1_sequence, self.u1_single = _split_sequence_or_single(val)
@@ -161,8 +191,14 @@ class ScriptedObservationAdapter:
     def set_motor_directions(self, left_forward: bool, right_forward: bool) -> None:
         self.motor_directions = (bool(left_forward), bool(right_forward))
 
+    def set_mpu_mounting(self, mounting: Optional[MpuMounting]) -> None:
+        self.mpu_mounting = mounting
+
     def verify_ir_sensors(self, initial_left: bool, initial_right: bool) -> bool:
         return self.ir_verified
+
+    def ask_mpu_mounting(self) -> Optional[MpuMounting]:
+        return self.mpu_mounting
 
     def verify_indicators(self) -> bool:
         return self.indicators_verified

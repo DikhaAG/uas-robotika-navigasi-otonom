@@ -29,6 +29,7 @@ void CalibrationProfile::resetToDefaults() {
     data.gyroBiasZ = 0.0f;
     data.invertMotorKiri = 1;
     data.invertMotorKanan = 1;
+    data.gyroSign = GYRO_SIGN_DEFAULT;
     data.checksum = computeChecksum((const uint8_t*)&data, sizeof(CalibrationData) - 1);
 }
 
@@ -41,6 +42,7 @@ bool CalibrationProfile::isValid() const {
     if (isnan(data.gyroBiasZ) || isinf(data.gyroBiasZ) || fabs(data.gyroBiasZ) > 50.0f) return false;
     if (data.invertMotorKiri != 1 && data.invertMotorKiri != -1) return false;
     if (data.invertMotorKanan != 1 && data.invertMotorKanan != -1) return false;
+    if (data.gyroSign != 1 && data.gyroSign != -1) return false;
     return true;
 }
 
@@ -51,6 +53,9 @@ bool CalibrationProfile::load() {
         bytePtr[i] = Hal::eepromRead(CALIB_EEPROM_START_ADDR + i);
     }
 
+    if (temp.magic == CALIB_MAGIC_SIGNATURE && temp.version == CALIB_PROFILE_VERSION_V1) {
+        return loadVersion1();
+    }
     if (temp.magic != CALIB_MAGIC_SIGNATURE || temp.version != CALIB_PROFILE_VERSION) {
         resetToDefaults();
         return false;
@@ -68,6 +73,33 @@ bool CalibrationProfile::load() {
         return false;
     }
 
+    return true;
+}
+
+// Keeps a profile calibrated before gyroSign existed; the sign takes the Config.h
+// default until the wizard (or the next save) records the actual mounting.
+bool CalibrationProfile::loadVersion1() {
+    CalibrationDataV1 old;
+    uint8_t* bytePtr = (uint8_t*)&old;
+    for (uint16_t i = 0; i < sizeof(CalibrationDataV1); ++i) {
+        bytePtr[i] = Hal::eepromRead(CALIB_EEPROM_START_ADDR + i);
+    }
+    if (old.checksum != computeChecksum((const uint8_t*)&old, sizeof(CalibrationDataV1) - 1)) {
+        resetToDefaults();
+        return false;
+    }
+
+    resetToDefaults();
+    data.diameterRodaMm = old.diameterRodaMm;
+    data.trimMotorKiri = old.trimMotorKiri;
+    data.trimMotorKanan = old.trimMotorKanan;
+    data.gyroBiasZ = old.gyroBiasZ;
+    data.invertMotorKiri = old.invertMotorKiri;
+    data.invertMotorKanan = old.invertMotorKanan;
+    if (!isValid()) {
+        resetToDefaults();
+        return false;
+    }
     return true;
 }
 
@@ -113,6 +145,10 @@ int8_t CalibrationProfile::getInvertMotorKanan() const {
     return data.invertMotorKanan;
 }
 
+int8_t CalibrationProfile::getGyroSign() const {
+    return data.gyroSign;
+}
+
 void CalibrationProfile::setDiameterRodaMm(float d) {
     data.diameterRodaMm = d;
 }
@@ -135,4 +171,8 @@ void CalibrationProfile::setInvertMotorKiri(int8_t inv) {
 
 void CalibrationProfile::setInvertMotorKanan(int8_t inv) {
     data.invertMotorKanan = (inv == -1) ? -1 : 1;
+}
+
+void CalibrationProfile::setGyroSign(int8_t sign) {
+    data.gyroSign = sign;
 }

@@ -43,6 +43,22 @@ void test_gyroscope() {
     Gyroscope::finalizeCalibration();
     assert(approxEqual(Gyroscope::getBias(), 2.5f, 0.05f));
 
+    // Mounting sign: a GY-521 fitted upside down reports yaw with the opposite sign
+    Gyroscope::finalizeCalibration();
+    Gyroscope::resetCalibration();
+    Gyroscope::finalizeCalibration();
+    assert(Gyroscope::getSign() == 1);
+    Gyroscope::setMockZRate(20.0f);
+    Gyroscope::setSign(-1);
+    assert(Gyroscope::getSign() == -1);
+    assert(approxEqual(Gyroscope::readZRate(), -20.0f));
+    Gyroscope::setSign(7); // anything but -1 means chip facing up
+    assert(Gyroscope::getSign() == 1);
+    assert(approxEqual(Gyroscope::readZRate(), 20.0f));
+    Gyroscope::setSign(-1);
+    Gyroscope::init(); // init restores the Config.h default
+    assert(Gyroscope::getSign() == 1);
+
     // Reset bias for subsequent tests
     Gyroscope::resetCalibration();
     Gyroscope::finalizeCalibration();

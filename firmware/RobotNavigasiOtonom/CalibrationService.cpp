@@ -17,6 +17,7 @@ void CalibrationService::init() {
     Motors::setInversion(activeProfile.getInvertMotorKiri(), activeProfile.getInvertMotorKanan());
     Motors::setTrim(activeProfile.getTrimMotorKiri(), activeProfile.getTrimMotorKanan());
     Odometry::setWheelDiameterMm(activeProfile.getDiameterRodaMm());
+    Gyroscope::setSign(activeProfile.getGyroSign());
 }
 
 CalibrationProfile& CalibrationService::getActiveProfile() {
@@ -307,13 +308,14 @@ bool CalibrationService::handleCalibRead(char* response, size_t responseSize) {
         char trimLText[FloatText::BUFFER_SIZE];
         char trimRText[FloatText::BUFFER_SIZE];
         char biasText[FloatText::BUFFER_SIZE];
-        snprintf(response, responseSize, "!CALIB:DATA:%s:%s:%s:%s:%d:%d",
+        snprintf(response, responseSize, "!CALIB:DATA:%s:%s:%s:%s:%d:%d:%d",
                  FloatText::format(diamText, sizeof(diamText), activeProfile.getDiameterRodaMm(), 2),
                  FloatText::format(trimLText, sizeof(trimLText), activeProfile.getTrimMotorKiri(), 3),
                  FloatText::format(trimRText, sizeof(trimRText), activeProfile.getTrimMotorKanan(), 3),
                  FloatText::format(biasText, sizeof(biasText), activeProfile.getGyroBiasZ(), 3),
                  activeProfile.getInvertMotorKiri(),
-                 activeProfile.getInvertMotorKanan());
+                 activeProfile.getInvertMotorKanan(),
+                 activeProfile.getGyroSign());
     }
     return true;
 }
@@ -321,14 +323,24 @@ bool CalibrationService::handleCalibRead(char* response, size_t responseSize) {
 bool CalibrationService::handleCalibWrite(const char* args, char* response, size_t responseSize) {
     float diam = 0.0f, trimL = 0.0f, trimR = 0.0f, biasZ = 0.0f;
     long invL = 1, invR = 1;
+    long gyroSign = activeProfile.getGyroSign(); // kept when an older host sends 6 fields
     const char* cursor = args;
 
-    if (FloatText::parseFloatField(cursor, ':', diam) &&
-        FloatText::parseFloatField(cursor, ':', trimL) &&
-        FloatText::parseFloatField(cursor, ':', trimR) &&
-        FloatText::parseFloatField(cursor, ':', biasZ) &&
-        FloatText::parseLongField(cursor, ':', invL) &&
-        FloatText::parseLongField(cursor, '\0', invR)) {
+    bool parsed = FloatText::parseFloatField(cursor, ':', diam) &&
+                  FloatText::parseFloatField(cursor, ':', trimL) &&
+                  FloatText::parseFloatField(cursor, ':', trimR) &&
+                  FloatText::parseFloatField(cursor, ':', biasZ) &&
+                  FloatText::parseLongField(cursor, ':', invL);
+    if (parsed) {
+        const char* invRStart = cursor;
+        if (!FloatText::parseLongField(cursor, '\0', invR)) {
+            cursor = invRStart;
+            parsed = FloatText::parseLongField(cursor, ':', invR) &&
+                     FloatText::parseLongField(cursor, '\0', gyroSign);
+        }
+    }
+
+    if (parsed) {
         CalibrationProfile candidate;
         candidate.setDiameterRodaMm(diam);
         candidate.setTrimMotorKiri(trimL);
@@ -336,6 +348,7 @@ bool CalibrationService::handleCalibWrite(const char* args, char* response, size
         candidate.setGyroBiasZ(biasZ);
         candidate.setInvertMotorKiri((int8_t)invL);
         candidate.setInvertMotorKanan((int8_t)invR);
+        candidate.setGyroSign((gyroSign == 1 || gyroSign == -1) ? (int8_t)gyroSign : (int8_t)0);
 
         if (candidate.isValid()) {
             activeProfile = candidate;
@@ -343,6 +356,7 @@ bool CalibrationService::handleCalibWrite(const char* args, char* response, size
             Motors::setInversion(activeProfile.getInvertMotorKiri(), activeProfile.getInvertMotorKanan());
             Motors::setTrim(activeProfile.getTrimMotorKiri(), activeProfile.getTrimMotorKanan());
             Odometry::setWheelDiameterMm(activeProfile.getDiameterRodaMm());
+            Gyroscope::setSign(activeProfile.getGyroSign());
 
             if (response != NULL && responseSize > 0) {
                 snprintf(response, responseSize, "!OK");
@@ -368,6 +382,7 @@ bool CalibrationService::handleCalibReset(char* response, size_t responseSize) {
     Motors::setInversion(1, 1);
     Motors::setTrim(TRIM_MOTOR_KIRI, TRIM_MOTOR_KANAN);
     Odometry::setWheelDiameterMm(DIAMETER_RODA_MM);
+    Gyroscope::setSign(activeProfile.getGyroSign());
 
     if (response != NULL && responseSize > 0) {
         snprintf(response, responseSize, "!RESET:OK");

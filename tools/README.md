@@ -63,7 +63,7 @@ Diagram yang dihasilkan memvisualisasikan:
 Utilitas interaktif berbasis terminal (CLI) untuk mengeksekusi pengujian perangkat keras Pre-Flight (Stage U0), penguncian keamanan (*hard-gated safety*), serta kalibrasi parameter kinematika robot secara dinamis (Stage U1–U4) tanpa kompilasi ulang kode sumber.
 
 ### Fitur Stage U0 (Pre-Flight Hardware Diagnostics):
-- **U0.1 MPU6050 I2C Bus**: Memeriksa register `WHO_AM_I` pada address 0x68 (Pin SDA A4, SCL A5).
+- **U0.1 MPU6050 I2C Bus & Orientasi**: Memeriksa register `WHO_AM_I` pada address 0x68 (Pin SDA A4, SCL A5), lalu menanyakan orientasi modul (chip menghadap atas/bawah/tegak + arah panah X) dan menyimpan `gyroSign` (`+1`/`-1`) ke EEPROM. Modul tegak ditolak. Dapat diubah ulang lewat menu individual **[8] Atur Orientasi MPU6050**.
 - **U0.2 Sonar Ultrasonik HC-SR04**: Validasi pantulan echo bebas timeout (Trig A0, Echo A1).
 - **U0.3 Sensor IR Lateral FC-51**: Pengujian logika active-low sensor dinding kiri (A3) dan kanan (D11).
 - **U0.4 Indikator Buzzer & LED**: Pengujian audio-visual buzzer piezo (A2) dan status LED (D13).

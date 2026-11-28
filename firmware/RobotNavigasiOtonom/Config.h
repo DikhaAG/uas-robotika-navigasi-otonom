@@ -109,7 +109,11 @@
 // Gyroscope configuration
 #define MPU6050_I2C_ADDR     0x68
 #define GYRO_SCALE_250DPS    131.0f  // LSB / (deg/s)
-#define GYRO_SIGN            1.0f    // +1 or -1 based on mounting orientation
+// Yaw sign by mounting: +1 = GY-521 flat, chip facing UP; -1 = flat, chip facing DOWN.
+// Only the default for an uncalibrated EEPROM: the wizard (U0.1 / menu) stores the
+// actual mounting in the calibration profile, which overrides this at boot.
+#define GYRO_SIGN            1.0f
+#define GYRO_SIGN_DEFAULT    ((GYRO_SIGN < 0.0f) ? -1 : 1)
 
 // ==========================================
 // 4. Motion Control & Speed Settings

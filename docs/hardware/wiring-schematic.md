@@ -99,7 +99,7 @@ Panduan perakitan kabel langkah-demi-langkah untuk **Robot Navigasi Otonom (Ardu
    - `SDA` $\rightarrow$ Pin **`A4`** Arduino Uno
    - `SCL` $\rightarrow$ Pin **`A5`** Arduino Uno
    - `AD0` $\rightarrow$ Biarkan kosong (tidak disambung) atau hubungkan ke `GND` agar alamat I2C tetap **`0x68`**.
-   - *(Pemasangan fisik: pastikan posisi papan MPU6050 sejajar datar dengan sasis robot dan tidak miring).*
+   - *(Pemasangan fisik: papan MPU6050 **datar** sejajar sasis (tidak miring, tidak berdiri), dipasang kencang di atas poros roda dengan sumbu X searah depan robot sesuai brief. Firmware hanya membaca gyro sumbu Z, jadi chip boleh menghadap **atas** atau **bawah** dan panah X boleh ke mana saja — pilih orientasinya di wizard `auto_calibrate.py` (U0.1 atau menu [8]) agar tanda gyro tersimpan di EEPROM.)*
 3. **Sensor IR Dinding Kiri (FC-51 Kiri):**
    - `VCC` $\rightarrow$ Bus **`+5V`**
    - `OUT` $\rightarrow$ Pin **`A3`** Arduino Uno

@@ -20,6 +20,7 @@ from tools.calibration.models import (
     EncoderTranslationTelemetry,
     HeadingTelemetry,
     MotorPulses,
+    MpuMounting,
     MotorTrimPair,
     SafetyGate,
     SafetyGateError,

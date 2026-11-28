@@ -15,6 +15,10 @@ public:
     static float readZRate(); // Angular velocity Z in deg/sec
     static float getBias();
 
+    // Mounting sign (+1 chip facing up, -1 chip facing down); anything but -1 means +1
+    static void setSign(int8_t sign);
+    static int8_t getSign();
+
 #ifndef ARDUINO
     // Mock methods for desktop TDD & simulation
     static void setMockZRate(float rate_dps);
@@ -28,6 +32,7 @@ private:
     static float gyroBiasZ;
     static float gyroCalibSumZ;
     static uint16_t gyroCalibCount;
+    static int8_t mountSign;
 
 #ifndef ARDUINO
     static float mockGyroZ;

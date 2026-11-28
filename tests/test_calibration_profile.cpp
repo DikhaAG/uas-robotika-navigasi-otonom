@@ -1,6 +1,7 @@
 #include <cassert>
 #include <iostream>
 #include <cmath>
+#include <cstring>
 #include "../firmware/RobotNavigasiOtonom/Config.h"
 #include "../firmware/RobotNavigasiOtonom/Hal.h"
 #include "../firmware/RobotNavigasiOtonom/Motors.h"
@@ -21,6 +22,7 @@ int main() {
     assert(std::fabs(profile.getGyroBiasZ() - 0.0f) < 0.001f);
     assert(profile.getInvertMotorKiri() == 1);
     assert(profile.getInvertMotorKanan() == 1);
+    assert(profile.getGyroSign() == 1);
     assert(profile.isValid());
     std::cout << "  ✓ Test 1: Default initialization passed." << std::endl;
 
@@ -39,6 +41,7 @@ int main() {
     profile.setGyroBiasZ(-0.025f);
     profile.setInvertMotorKiri(-1);
     profile.setInvertMotorKanan(1);
+    profile.setGyroSign(-1);
 
     bool saved = profile.save();
     assert(saved);
@@ -48,7 +51,7 @@ int main() {
     uint8_t magicHigh = Hal::getMockEeprom(1);
     uint16_t magic = ((uint16_t)magicHigh << 8) | magicLow;
     assert(magic == 0xCA1B);
-    assert(Hal::getMockEeprom(2) == 0x01); // Version 0x01
+    assert(Hal::getMockEeprom(2) == 0x02); // Version 0x02 (adds gyroSign)
 
     // Create a new fresh profile object and load
     CalibrationProfile loadedProfile;
@@ -61,6 +64,7 @@ int main() {
     assert(std::fabs(loadedProfile.getGyroBiasZ() - (-0.025f)) < 0.001f);
     assert(loadedProfile.getInvertMotorKiri() == -1);
     assert(loadedProfile.getInvertMotorKanan() == 1);
+    assert(loadedProfile.getGyroSign() == -1);
     std::cout << "  ✓ Test 3: Save and reload valid profile passed." << std::endl;
 
     // Test 4: Corruption rejection (tamper with checksum or payload byte)
@@ -100,7 +104,44 @@ int main() {
     assert(!rangeProfile.isValid());
     rangeProfile.setGyroBiasZ(0.0f);
     assert(rangeProfile.isValid());
+    rangeProfile.setGyroSign(0); // Gyro sign must be exactly +1 or -1
+    assert(!rangeProfile.isValid());
+    rangeProfile.setGyroSign(2);
+    assert(!rangeProfile.isValid());
+    rangeProfile.setGyroSign(-1);
+    assert(rangeProfile.isValid());
     std::cout << "  ✓ Test 5b: Range validation in isValid() passed." << std::endl;
+
+    // Test 5c: A version-1 profile (saved before gyroSign existed) is migrated, not discarded
+    {
+        Hal::resetMock();
+        // v1 layout: magic(2) version(1) diam trimL trimR bias (4 floats) invL invR crc
+        uint8_t v1[22];
+        float diam = 67.25f, trimL = 0.95f, trimR = 1.05f, bias = -0.5f;
+        v1[0] = 0x1B; v1[1] = 0xCA; v1[2] = 0x01;
+        std::memcpy(&v1[3], &diam, 4);
+        std::memcpy(&v1[7], &trimL, 4);
+        std::memcpy(&v1[11], &trimR, 4);
+        std::memcpy(&v1[15], &bias, 4);
+        v1[19] = (uint8_t)(int8_t)-1;
+        v1[20] = 1;
+        v1[21] = CalibrationProfile::computeChecksum(v1, 21);
+        for (uint8_t i = 0; i < sizeof(v1); ++i) {
+            Hal::setMockEeprom(i, v1[i]);
+        }
+        CalibrationProfile migrated;
+        assert(migrated.load());
+        assert(std::fabs(migrated.getDiameterRodaMm() - 67.25f) < 0.001f);
+        assert(std::fabs(migrated.getTrimMotorKiri() - 0.95f) < 0.001f);
+        assert(migrated.getInvertMotorKiri() == -1);
+        assert(migrated.getGyroSign() == 1); // Config.h GYRO_SIGN default
+
+        // A corrupted v1 image is still rejected
+        Hal::setMockEeprom(4, Hal::getMockEeprom(4) ^ 0xFF);
+        CalibrationProfile corruptV1;
+        assert(!corruptV1.load());
+    }
+    std::cout << "  ✓ Test 5c: Version-1 EEPROM profile migration passed." << std::endl;
 
     // Test 6: Software motor polarity inversion integration
     Motors::init();

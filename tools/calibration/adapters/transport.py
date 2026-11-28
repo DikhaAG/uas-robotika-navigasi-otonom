@@ -119,6 +119,7 @@ class _AsciiProtocolTransportMixin:
             gyro_bias_z=float(parts[3]),
             invert_motor_kiri=int(parts[4]),
             invert_motor_kanan=int(parts[5]),
+            gyro_sign=int(parts[6]) if len(parts) > 6 else 1,  # older firmware: 6 fields
         )
 
     def write_profile(self, profile: CalibrationProfileData) -> bool:
@@ -234,8 +235,12 @@ class MockRobotSerial(_AsciiProtocolTransportMixin):
             return f"!CALIB:DATA:{self.profile.to_command_args()}\n".encode("ascii")
         elif cmd.startswith("!CALIB:WRITE:"):
             parts = cmd[13:].split(":")
-            if len(parts) == 6:
+            if len(parts) in (6, 7):
                 try:
+                    if len(parts) == 7:
+                        if int(parts[6]) not in (1, -1):
+                            return b"!ERR:INVALID\n"
+                        self.profile.gyro_sign = int(parts[6])
                     self.profile.diameter_roda_mm = float(parts[0])
                     self.profile.trim_motor_kiri = float(parts[1])
                     self.profile.trim_motor_kanan = float(parts[2])

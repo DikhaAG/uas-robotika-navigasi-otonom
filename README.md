@@ -187,7 +187,7 @@ Agar tidak salah memilih modul saat membeli maupun saat merangkai:
   - **`0x68`** adalah **alamat I2C** standar MPU6050 (dalam heksadesimal) agar Arduino/ESP32 tahu perangkat mana yang dipanggil pada bus `SDA`/`SCL` ([`Config.h`](firmware/RobotNavigasiOtonom/Config.h)).
   - Alamat ini diatur oleh pin **`AD0`**: jika `AD0` **dibiarkan kosong atau disambung ke `GND`**, alamatnya tetap **`0x68`**; jika `AD0` disambung ke `VCC`, alamatnya berubah menjadi `0x69` sehingga tidak terbaca oleh firmware.
   - Selain sebagai alamat bus, chip MPU6050 yang sehat juga mengembalikan nilai **`0x68`** saat firmware membaca register identitas **`WHO_AM_I` (`0x75`)** pada [`Gyroscope.cpp`](firmware/RobotNavigasiOtonom/Gyroscope.cpp).
-- **Pemasangan fisik:** Tempel modul **datar dan sejajar** dengan sasis robot (tidak miring) agar gyroscope sumbu-Z mengukur sudut belok (*yaw*) secara akurat.
+- **Pemasangan fisik:** Tempel modul **datar dan sejajar** dengan sasis robot (tidak miring, tidak berdiri) agar gyroscope sumbu-Z mengukur sudut belok (*yaw*) secara akurat. Chip boleh menghadap **atas atau bawah**, dan panah sumbu X boleh mengarah ke mana saja (firmware hanya memakai sumbu Z); pilih orientasinya di wizard (**U0.1** atau menu **[8] Atur Orientasi MPU6050**): chip menghadap **atas** $\rightarrow$ `gyroSign = +1`, menghadap **bawah** (terbalik) $\rightarrow$ `gyroSign = -1`, tersimpan di EEPROM tanpa upload ulang.
 
 #### 3. Catu Daya & Komponen Proteksi Derau
 - **Baterai Li-Ion 18650 2S** (nominal `7.4 V`, penuh `8.4 V`) **atau 3S** (nominal `11.1 V`, penuh `12.6 V`), kapasitas $\ge 2200\text{ mAh}$ + **Holder Baterai** + **Switch ON/OFF Utama**
@@ -224,7 +224,7 @@ make check
 
 Perintah `make check` otomatis menjalankan 3 tahap:
 1. **`make lint`**: Memeriksa tidak ada `delay()` yang memblokir di algoritma firmware, validasi sintaks Python, dan pengecekan standar tipe Python.
-2. **`make test`**: Mengompilasi dan menjalankan seluruh **9 suite unit test C++** (`tests/test_*`) serta **46 unit test Python** (`tests/test_auto_calibrate.py`), ditambah tes model 3D (`tests/test_blender_*.py`: netlist 41 kabel dicocokkan dengan `Config.h` & `wiring-schematic.md`, tata letak sasis, rute kabel, dan manifest model). Semuanya berjalan **tanpa Blender dan tanpa internet**.
+2. **`make test`**: Mengompilasi dan menjalankan seluruh **9 suite unit test C++** (`tests/test_*`) serta **53 unit test Python** (`tests/test_auto_calibrate.py`), ditambah tes model 3D (`tests/test_blender_*.py`: netlist 41 kabel dicocokkan dengan `Config.h` & `wiring-schematic.md`, tata letak sasis, rute kabel, dan manifest model). Semuanya berjalan **tanpa Blender dan tanpa internet**.
 3. **`make run_simulation`**: Mengompilasi simulator native C++ (`tools/sim_navigation`), menjalankan skenario navigasi standar, dan merender `tools/trajectory_plot.svg`.
 
 Jika di akhir terminal muncul pesan:
@@ -361,7 +361,7 @@ Baris terakhir yang menandakan sukses adalah `ROBOT MODEL OK: 41 wires, 25 parts
 **Membuka model:** buka `build/robot_3d.blend` di Blender. Di Outliner, kabel dikelompokkan per tahap perakitan (*Wires → Tahap 1 – Daya … Tahap 5 – START & Buzzer*). Klik ikon mata untuk menampilkan atau menyembunyikan kabel per tahap, mengikuti urutan perakitan 5 tahap. Warna kabel mengikuti skematik: merah tegangan baterai, oranye 5V, hitam GND, biru sinyal motor, cokelat keluaran motor, hijau sensor, ungu I2C, dan biru muda START/buzzer.
 
 > **Catatan saat merakit mengikuti model:**
-> - Modul **MPU6050 (GY-521)** dan **HC-SR04** dipasang **terbalik** di model supaya pin header menghadap ke atas. Jika Anda merakit dengan cara yang sama, arah sumbu-Z gyroscope ikut terbalik; periksa hasil uji **U2** dan sesuaikan `GYRO_SIGN` di `Config.h` bila perlu.
+> - Modul **MPU6050 (GY-521)** dan **HC-SR04** dipasang **terbalik** di model supaya pin header menghadap ke atas. Jika Anda merakit dengan cara yang sama, arah sumbu-Z gyroscope ikut terbalik; pilih **"chip menghadap BAWAH"** pada wizard (U0.1 / menu [8]) agar `gyroSign = -1` tersimpan di EEPROM.
 > - Rel breadboard dipakai **berselang-seling**: kabel `+5V` di lubang ganjil, kabel `GND` di lubang genap, agar konektor tidak berdesakan. Secara listrik setiap lubang pada satu rel tetap sama.
 > - Model komponen unduhan **tidak disertakan di git** (sebagian tanpa lisensi redistribusi). Sumber, lisensi, dan atribusinya ada di [assets/3d/SOURCES.md](assets/3d/SOURCES.md). Penjelasan modul lengkap ada di [tools/README.md](tools/README.md#4-model-3d-rangkaian-blender-blender).
 
@@ -417,7 +417,7 @@ python3 tools/auto_calibrate.py --port /dev/ttyUSB0 --mode individual
 #### Penjelasan Setiap Tahap di Dalam Wizard
 
 1. **Stage U0 — Pre-Flight Hardware Diagnostics (*Hard-Gate*):**
-   - **U0.1 MPU6050:** Mengecek respons alamat I2C `0x68` (`WHO_AM_I`).
+   - **U0.1 MPU6050:** Mengecek respons alamat I2C `0x68` (`WHO_AM_I`), lalu menanyakan **orientasi pemasangan**: chip menghadap **ATAS** / **BAWAH** / **tegak**, dan arah panah sumbu X (depan/belakang/kiri/kanan). Atas $\rightarrow$ `gyroSign = +1`, bawah $\rightarrow$ `gyroSign = -1` (disimpan ke EEPROM); arah panah X hanya dicatat karena firmware hanya memakai gyro sumbu Z. Modul **tegak/miring ditolak** dan mengunci U1–U4. Orientasi juga dapat diubah kapan saja lewat menu **[8] Atur Orientasi MPU6050** (`--mode individual`).
    - **U0.2 Sonar HC-SR04:** Memastikan pantulan jarak valid (`2.0–400.0 cm`) tanpa timeout.
    - **U0.3 Sensor IR FC-51:** Dekatkan tangan ke sensor kiri dan kanan lalu konfirmasi ke wizard apakah LED modul FC-51 menyala saat dihalangi.
    - **U0.4 Buzzer & LED:** Konfirmasi buzzer berbunyi dan LED berkedip singkat.
@@ -526,8 +526,8 @@ Saat firmware utama `RobotNavigasiOtonom` berada di `STATE_IDLE`, komunikasi ser
 | `!STEP:U2:<angle>` | `!U2:DONE:<thetaDeg>` | Eksekusi rotasi *in-place* sebesar `<angle>` derajat |
 | `!STEP:U3` | `!U3:DONE:<pL>:<pR>:<maxErrDeg>` | Eksekusi uji jalur lurus 150 cm berpandu gyro |
 | `!STEP:U4` | `!U4:DONE:<distCm>` | Mengambil pembacaan jarak sonar terbaru |
-| `!CALIB:READ` | `!CALIB:DATA:<diam>:<tL>:<tR>:<bias>:<invL>:<invR>` | Membaca parameter kalibrasi aktif |
-| `!CALIB:WRITE:<diam>:<tL>:<tR>:<bias>:<invL>:<invR>` | `!OK` / `!ERR:INVALID` | Menyimpan parameter kalibrasi baru ke EEPROM |
+| `!CALIB:READ` | `!CALIB:DATA:<diam>:<tL>:<tR>:<bias>:<invL>:<invR>:<gyroSign>` | Membaca parameter kalibrasi aktif (`gyroSign` `+1` = chip MPU6050 menghadap atas, `-1` = menghadap bawah) |
+| `!CALIB:WRITE:<diam>:<tL>:<tR>:<bias>:<invL>:<invR>:<gyroSign>` | `!OK` / `!ERR:INVALID` | Menyimpan parameter kalibrasi baru ke EEPROM (`gyroSign` harus `1`/`-1`; format lama 6 field tetap diterima dan mempertahankan `gyroSign` tersimpan) |
 | `!CALIB:RESET` | `!RESET:OK` | Menghapus EEPROM & kembali ke nilai default `Config.h` |
 | `!TRIP:READ` | `!TRIP:<pL>:<pR>` / `!TRIP:NONE` | Pulsa trip terakhir yang tersimpan di EEPROM (robot didorong tangan tanpa USB, disimpan otomatis setelah roda diam 1 detik bila ≥20 pulsa; trip baru dimulai saat Arduino menyala/reset) |
 
@@ -549,7 +549,7 @@ Saat firmware utama `RobotNavigasiOtonom` berada di `STATE_IDLE`, komunikasi ser
   2. Pastikan daya motor `VCC2` dipisah dari rail 5V logika dan **Star Ground** terpasang benar.
   3. Pastikan kapasitor decoupling ($220\,\mu\text{F}$ pada `VCC2` dan $100\text{ nF}$ pada `VCC1` & motor) sudah terpasang, dan baterai tidak lemah (2S $< 6.8\text{ V}$, 3S $< 10.2\text{ V}$).
 - **Robot berputar di tempat terus-menerus atau melenceng jauh saat belok:**
-  - Cek hasil uji U2: pastikan `GYRO_SIGN` (`+1.0f` / `-1.0f` di `Config.h`) sesuai arah pemasangan fisik modul MPU6050, dan jangan menyentuh robot selama `2 detik` pertama setelah tombol `START` ditekan (`STATE_KALIBRASI`).
+  - Cek orientasi MPU6050 yang tersimpan (menu **[6]** wizard, baris *Tanda Gyro*): harus sesuai arah pemasangan fisik (chip atas = `+1`, bawah = `-1`); ubah lewat menu **[8]** bila salah. Gejala tanda salah: robot berputar terus tanpa berhenti saat U2 / `ORIENTASI`. Jangan menyentuh robot selama `2 detik` pertama setelah tombol `START` ditekan (`STATE_KALIBRASI`).
 - **Robot langsung masuk `STATE_GAGAL` (LED kedip cepat, buzzer 2 detik):**
   Periksa 4 kemungkinan penyebab *failsafe*:
   1. Salah satu roda tidak menghasilkan pulsa encoder saat motor berputar $\ge 1\text{ detik}$ (*Motor Stall* — cek sensor LM393 pin `D2`/`D3` dan cakram encoder).

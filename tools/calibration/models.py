@@ -3,7 +3,7 @@ Domain models, data classes, and safety invariants for the Calibration Wizard.
 """
 
 from dataclasses import dataclass, field
-from typing import Iterator, List, Optional, Union
+from typing import ClassVar, Dict, Iterator, List, Optional, Tuple, Union
 
 
 class SafetyGateError(RuntimeError):
@@ -39,6 +39,7 @@ class CalibrationProfileData:
     gyro_bias_z: float = 0.0
     invert_motor_kiri: int = 1
     invert_motor_kanan: int = 1
+    gyro_sign: int = 1  # +1 MPU6050 chip facing up, -1 facing down
 
     def __post_init__(self) -> None:
         self.diameter_roda_mm = float(self.diameter_roda_mm)
@@ -47,10 +48,11 @@ class CalibrationProfileData:
         self.gyro_bias_z = float(self.gyro_bias_z)
         self.invert_motor_kiri = int(self.invert_motor_kiri)
         self.invert_motor_kanan = int(self.invert_motor_kanan)
+        self.gyro_sign = int(self.gyro_sign)
 
     def to_command_args(self) -> str:
         return (f"{self.diameter_roda_mm:.2f}:{self.trim_motor_kiri:.3f}:{self.trim_motor_kanan:.3f}:"
-                f"{self.gyro_bias_z:.3f}:{self.invert_motor_kiri}:{self.invert_motor_kanan}")
+                f"{self.gyro_bias_z:.3f}:{self.invert_motor_kiri}:{self.invert_motor_kanan}:{self.gyro_sign}")
 
     def clone(self) -> "CalibrationProfileData":
         return CalibrationProfileData(
@@ -60,12 +62,43 @@ class CalibrationProfileData:
             gyro_bias_z=self.gyro_bias_z,
             invert_motor_kiri=self.invert_motor_kiri,
             invert_motor_kanan=self.invert_motor_kanan,
+            gyro_sign=self.gyro_sign,
         )
 
     def __repr__(self) -> str:
         return (f"CalibrationProfileData(diameter={self.diameter_roda_mm:.2f}mm, "
                 f"trimL={self.trim_motor_kiri:.3f}, trimR={self.trim_motor_kanan:.3f}, "
-                f"biasZ={self.gyro_bias_z:.3f}, invL={self.invert_motor_kiri}, invR={self.invert_motor_kanan})")
+                f"biasZ={self.gyro_bias_z:.3f}, invL={self.invert_motor_kiri}, invR={self.invert_motor_kanan}, "
+                f"gyroSign={self.gyro_sign})")
+
+
+@dataclass
+class MpuMounting:
+    """
+    How the GY-521 board sits on the chassis. The firmware only integrates the gyro
+    Z axis (yaw), so the sign depends solely on whether the chip faces up or down;
+    the printed X arrow is recorded for the log but never changes the result.
+    """
+    chip_facing: str    # "atas" | "bawah" | "tegak"
+    x_axis_facing: str  # "depan" | "belakang" | "kiri" | "kanan"
+
+    CHIP_FACING_CHOICES: ClassVar[Tuple[str, ...]] = ("atas", "bawah", "tegak")
+    X_AXIS_CHOICES: ClassVar[Tuple[str, ...]] = ("depan", "belakang", "kiri", "kanan")
+    _SIGN_BY_FACING: ClassVar[Dict[str, Optional[int]]] = {"atas": 1, "bawah": -1, "tegak": None}
+
+    def __post_init__(self) -> None:
+        if self.chip_facing not in self.CHIP_FACING_CHOICES:
+            raise ValueError(f"chip_facing harus salah satu dari {self.CHIP_FACING_CHOICES}")
+        if self.x_axis_facing not in self.X_AXIS_CHOICES:
+            raise ValueError(f"x_axis_facing harus salah satu dari {self.X_AXIS_CHOICES}")
+
+    @property
+    def gyro_sign(self) -> Optional[int]:
+        """+1 chip up, -1 chip down, None when upright (yaw cannot be measured)."""
+        return self._SIGN_BY_FACING[self.chip_facing]
+
+    def describe(self) -> str:
+        return f"chip menghadap {self.chip_facing.upper()}, panah X ke {self.x_axis_facing.upper()}"
 
 
 @dataclass

@@ -7,6 +7,7 @@
 float Gyroscope::gyroBiasZ = 0.0f;
 float Gyroscope::gyroCalibSumZ = 0.0f;
 uint16_t Gyroscope::gyroCalibCount = 0;
+int8_t Gyroscope::mountSign = GYRO_SIGN_DEFAULT;
 
 #ifndef ARDUINO
 float Gyroscope::mockGyroZ = 0.0f;
@@ -55,6 +56,15 @@ void Gyroscope::init() {
     gyroBiasZ = 0.0f;
     gyroCalibSumZ = 0.0f;
     gyroCalibCount = 0;
+    mountSign = GYRO_SIGN_DEFAULT;
+}
+
+void Gyroscope::setSign(int8_t sign) {
+    mountSign = (sign == -1) ? -1 : 1;
+}
+
+int8_t Gyroscope::getSign() {
+    return mountSign;
 }
 
 uint8_t Gyroscope::getWhoAmI() {
@@ -107,11 +117,11 @@ float Gyroscope::readZRate() {
     int16_t rawZ = 0;
     if (readRawZ(rawZ)) {
         float dps = ((float)rawZ / GYRO_SCALE_250DPS) - gyroBiasZ;
-        return dps * GYRO_SIGN;
+        return dps * (float)mountSign;
     }
     return 0.0f;
 #else
-    return mockGyroZ;
+    return mockGyroZ * (float)mountSign; // the mock models the raw chip reading
 #endif
 }
 

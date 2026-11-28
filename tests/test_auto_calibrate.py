@@ -25,6 +25,7 @@ from tools.auto_calibrate import (
     DiagnosticResult,
     KinematicCalibrationRunner,
     MockRobotSerial,
+    MpuMounting,
     NullReporter,
     PreflightDiagnosticsRunner,
     RobotSerialClient,
@@ -141,6 +142,17 @@ class TestSerialProtocolClient(unittest.TestCase):
 
         updated = self.client.read_profile()
         self.assertEqual(updated.invert_motor_kiri, -1)
+
+    def test_profile_carries_gyro_sign_as_seventh_field(self) -> None:
+        profile = CalibrationProfileData(gyro_sign=-1)
+        self.assertTrue(profile.to_command_args().endswith(":1:1:-1"))
+        self.assertTrue(self.client.write_profile(profile))
+        self.assertEqual(self.client.read_profile().gyro_sign, -1)
+
+    def test_read_profile_from_older_firmware_defaults_gyro_sign(self) -> None:
+        backend = FakeArduinoSerial({"!CALIB:READ": [b"!CALIB:DATA:65.00:1.000:1.000:0.000:1:1\r\n"]})
+        client = RobotSerialClient(port=None, baud=115200, serial_backend=backend)
+        self.assertEqual(client.read_profile().gyro_sign, 1)
 
 
 class TestPreflightDiagnostics(unittest.TestCase):
@@ -411,6 +423,49 @@ class TestDeepCalibrationEngine(unittest.TestCase):
         self.assertTrue(report.polarity_inversion_applied)
         prof = self.engine.get_active_profile()
         self.assertEqual(prof.invert_motor_kiri, -1)
+
+    def test_mpu_mounting_sign_depends_only_on_chip_facing(self) -> None:
+        # Only the gyro Z axis is used, so the X arrow direction never changes the sign
+        for x_axis in MpuMounting.X_AXIS_CHOICES:
+            self.assertEqual(MpuMounting("atas", x_axis).gyro_sign, 1)
+            self.assertEqual(MpuMounting("bawah", x_axis).gyro_sign, -1)
+            self.assertIsNone(MpuMounting("tegak", x_axis).gyro_sign)
+        with self.assertRaises(ValueError):
+            MpuMounting("samping", "depan")
+        with self.assertRaises(ValueError):
+            MpuMounting("atas", "serong")
+
+    def test_engine_preflight_stores_upside_down_mpu_mounting(self) -> None:
+        # Chip facing down, X arrow pointing backward (front <-> back, up <-> down)
+        self.observation.set_mpu_mounting(MpuMounting("bawah", "belakang"))
+        report = self.engine.run_preflight()
+        self.assertTrue(report.u01_mpu_passed)
+        self.assertTrue(report.all_passed)
+        self.assertEqual(self.engine.get_active_profile().gyro_sign, -1)
+
+    def test_engine_preflight_rejects_upright_mpu(self) -> None:
+        self.observation.set_mpu_mounting(MpuMounting("tegak", "depan"))
+        report = self.engine.run_preflight()
+        self.assertFalse(report.u01_mpu_passed)
+        self.assertFalse(self.engine.is_motion_permitted())
+        self.assertTrue(any("datar" in h for h in report.get_wiring_repair_instructions()))
+        self.assertEqual(self.engine.get_active_profile().gyro_sign, 1)
+
+    def test_engine_preflight_keeps_gyro_sign_without_mounting_answer(self) -> None:
+        self.engine.configure_mpu_mounting(MpuMounting("bawah", "depan"))
+        report = self.engine.run_preflight()  # scripted adapter gives no mounting answer
+        self.assertTrue(report.all_passed)
+        self.assertEqual(self.engine.get_active_profile().gyro_sign, -1)
+
+    def test_engine_configure_mpu_mounting_preserves_other_fields(self) -> None:
+        self.observation.set_motor_directions(left_forward=False, right_forward=True)
+        self.engine.run_preflight()
+        self.assertTrue(self.engine.configure_mpu_mounting(MpuMounting("bawah", "kiri")))
+        prof = self.engine.get_active_profile()
+        self.assertEqual(prof.gyro_sign, -1)
+        self.assertEqual(prof.invert_motor_kiri, -1)
+        self.assertFalse(self.engine.configure_mpu_mounting(MpuMounting("tegak", "kiri")))
+        self.assertEqual(self.engine.get_active_profile().gyro_sign, -1)
 
     def test_engine_u1_convergence_multi_trial(self) -> None:
         self.engine.run_preflight()

@@ -9,7 +9,7 @@ Protokol kalibrasi mandiri untuk memverifikasi sensor, aktuator, dan estimasi de
 | Kode | Nama Pengujian | Tujuan Kalibrasi | Standar Ground Truth | Batas Toleransi Galat |
 | :---: | :--- | :--- | :--- | :---: |
 | **U1** | Uji Pulsa & Diameter Encoder | Mengkalibrasi `DIAMETER_RODA_MM` | Meteran pita (100 cm) | $\le 3.0\text{ cm}$ |
-| **U2** | Uji Polaritas & Akurasi Gyro | Mengkalibrasi `GYRO_SIGN` & sudut | Busur derajat lantai ($\pm 90^\circ$) | $\le 5.0^\circ$ |
+| **U2** | Uji Polaritas & Akurasi Gyro | Memverifikasi tanda gyro (`gyroSign`) & sudut | Busur derajat lantai ($\pm 90^\circ$) | $\le 5.0^\circ$ |
 | **U3** | Uji Lintasan Lurus Berpemandu | Mengukur deviasi lateral lurus | Garis acuan lantai (150 cm) | $\le 5.0\text{ cm}$ |
 | **U4** | Uji Akurasi Sensor Ultrasonik | Mengkalibrasi HC-SR04 sonar | Mistar ukur (10, 20, 40 cm) | $\le 1.0\text{ cm}$ |
 
@@ -61,7 +61,7 @@ Nilai trim standar berkisar antara $0.85$ hingga $1.15$.
 ## Protokol U2: Kalibrasi Gyroscope MPU6050 & Rotasi In-Place
 
 ### 1. Tujuan
-Menentukan polaritas putaran gyro (`GYRO_SIGN` $= +1$ atau $-1$), menghitung bias statis, dan memvalidasi keakuratan integrasi sudut belok $90^\circ$ dan $360^\circ$.
+Memverifikasi polaritas putaran gyro (`gyroSign` $= +1$ atau $-1$; pada firmware utama dipilih lewat orientasi MPU6050 di wizard U0.1 / menu [8], pada sketch `Uji_MPU6050.ino` lewat konstanta `GYRO_SIGN`), menghitung bias statis, dan memvalidasi keakuratan integrasi sudut belok $90^\circ$ dan $360^\circ$.
 
 ### 2. Peralatan
 - Robot dengan firmware `Uji_MPU6050.ino`.
@@ -72,7 +72,7 @@ Menentukan polaritas putaran gyro (`GYRO_SIGN` $= +1$ atau $-1$), menghitung bia
 2. Nyalakan robot. Firmware otomatis melakukan pengambilan 200 sampel saat robot diam selama 2 detik untuk menghitung `gyroBiasZ`.
 3. Pastikan nilai `Rate Z` saat diam berada di sekitar $0.00 \pm 0.15^\circ/\text{s}$.
 4. Kirim karakter `'l'`. Robot akan berputar di tempat (*in-place*) ke arah kiri hingga pembacaan firmware mencapai $+90^\circ$.
-5. Amati arah fisik robot: jika robot berputar ke kiri, maka `GYRO_SIGN = 1.0f`. Jika berputar ke kanan atau sudut membaca terbalik, ubah `GYRO_SIGN = -1.0f`.
+5. Amati arah fisik robot: jika robot berputar ke kiri, maka `GYRO_SIGN = 1.0f` (chip menghadap atas). Jika berputar ke kanan atau sudut membaca terbalik, ubah `GYRO_SIGN = -1.0f` di sketch uji ini (chip menghadap bawah), lalu pilih orientasi yang sama di wizard untuk firmware utama.
 6. Ukur sudut fisik aktual pada busur lantai. Hitung galat sudut $E = |90^\circ - \theta_{\text{aktual}}|$.
 
 ### 4. Tabel Pengamatan U2

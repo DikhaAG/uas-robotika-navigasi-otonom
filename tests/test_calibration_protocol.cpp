@@ -136,22 +136,37 @@ int main() {
     handled = CalibrationService::executeCommand("!CALIB:READ", response, sizeof(response));
     assert(handled);
     // Defaults: diam 65.0, trimL 1.0, trimR 1.0, biasZ 0.0, invL 1, invR 1
-    assert(strcmp(response, "!CALIB:DATA:65.00:1.000:1.000:0.000:1:1") == 0);
+    assert(strcmp(response, "!CALIB:DATA:65.00:1.000:1.000:0.000:1:1:1") == 0);
 
     // Write updated profile
-    handled = CalibrationService::executeCommand("!CALIB:WRITE:66.50:0.960:1.040:-0.025:-1:1", response, sizeof(response));
+    handled = CalibrationService::executeCommand("!CALIB:WRITE:66.50:0.960:1.040:-0.025:-1:1:-1", response, sizeof(response));
     assert(handled);
     assert(strcmp(response, "!OK") == 0);
 
     // Read back to confirm EEPROM persistence
     handled = CalibrationService::executeCommand("!CALIB:READ", response, sizeof(response));
     assert(handled);
-    assert(strcmp(response, "!CALIB:DATA:66.50:0.960:1.040:-0.025:-1:1") == 0);
+    assert(strcmp(response, "!CALIB:DATA:66.50:0.960:1.040:-0.025:-1:1:-1") == 0);
+    assert(Gyroscope::getSign() == -1); // MPU6050 mounted upside down applied live
     assert(Motors::getInvertLeft() == -1);
     assert(Motors::getInvertRight() == 1);
     assert(approxEqual(Motors::getTrimLeft(), 0.960f, 0.005f));
     assert(approxEqual(Motors::getTrimRight(), 1.040f, 0.005f));
     assert(approxEqual(Odometry::getWheelDiameterMm(), 66.50f, 0.01f));
+
+    // Legacy 6-field WRITE (older host) keeps the stored gyro sign
+    handled = CalibrationService::executeCommand("!CALIB:WRITE:66.00:0.960:1.040:-0.025:-1:1", response, sizeof(response));
+    assert(handled);
+    assert(strcmp(response, "!OK") == 0);
+    handled = CalibrationService::executeCommand("!CALIB:READ", response, sizeof(response));
+    assert(strcmp(response, "!CALIB:DATA:66.00:0.960:1.040:-0.025:-1:1:-1") == 0);
+    assert(Gyroscope::getSign() == -1);
+
+    // A gyro sign other than +1/-1 is rejected
+    handled = CalibrationService::executeCommand("!CALIB:WRITE:66.00:0.960:1.040:-0.025:-1:1:0", response, sizeof(response));
+    assert(handled);
+    assert(strcmp(response, "!ERR:INVALID") == 0);
+    assert(Gyroscope::getSign() == -1);
 
     // Reject out-of-range values (e.g. diameter 20mm or trim 2.50)
     handled = CalibrationService::executeCommand("!CALIB:WRITE:20.00:0.960:1.040:-0.025:-1:1", response, sizeof(response));
@@ -169,9 +184,10 @@ int main() {
 
     handled = CalibrationService::executeCommand("!CALIB:READ", response, sizeof(response));
     assert(handled);
-    assert(strcmp(response, "!CALIB:DATA:65.00:1.000:1.000:0.000:1:1") == 0);
+    assert(strcmp(response, "!CALIB:DATA:65.00:1.000:1.000:0.000:1:1:1") == 0);
     assert(Motors::getInvertLeft() == 1);
     assert(Motors::getInvertRight() == 1);
+    assert(Gyroscope::getSign() == 1);
     assert(approxEqual(Odometry::getWheelDiameterMm(), DIAMETER_RODA_MM, 0.01f));
     std::cout << "  ✓ Test 5: Profile Management (!CALIB:READ, WRITE, RESET) passed." << std::endl;
 
@@ -189,7 +205,7 @@ int main() {
     Hal::injectMockSerial("!CALIB:READ\n");
     CalibrationService::update();
     out = Hal::getMockSerialOutput();
-    assert(strstr(out, "!CALIB:DATA:65.00:1.000:1.000:0.000:1:1\r\n") != NULL);
+    assert(strstr(out, "!CALIB:DATA:65.00:1.000:1.000:0.000:1:1:1\r\n") != NULL);
 
     // Test that digits 1-4 inside frames are NOT consumed as room commands
     Hal::clearMockSerialOutput();

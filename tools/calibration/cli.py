@@ -43,11 +43,12 @@ def show_interactive_menu(engine: CalibrationEngine) -> None:
         print("  [5] Jalankan Seluruh Suite Kalibrasi (U1 -> U4)")
         print("  [6] Tampilkan Calibration Profile EEPROM Aktif")
         print("  [7] Reset Profile EEPROM ke Default Pabrik")
-        print("  [8] Keluar")
+        print("  [8] Atur Orientasi MPU6050 (chip menghadap atas/bawah, arah panah X)")
+        print("  [9] Keluar")
         print(f"{Colors.CYAN}----------------------------------------------------{Colors.RESET}")
 
         try:
-            choice = input("Pilih menu [0-8]: ").strip()
+            choice = input("Pilih menu [0-9]: ").strip()
         except (EOFError, KeyboardInterrupt):
             break
 
@@ -67,13 +68,18 @@ def show_interactive_menu(engine: CalibrationEngine) -> None:
             print(f"  Trim Motor Kanan   : {prof.trim_motor_kanan:.3f}")
             print(f"  Bias Gyro Z        : {prof.gyro_bias_z:.3f} deg/s")
             print(f"  Inversi Motor Kiri : {prof.invert_motor_kiri}")
-            print(f"  Inversi Motor Kanan: {prof.invert_motor_kanan}\n")
+            print(f"  Inversi Motor Kanan: {prof.invert_motor_kanan}")
+            print(f"  Tanda Gyro (MPU)   : {prof.gyro_sign:+d} ({'chip menghadap ATAS' if prof.gyro_sign > 0 else 'chip menghadap BAWAH'})\n")
         elif choice == "7":
             if engine.reset_profile():
                 print(f"{Colors.GREEN}✓ Profil EEPROM berhasil di-reset ke nilai default pabrik.{Colors.RESET}")
             else:
                 print(f"{Colors.RED}✗ Gagal mereset profil EEPROM.{Colors.RESET}")
         elif choice == "8":
+            mounting = engine.observation.ask_mpu_mounting()
+            if mounting is not None:
+                engine.configure_mpu_mounting(mounting)
+        elif choice == "9":
             print("Keluar dari Wizard Kalibrasi.")
             break
         else:
