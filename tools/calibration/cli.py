@@ -131,6 +131,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     # Verify communication
     if not transport.ping():
         print(f"{Colors.RED}Gagal berkomunikasi dengan firmware robot (!PING timeout).{Colors.RESET}")
+        print("  - Lewat kabel USB: lepas kabel TXD HC-05 dari D0, dan tutup Serial Monitor Arduino IDE.")
+        print("  - Lewat Bluetooth: USB dicabut, TXD HC-05 terpasang di D0, sakelar ON, LED HC-05 kedip ganda pelan;"
+              " jika baru di-pair, jalankan ulang perintah ini.")
+        print("  - Pastikan baud sama dengan SERIAL_BAUD di Config.h (--baud).")
         transport.close()
         return 1
 

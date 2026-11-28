@@ -142,3 +142,20 @@ Buka `build/robot_3d.blend` di Blender. Di Outliner, objek dikelompokkan menjadi
 | `bl_parts.py`, `bl_import.py` | Komponen prosedural dan import model unduhan, dinormalisasi oleh `assets/3d/anchors.json` (koordinat pin) |
 | `bl_wires.py`, `bl_checks.py`, `build_robot.py` | Kabel dupont/telanjang, pemeriksaan scene, dan rakitan penuh + render |
 | `check_parts.py`, `measure_model.py` | Pemeriksa dimensi/anchor setiap part dan alat bantu ukur pin |
+
+---
+
+## 5. Konsol Serial Robot (`serial_console.py`)
+
+Konsol baris-per-baris untuk berbicara dengan robot lewat USB atau Bluetooth HC-05, pengganti `serial.tools.miniterm` yang lebih ramah: ketikan terlihat, satu baris dikirim per Enter (diakhiri satu `\n`), keluar dengan `exit` atau `Ctrl+C` dan port **selalu dilepas**, port dikunci eksklusif (bila sedang dipakai program lain, konsol menampilkan perintah `lsof`/`kill` untuk membebaskannya), dan telemetri dapat langsung disimpan sebagai CSV siap plot. Membutuhkan `pyserial` dari venv proyek (`source .venv/bin/activate`).
+
+```bash
+# Interaktif: ketik !PING, !DIAG:ALL, !DIAG:MOTOR:150:0:1000, angka ruangan 1-4, ... lalu 'exit'
+python3 tools/serial_console.py --port /dev/cu.HC-05
+
+# Rekam uji arena: hanya baris telemetri ke CSV (siap plot_trajectory.py), semua baris ke log
+python3 tools/serial_console.py --port /dev/cu.HC-05 --csv babak1_room2.csv --log babak1_room2.txt
+
+# Non-interaktif (skrip/CI): tunggu reset USB 2 s, kirim perintah, rekam 3 s, keluar
+python3 tools/serial_console.py --port /dev/cu.usbmodem14101 --send '!PING' --send '!DIAG:ALL' --duration 3
+```

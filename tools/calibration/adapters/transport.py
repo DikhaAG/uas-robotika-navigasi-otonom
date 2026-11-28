@@ -3,6 +3,7 @@ Transport adapter seam and implementations for communicating with the robot MCU.
 """
 
 import os
+import errno
 import time
 from typing import Any, Dict, List, Optional, Tuple
 try:
@@ -283,6 +284,26 @@ class MockRobotSerial(_AsciiProtocolTransportMixin):
 # Must equal SERIAL_BAUD in firmware/RobotNavigasiOtonom/Config.h (HC-05 factory baud).
 DEFAULT_BAUD: int = 9600
 
+_BUSY_ERRNOS = (errno.EAGAIN, errno.EBUSY, errno.EACCES)
+
+
+def port_problem_hints(port: str, error: BaseException) -> List[str]:
+    """Explains why a port failed to open and how to recover."""
+    hints: List[str] = []
+    code = getattr(error, "errno", None)
+    text = str(error).lower()
+    if code in _BUSY_ERRNOS or "lock" in text or "busy" in text or "unavailable" in text:
+        hints.append("Port sedang dipakai program lain (Serial Monitor Arduino IDE, miniterm, wizard, "
+                     "atau konsol yang belum ditutup).")
+        hints.append(f"Cari programnya:  lsof {port}")
+        hints.append("Lalu hentikan:     kill <PID>   (atau tutup jendela terminal/aplikasinya)")
+    elif code == errno.ENOENT or "no such file" in text:
+        hints.append("Port tidak ditemukan. Lihat daftar port: ls /dev/cu.*")
+        hints.append("Bluetooth: pastikan HC-05 menyala (LED berkedip) dan sudah di-pair di pengaturan Bluetooth.")
+    else:
+        hints.append("Periksa nama port (ls /dev/cu.*), kabel USB data, atau pairing Bluetooth HC-05.")
+    return hints
+
 
 class SerialTransportAdapter(_AsciiProtocolTransportMixin):
     """Transport adapter communicating with physical hardware or mock backends over serial."""
@@ -296,14 +317,16 @@ class SerialTransportAdapter(_AsciiProtocolTransportMixin):
         if self.ser is None and self.port:
             try:
                 import serial
-                self.ser = serial.Serial(self.port, self.baud, timeout=self.timeout)
+                # Exclusive: a second program on the same port would silently eat the replies
+                self.ser = serial.Serial(self.port, self.baud, timeout=self.timeout, exclusive=True)
                 # Wait for Arduino bootloader reset
                 time.sleep(1.8)
                 self.ser.reset_input_buffer()
             except ImportError:
                 raise RuntimeError("Modul 'pyserial' belum terinstall. Install dengan: pip install pyserial")
             except Exception as e:
-                raise RuntimeError(f"Gagal membuka port serial '{self.port}': {e}")
+                hints = "".join(f"\n  - {h}" for h in port_problem_hints(self.port, e))
+                raise RuntimeError(f"Gagal membuka port serial '{self.port}': {e}{hints}")
 
     def send_command(self, cmd: str) -> str:
         if not self.ser:

@@ -98,6 +98,7 @@ Robot bergerak secara otonom menggunakan sistem penggerak *differential drive* (
 ├── tools/
 │   ├── README.md                       # Ringkasan utilitas CLI host
 │   ├── auto_calibrate.py               # Wizard interaktif Pre-Flight (U0) & Kalibrasi (U1-U4)
+│   ├── serial_console.py               # Konsol serial ramah (USB/Bluetooth): kirim perintah, rekam telemetri ke CSV
 │   ├── calibration/                    # Paket modular wizard kalibrasi (engine, formulas, adapters)
 │   ├── simulate_navigation.py          # Runner simulasi kinematika arena 480x80 cm
 │   ├── sim_navigation.cpp              # Harness simulasi native C++ (menggunakan kode firmware asli)
@@ -235,7 +236,7 @@ make check
 
 Perintah `make check` otomatis menjalankan 3 tahap:
 1. **`make lint`**: Memeriksa tidak ada `delay()` yang memblokir di algoritma firmware, validasi sintaks Python, dan pengecekan standar tipe Python.
-2. **`make test`**: Mengompilasi dan menjalankan seluruh **9 suite unit test C++** (`tests/test_*`) serta **53 unit test Python** (`tests/test_auto_calibrate.py`), ditambah tes model 3D (`tests/test_blender_*.py`: netlist 41 kabel dicocokkan dengan `Config.h` & `wiring-schematic.md`, tata letak sasis, rute kabel, dan manifest model). Semuanya berjalan **tanpa Blender dan tanpa internet**.
+2. **`make test`**: Mengompilasi dan menjalankan seluruh **9 suite unit test C++** (`tests/test_*`) serta **58 unit test Python** (`tests/test_auto_calibrate.py`), ditambah tes model 3D (`tests/test_blender_*.py`: netlist 41 kabel dicocokkan dengan `Config.h` & `wiring-schematic.md`, tata letak sasis, rute kabel, dan manifest model). Semuanya berjalan **tanpa Blender dan tanpa internet**.
 3. **`make run_simulation`**: Mengompilasi simulator native C++ (`tools/sim_navigation`), menjalankan skenario navigasi standar, dan merender `tools/trajectory_plot.svg`.
 
 Jika di akhir terminal muncul pesan:
@@ -408,7 +409,7 @@ Wizard `tools/auto_calibrate.py` menguji seluruh kabel sensor/aktuator (**Stage 
 #### Persiapan Sebelum Menjalankan Wizard
 - Aktifkan *virtual environment* berisi pyserial: `source .venv/bin/activate` (lihat [Cara Instalasi Prasyarat Software](#cara-instalasi-prasyarat-software)).
 - Pastikan baterai robot terisi penuh (2S: `7.4–8.4 V`; 3S: `11.1–12.6 V`) dan sakelar daya robot dalam posisi **ON**.
-- Hubungkan Arduino Uno/ESP32 ke laptop menggunakan kabel USB data.
+- Hubungkan robot ke laptop **lewat kabel USB data** (lepas `TXD` HC-05 dari `D0`) **atau lewat Bluetooth HC-05** tanpa kabel (lihat *Opsi: Kalibrasi Penuh Lewat Bluetooth* di bawah).
 - Untuk tahap **U0** awal, **ganjal bagian bawah robot** agar roda bebas berputar di udara saat motor diuji.
 
 #### Menjalankan Wizard
@@ -431,10 +432,12 @@ Seluruh wizard (U0–U4), Serial Monitor, pemilihan ruangan, dan telemetri dapat
 1. Upload firmware lewat USB (`TXD` HC-05 dilepas), lalu **cabut kabel USB**, pasang kembali `TXD` HC-05 ke `D0`, dan nyalakan sakelar baterai. LED HC-05 berkedip cepat (belum terhubung).
 2. Pasangkan HC-05 di laptop sekali saja: macOS *System Settings → Bluetooth* (Windows: *Bluetooth & devices*), pilih `HC-05`, PIN `1234` (beberapa modul `0000`).
 3. Cari nama portnya: macOS `ls /dev/cu.*` (misal `/dev/cu.HC-05`), Windows: *COM* keluar (*outgoing*) di pengaturan Bluetooth, Linux: `rfcomm`.
-4. Uji koneksi: buka Serial Monitor Arduino IDE (atau `python3 -m serial.tools.miniterm /dev/cu.HC-05 9600`) pada port tersebut, `9600` baud, kirim `!PING` $\rightarrow$ `!PONG`. LED HC-05 berubah menjadi kedip ganda pelan saat terhubung. Tutup kembali Serial Monitor.
+4. Aktifkan venv (`source .venv/bin/activate`), lalu uji koneksi dengan konsol proyek: `python3 tools/serial_console.py --port /dev/cu.HC-05`. Ketik `!PING` lalu Enter $\rightarrow$ `!PONG`. LED HC-05 berubah menjadi kedip ganda pelan saat terhubung. Keluar dengan mengetik `exit` (atau `Ctrl+C`) — port otomatis dilepas.
 5. Jalankan wizard dengan port Bluetooth: `python3 tools/auto_calibrate.py --port /dev/cu.HC-05`. Jika muncul `!PING timeout` pada percobaan pertama (tautan Bluetooth belum siap), jalankan ulang perintahnya.
 
 > Membuka port Bluetooth **tidak** me-reset Arduino (tidak ada sinyal DTR), sehingga pilihan ruangan dan status lainnya tetap tersimpan.
+
+> **Satu port, satu program.** Serial Monitor Arduino IDE, `serial_console.py`, dan wizard tidak bisa memakai port yang sama bersamaan; konsol dan wizard mengunci port secara eksklusif dan menampilkan cara membebaskannya bila port sedang dipakai. Hindari `python3 -m serial.tools.miniterm` bawaan pyserial: ketikan tidak ditampilkan, `Ctrl+C` ikut terkirim ke robot, dan tombol keluarnya (`Ctrl+]`) sering tidak berfungsi di keyboard Mac sehingga program tampak *freeze* sambil tetap memegang port.
 
 #### Penjelasan Setiap Tahap di Dalam Wizard
 
@@ -478,7 +481,7 @@ Setelah kalibrasi selesai, cabut kabel USB (robot siap berjalan otonom dengan ba
 
 1. **Letakkan Robot di Titik Start:** Posisikan robot pada koordinat `(0, 0)` di tengah koridor menghadap lurus ke arah sumbu `+X` (sejajar garis tengah koridor). Pastikan robot dalam `STATE_IDLE` (**LED status berkedip lambat setiap 1 detik**).
 2. **Pilih Ruangan Tujuan (`1`–`4`):**
-   - Kirim karakter angka **`1`**, **`2`**, **`3`**, atau **`4`** (tanpa perlu tanda `!`) melalui **Serial Monitor (9600 baud)** (atau modul Bluetooth HC-05 yang terhubung ke `D0`/`D1`) sebelum melepas kabel/memulai.
+   - Kirim karakter angka **`1`**, **`2`**, **`3`**, atau **`4`** (tanpa perlu tanda `!`) melalui **Serial Monitor (9600 baud)** atau lewat Bluetooth HC-05 dengan konsol proyek (`python3 tools/serial_console.py --port /dev/cu.HC-05 --csv babak1_room2.csv`, ketik angka lalu Enter) sebelum memulai. Lewat Bluetooth, konsol yang sama sekaligus merekam telemetri (lihat di bawah).
    - *(Jika tidak memilih, target default adalah **Room 1**).*
 3. **Mulai Navigasi:** Tekan tombol fisik **START** (`D12` pada Arduino Uno / `GPIO 15` pada ESP32).
 4. **Amati Urutan Eksekusi:**
@@ -499,10 +502,13 @@ Contoh baris log serial:
 # STATE -> MAJU
 2200,MAJU,12.45,0.32,0.85,145.20,0
 ```
-Simpan output Serial Monitor tersebut ke dalam file `.csv`, lalu jalankan:
+Cara termudah merekamnya adalah **lewat Bluetooth HC-05** (robot berjalan tanpa kabel) dengan konsol proyek: opsi `--csv` hanya menyimpan baris telemetri beserta header, sehingga file langsung siap diplot. Jalankan sebelum menekan START, pilih ruangan dengan mengetik angkanya, lalu ketik `exit` setelah robot `TIBA`/`GAGAL`:
 ```bash
-python3 tools/plot_trajectory.py log_uji_arena.csv -o grafik_uji_arena.svg
+source .venv/bin/activate
+python3 tools/serial_console.py --port /dev/cu.HC-05 --csv babak1_room2.csv --log babak1_room2.txt
+python3 tools/plot_trajectory.py babak1_room2.csv -o babak1_room2.svg
 ```
+(`--log` menyimpan seluruh baris termasuk `# STATE -> ...` untuk lampiran laporan.) Jika merekam dari Serial Monitor Arduino IDE, salin hanya baris berawalan angka ke file `.csv`, lalu jalankan `python3 tools/plot_trajectory.py log_uji_arena.csv -o grafik_uji_arena.svg`.
 
 ---
 
@@ -564,6 +570,12 @@ Saat firmware utama `RobotNavigasiOtonom` berada di `STATE_IDLE`, komunikasi ser
   2. Cek nama port dengan `ls /dev/ttyUSB* /dev/ttyACM*` (Linux) atau `ls /dev/cu.*` (macOS).
   3. Di Linux, pastikan user sudah masuk grup `dialout` (`sudo usermod -aG dialout $USER` lalu login ulang).
   4. Tutup **Serial Monitor Arduino IDE** sebelum menjalankan `auto_calibrate.py`.
+- **`Could not exclusively lock port`, `Resource temporarily unavailable`/`Resource busy`, atau wizard `!PING timeout` padahal robot menyala:**
+  Port masih dipegang program lain — sering kali `miniterm` atau konsol lama yang tampak *freeze* tetapi masih berjalan di jendela terminal lain. Cari programnya dengan `lsof /dev/cu.HC-05` (ganti dengan port Anda), hentikan dengan `kill <PID>` atau tutup jendela terminalnya, lalu ulangi. Lewat kabel USB, pastikan juga `TXD` HC-05 dilepas dari `D0`.
+- **LED HC-05 tidak menyala sama sekali / HC-05 tidak muncul di daftar Bluetooth:**
+  1. LED yang mati berarti modul **tidak mendapat daya** (modul sehat langsung berkedip cepat begitu diberi 5V). Baca label pin di **belakang** modul — urutannya berbeda antar varian (ZS-040: `STATE RXD TXD GND VCC EN`; varian lain: `KEY VCC GND TXD RXD STATE`) — dan pastikan `+5V` masuk ke `VCC`, `GND` ke `GND`.
+  2. Uji dengan menyambung `VCC`/`GND` HC-05 **langsung ke pin `5V`/`GND` Arduino**: jika LED lalu menyala, masalahnya di breadboard (banyak rel daya breadboard **terputus di tengah**) atau kabel jumper.
+  3. **iPhone tidak akan pernah menampilkan HC-05** (Bluetooth Classic SPP tidak didukung iOS). Gunakan Mac/Windows/Linux, atau Android dengan aplikasi *Serial Bluetooth Terminal*. Di macOS, port `/dev/cu.HC-05` baru muncul setelah pairing berhasil.
 - **`make check` gagal di `clang++: command not found` atau `make: command not found`:**
   Install *Xcode Command Line Tools* (macOS) atau paket `clang` + `make` (Linux/WSL) seperti pada bagian [Instalasi Prasyarat Software](#cara-instalasi-prasyarat-software).
 - **Stage U0.1 MPU6050 gagal (`WHO_AM_I` error) atau Arduino tiba-tiba restart saat motor berjalan:**

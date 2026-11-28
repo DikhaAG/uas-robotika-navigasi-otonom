@@ -12,6 +12,7 @@ import contextlib
 import io
 import os
 import sys
+import time
 import unittest
 from typing import Dict, List, Optional
 
@@ -103,6 +104,85 @@ class TestSerialTransportTiming(unittest.TestCase):
         self.assertIsNotNone(match)
         self.assertEqual(DEFAULT_BAUD, int(match.group(1)))
         self.assertEqual(DEFAULT_BAUD, 9600)
+
+
+class FakeConsoleLink:
+    """pyserial stand-in for the console: replies to written lines, then idles like a read timeout."""
+    def __init__(self, replies: Dict[str, List[bytes]], initial: Optional[List[bytes]] = None) -> None:
+        self.replies: Dict[str, List[bytes]] = replies
+        self.pending: List[bytes] = list(initial or [])
+        self.written: List[bytes] = []
+        self.closed: bool = False
+
+    def write(self, data: bytes) -> None:
+        self.written.append(data)
+        self.pending.extend(self.replies.get(data.decode("ascii").strip(), []))
+
+    def readline(self) -> bytes:
+        if self.pending:
+            return self.pending.pop(0)
+        time.sleep(0.005)
+        return b""
+
+    def close(self) -> None:
+        self.closed = True
+
+
+class TestSerialConsole(unittest.TestCase):
+    def test_telemetry_row_detection(self) -> None:
+        from tools.serial_console import is_telemetry_row
+        self.assertTrue(is_telemetry_row("2200,MAJU,12.45,0.32,0.85,145.20,0"))
+        self.assertFalse(is_telemetry_row("!PONG"))
+        self.assertFalse(is_telemetry_row("# STATE -> MAJU"))
+        self.assertFalse(is_telemetry_row("t_ms,state,x,y,theta,jarak,iWp"))
+        self.assertFalse(is_telemetry_row(""))
+
+    def test_send_line_appends_single_newline(self) -> None:
+        from tools.serial_console import ConsoleSession
+        link = FakeConsoleLink({})
+        ConsoleSession(link, io.StringIO()).send_line("  !PING \r")
+        self.assertEqual(link.written, [b"!PING\n"])
+
+    def test_received_lines_go_to_screen_log_and_csv(self) -> None:
+        from tools.serial_console import TELEMETRY_HEADER, ConsoleSession
+        screen, log, csv = io.StringIO(), io.StringIO(), io.StringIO()
+        session = ConsoleSession(FakeConsoleLink({}), screen, log=log, csv=csv)
+        for raw in (b"# STATE -> MAJU\r\n", b"2200,MAJU,12.45,0.32,0.85,145.20,0\r\n", b"\r\n"):
+            session.handle_received(raw)
+        self.assertIn("2200,MAJU", screen.getvalue())
+        self.assertEqual(log.getvalue(), "# STATE -> MAJU\n2200,MAJU,12.45,0.32,0.85,145.20,0\n")
+        self.assertEqual(csv.getvalue(), TELEMETRY_HEADER + "\n2200,MAJU,12.45,0.32,0.85,145.20,0\n")
+
+    def test_non_interactive_run_sends_commands_records_csv_and_releases_port(self) -> None:
+        from tools import serial_console
+        link = FakeConsoleLink({"!PING": [b"!PONG\r\n"], "2": [b"# STATE -> KALIBRASI\r\n",
+                                                               b"200,KALIBRASI,0.00,0.00,0.00,40.00,0\r\n"]})
+        csv_path = os.path.join(os.path.dirname(__file__), "test_tmp_console.csv")
+        buf = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buf):
+                code = serial_console.main(["--port", "FAKE", "--send", "!PING", "--send", "2",
+                                            "--wait", "0", "--duration", "0.2", "--csv", csv_path],
+                                           open_link=lambda port, baud: link)
+            with open(csv_path, encoding="utf-8") as f:
+                rows = f.read().splitlines()
+        finally:
+            if os.path.exists(csv_path):
+                os.remove(csv_path)
+        self.assertEqual(code, 0)
+        self.assertIn("!PONG", buf.getvalue())
+        self.assertEqual(rows, [serial_console.TELEMETRY_HEADER, "200,KALIBRASI,0.00,0.00,0.00,40.00,0"])
+        self.assertTrue(link.closed)
+
+    def test_busy_port_explains_how_to_free_it(self) -> None:
+        from tools import serial_console
+        def busy(port: str, baud: int) -> FakeConsoleLink:
+            raise OSError(35, "Could not exclusively lock port: Resource temporarily unavailable")
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            code = serial_console.main(["--port", "/dev/cu.HC-05", "--duration", "0"], open_link=busy)
+        self.assertEqual(code, 1)
+        self.assertIn("lsof /dev/cu.HC-05", buf.getvalue())
 
 
 class TestSerialProtocolClient(unittest.TestCase):
